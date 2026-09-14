@@ -2,3 +2,34 @@ section[aria-label^='Notifications'] {
   padding: 0 !important;
   margin: 0 !important;
 }
+
+[data-sonner-toast] {
+  border-radius: 1rem !important;
+}
+
+[data-sonner-toast][data-type='success'],
+[data-sonner-toast]:not([data-type='error']):not([data-type='info']):not([data-type='warning']) {
+  background-color: #136b77 !important;
+  color: #ffffff !important;
+  border-color: rgba(19, 107, 119, 0.4) !important;
+}
+
+[data-sonner-toast][data-type='info'],
+[data-sonner-toast][data-type='warning'] {
+  background-color: #fdf8f1 !important;
+  color: #ffffff !important;
+  text-shadow:
+    0 1px 2px rgba(40, 30, 20, 0.35),
+    0 0 1px rgba(40, 30, 20, 0.6) !important;
+  border-color: #ebdcc8 !important;
+}
+
+[data-sonner-toast][data-type='error'] {
+  background-color: #be123c !important;
+  color: #ffffff !important;
+  border-color: #9f1239 !important;
+}
+
+[data-sonner-toast] [data-close-button] {
+  color: #d4af37 !important;
+}

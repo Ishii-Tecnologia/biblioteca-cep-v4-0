@@ -1,8 +1,8 @@
 {
   "name": "skip-react-template",
-  "description": "A frontend React Vite TypeScript Shadcn UI template for Skip projects",
+  "description": "Biblioteca CEP v4.0 - Sistema de Gestao da Biblioteca",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.127",
   "type": "module",
   "scripts": {
     "start": "vite dev",
@@ -46,6 +46,7 @@
     "@radix-ui/react-toggle": "^1.1.12",
     "@radix-ui/react-toggle-group": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.10",
+    "@supabase/supabase-js": "^2.112.3",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "caniuse-lite": "^1.0.30001799",
     "class-variance-authority": "^0.7.1",

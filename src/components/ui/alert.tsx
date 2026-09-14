@@ -5,13 +5,15 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const alertVariants = cva(
-  'relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground',
+  'relative w-full rounded-xl border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4',
   {
     variants: {
       variant: {
-        default: 'bg-background text-foreground',
+        default: 'border-[#e2d5c3] bg-[#fdf8f1] text-[#2c3e44] [&>svg]:text-[#136b77]',
+        success: 'border-[#136b77]/30 bg-[#136b77] text-white [&>svg]:text-[#ffd978]',
+        info: 'border-[#e2d5c3] bg-[#fdf8f1] text-[#2c3e44] [&>svg]:text-[#136b77]',
         destructive:
-          'border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive',
+          'border-rose-300 bg-rose-50 text-rose-900 dark:border-rose-900 [&>svg]:text-rose-600',
       },
     },
     defaultVariants: {

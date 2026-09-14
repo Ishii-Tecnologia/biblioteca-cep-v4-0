@@ -1,6 +1,6 @@
-# Projeto Criado com o Skip
+# Biblioteca CEP v4.0
 
-Este projeto foi criado de ponta a ponta com o [Skip](https://goskip.dev).
+Sistema de Gestão de Biblioteca CEP v4.0.
 
 ## 🚀 Stack Tecnológica
 
