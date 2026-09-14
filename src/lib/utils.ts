@@ -74,6 +74,71 @@ export function validateCPF(cpf: string): boolean {
 }
 
 /**
+ * Formata celular brasileiro:
+ * - 2 dígitos DDD + até 9 dígitos: (XX) XXXXX-XXXX (máximo 11 dígitos)
+ */
+export function formatMobilePhone(value: string): string {
+  if (!value) return ''
+  const digits = value.replace(/\D/g, '').slice(0, 11)
+
+  if (digits.length <= 2) {
+    return digits.length > 0 ? `(${digits}` : ''
+  }
+  if (digits.length <= 7) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
+  }
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`
+}
+
+/**
+ * Valida celular brasileiro: exatamente 2 dígitos DDD + 9 dígitos celular (11 dígitos no total).
+ * Primeiro dígito do celular no Brasil após o DDD costuma ser 9.
+ */
+export function validateMobilePhone(value: string): boolean {
+  if (!value) return false
+  const digits = value.replace(/\D/g, '')
+  if (digits.length !== 11) return false
+  const ddd = parseInt(digits.slice(0, 2), 10)
+  if (ddd < 11 || ddd > 99) return false
+  // Celular no Brasil começa com 9
+  if (digits.charAt(2) !== '9') return false
+  return true
+}
+
+/**
+ * Formata telefone fixo brasileiro:
+ * - 2 dígitos DDD + até 8 dígitos: (XX) XXXX-XXXX (máximo 10 dígitos)
+ */
+export function formatLandlinePhone(value: string): string {
+  if (!value) return ''
+  const digits = value.replace(/\D/g, '').slice(0, 10)
+
+  if (digits.length <= 2) {
+    return digits.length > 0 ? `(${digits}` : ''
+  }
+  if (digits.length <= 6) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
+  }
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6, 10)}`
+}
+
+/**
+ * Valida telefone fixo brasileiro: exatamente 2 dígitos DDD + 8 dígitos (10 dígitos no total).
+ * Telefones fixos no Brasil costumam começar com 2, 3, 4 ou 5.
+ */
+export function validateLandlinePhone(value: string): boolean {
+  if (!value) return false
+  const digits = value.replace(/\D/g, '')
+  if (digits.length !== 10) return false
+  const ddd = parseInt(digits.slice(0, 2), 10)
+  if (ddd < 11 || ddd > 99) return false
+  // Fixo não começa com 0 ou 1, nem com 9
+  const firstDigit = digits.charAt(2)
+  if (firstDigit === '0' || firstDigit === '1' || firstDigit === '9') return false
+  return true
+}
+
+/**
  * Formats a phone string into Brazilian phone format:
  * - Up to 10 digits: (XX) XXXX-XXXX
  * - 11 digits: (XX) XXXXX-XXXX

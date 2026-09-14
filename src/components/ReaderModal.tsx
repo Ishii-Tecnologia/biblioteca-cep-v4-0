@@ -11,10 +11,16 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
 import { LeitoresService, Leitor } from '@/services/leitores'
 import { CursosService, Curso } from '@/services/cursos'
 import { useToast } from '@/hooks/use-toast'
-import { formatCPF, formatPhone, validateCPF } from '@/lib/utils'
+import {
+  formatMobilePhone,
+  validateMobilePhone,
+  formatLandlinePhone,
+  validateLandlinePhone,
+} from '@/lib/utils'
 import {
   UserPlus,
   Loader2,
@@ -28,6 +34,12 @@ import {
   ShieldAlert,
   Info,
   AlertCircle,
+  KeyRound,
+  Eye,
+  EyeOff,
+  MailCheck,
+  Phone,
+  Smartphone,
 } from 'lucide-react'
 import { uploadImageToStorage, extractImageFileFromClipboard, urlToFile } from '@/lib/image-upload'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -39,13 +51,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-
 import { useAuth } from '@/hooks/use-auth'
+import { supabase } from '@/lib/supabase/client'
 
 interface ReaderModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  readerToEdit?: Leitor | null
+  readerToEdit?: (Leitor & { telefone_fixo?: string | null }) | null
   isSelfEdit?: boolean
   onSuccess: () => void
 }
@@ -63,18 +75,30 @@ export function ReaderModal({
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
 
-  const [cpfError, setCpfError] = useState<string | null>(null)
+  // Erros de validação
   const [emailError, setEmailError] = useState<string | null>(null)
+  const [celularError, setCelularError] = useState<string | null>(null)
+  const [telefoneFixoError, setTelefoneFixoError] = useState<string | null>(null)
+  const [senhaError, setSenhaError] = useState<string | null>(null)
 
+  // Estado do formulário
   const [formData, setFormData] = useState({
     nome_do_leitor: '',
     email: '',
-    cpf: '',
-    telefone: '',
+    celular: '',
+    telefone_fixo: '',
     foto: '',
     bloqueado: false,
     acesso_diretoria: false,
   })
+
+  // Senha para primeiro acesso (novo leitor)
+  const [firstAccessPassword, setFirstAccessPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+
+  // Checkbox de reset de senha (edição pelo operador)
+  const [sendPasswordReset, setSendPasswordReset] = useState(false)
 
   // Gerenciamento de cursos
   const [allCursos, setAllCursos] = useState<Curso[]>([])
@@ -92,16 +116,22 @@ export function ReaderModal({
   }, [open])
 
   useEffect(() => {
-    setCpfError(null)
     setEmailError(null)
+    setCelularError(null)
+    setTelefoneFixoError(null)
+    setSenhaError(null)
     setCursoToAdd('')
+    setFirstAccessPassword('')
+    setConfirmPassword('')
+    setShowPassword(false)
+    setSendPasswordReset(false)
 
     if (readerToEdit) {
       setFormData({
         nome_do_leitor: readerToEdit.nome_do_leitor,
         email: readerToEdit.email,
-        cpf: formatCPF(readerToEdit.cpf || ''),
-        telefone: formatPhone(readerToEdit.telefone || ''),
+        celular: formatMobilePhone(readerToEdit.telefone || ''),
+        telefone_fixo: formatLandlinePhone((readerToEdit as any).telefone_fixo || ''),
         foto: readerToEdit.foto || '',
         bloqueado: readerToEdit.bloqueado || false,
         acesso_diretoria: Boolean((readerToEdit as any).acesso_diretoria),
@@ -124,8 +154,8 @@ export function ReaderModal({
       setFormData({
         nome_do_leitor: '',
         email: '',
-        cpf: '',
-        telefone: '',
+        celular: '',
+        telefone_fixo: '',
         foto: '',
         bloqueado: false,
         acesso_diretoria: false,
@@ -151,7 +181,6 @@ export function ReaderModal({
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      console.log('[ReaderModal] Foto de leitor selecionada via arquivo:', file.name, file.size)
       setPhotoFile(file)
       const reader = new FileReader()
       reader.onload = (ev) => {
@@ -162,24 +191,20 @@ export function ReaderModal({
   }
 
   const applyPhotoFile = (file: File) => {
-    console.log('[ReaderModal] Aplicando arquivo de foto do leitor (tamanho:', file.size, ')')
     setPhotoFile(file)
     const reader = new FileReader()
     reader.onload = (ev) => {
       setPhotoPreview(ev.target?.result as string)
-      console.log('[ReaderModal] Preview atualizado com sucesso da foto.')
     }
     reader.readAsDataURL(file)
   }
 
   const handlePaste = async (e: React.ClipboardEvent) => {
-    console.log('[ReaderModal] Evento paste no container da foto')
     try {
       const file = await extractImageFileFromClipboard(e)
       if (file) {
         e.preventDefault()
         e.stopPropagation()
-        console.log('[ReaderModal] Imagem extraída com sucesso:', file.size, 'bytes')
         applyPhotoFile(file)
         toast({
           title: 'Imagem colada!',
@@ -209,7 +234,6 @@ export function ReaderModal({
         Array.from(e.clipboardData.items).some((it) => it.type.startsWith('image/'))
 
       if (hasImageItems || !isInputOrTextarea) {
-        console.log('[ReaderModal] Global paste interceptado (hasImage:', hasImageItems, ')')
         try {
           const file = await extractImageFileFromClipboard(e)
           if (file) {
@@ -232,11 +256,9 @@ export function ReaderModal({
   }, [open, toast])
 
   const handlePasteButtonClick = async () => {
-    console.log('[ReaderModal] Botão colar clicado')
     try {
       const file = await extractImageFileFromClipboard()
       if (file) {
-        console.log('[ReaderModal] Imagem colada via botão:', file.size)
         applyPhotoFile(file)
         toast({
           title: 'Imagem colada!',
@@ -250,7 +272,6 @@ export function ReaderModal({
         })
       }
     } catch (err: any) {
-      console.warn('[ReaderModal] Falha ao ler clipboard via botão:', err)
       toast({
         title: 'Aviso',
         description: 'Clique no campo e pressione Ctrl+V para colar a imagem.',
@@ -264,16 +285,12 @@ export function ReaderModal({
     setFormData((prev) => ({ ...prev, foto: '' }))
   }
 
-  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCPF(e.target.value)
-    setFormData((prev) => ({ ...prev, cpf: formatted }))
-    setCpfError(null)
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setCpfError(null)
     setEmailError(null)
+    setCelularError(null)
+    setTelefoneFixoError(null)
+    setSenhaError(null)
 
     const cleanNome = formData.nome_do_leitor.trim()
     const cleanEmail = formData.email.trim().toLowerCase()
@@ -287,75 +304,106 @@ export function ReaderModal({
       return
     }
 
-    if (!readerToEdit) {
-      if (!cleanEmail) {
+    if (!cleanEmail) {
+      setEmailError('E-mail obrigatório')
+      toast({
+        title: 'E-mail obrigatório',
+        description: 'O endereço de e-mail é obrigatório.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(cleanEmail)) {
+      setEmailError('Formato de e-mail inválido')
+      toast({
+        title: 'E-mail inválido',
+        description: 'Por favor, informe um endereço de e-mail válido.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // 1. Validação de existência/duplicidade de e-mail (login)
+    try {
+      const emailExists = await LeitoresService.checkEmailExists(
+        cleanEmail,
+        readerToEdit ? readerToEdit.id_leitor : undefined,
+      )
+      if (emailExists) {
+        setEmailError('E-mail já cadastrado')
         toast({
-          title: 'E-mail obrigatório',
-          description: 'O endereço de e-mail é obrigatório para novos cadastros de leitores.',
+          title: 'E-mail já cadastrado',
+          description: `O e-mail "${cleanEmail}" já está em uso no sistema. Cada leitor deve possuir um e-mail exclusivo como login de acesso.`,
           variant: 'destructive',
         })
         return
       }
+    } catch (checkEmailErr) {
+      console.warn('Erro ao verificar email:', checkEmailErr)
+    }
 
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(cleanEmail)) {
-        setEmailError('Formato de e-mail inválido')
+    // 2. Validação do Celular/WhatsApp (se preenchido, deve ter 2 dígitos DDD e 9 dígitos celular: 11 dígitos)
+    const cleanCelularDigits = formData.celular.replace(/\D/g, '')
+    if (cleanCelularDigits.length > 0) {
+      if (!validateMobilePhone(cleanCelularDigits)) {
+        setCelularError('Informe o celular no formato: (XX) 9XXXX-XXXX')
         toast({
-          title: 'E-mail inválido',
-          description: 'Por favor, informe um endereço de e-mail válido.',
+          title: 'Celular inválido',
+          description:
+            'O campo "Celular/WhatsApp" deve conter 2 dígitos para o DDD seguidos de 9 dígitos para o celular (ex: (11) 98765-4321).',
           variant: 'destructive',
         })
         return
-      }
-
-      // Validação de duplicidade de e-mail no sistema
-      try {
-        const emailExists = await LeitoresService.checkEmailExists(cleanEmail)
-        if (emailExists) {
-          setEmailError('E-mail já cadastrado')
-          toast({
-            title: 'E-mail já cadastrado',
-            description: `O e-mail "${cleanEmail}" já está em uso no sistema. Como ele é o identificador de login de acesso, cada leitor deve possuir um e-mail exclusivo.`,
-            variant: 'destructive',
-          })
-          return
-        }
-      } catch (checkEmailErr) {
-        console.warn('Erro ao verificar email:', checkEmailErr)
       }
     }
 
-    const cleanCpf = formData.cpf.replace(/\D/g, '')
-    if (cleanCpf) {
-      // 1. Validação dos dígitos verificadores
-      if (!validateCPF(cleanCpf)) {
-        setCpfError('CPF inválido')
+    // 3. Validação do Telefone Fixo (se preenchido, deve ter 2 dígitos DDD e 8 dígitos fixo: 10 dígitos)
+    const cleanFixoDigits = formData.telefone_fixo.replace(/\D/g, '')
+    if (cleanFixoDigits.length > 0) {
+      if (!validateLandlinePhone(cleanFixoDigits)) {
+        setTelefoneFixoError('Informe o fixo no formato: (XX) XXXX-XXXX')
         toast({
-          title: 'CPF inválido',
+          title: 'Telefone Fixo inválido',
           description:
-            'Por favor, informe um número de CPF válido com dígitos verificadores corretos.',
+            'O campo "Telefone Fixo" deve conter 2 dígitos para o DDD seguidos de 8 dígitos para o fixo (ex: (11) 3456-7890).',
           variant: 'destructive',
         })
         return
       }
+    }
 
-      // 2. Validação de duplicidade
-      try {
-        const exists = await LeitoresService.checkCpfExists(
-          cleanCpf,
-          readerToEdit ? readerToEdit.id_leitor : undefined,
-        )
-        if (exists) {
-          setCpfError('CPF já cadastrado')
-          toast({
-            title: 'CPF já cadastrado',
-            description: 'Já existe outro leitor cadastrado com este mesmo CPF.',
-            variant: 'destructive',
-          })
-          return
-        }
-      } catch (checkErr: any) {
-        console.error('Erro ao verificar CPF:', checkErr)
+    // 4. Validação de Senha de Primeiro Acesso (apenas para novo cadastro)
+    if (!readerToEdit) {
+      const cleanPass = firstAccessPassword.trim()
+      if (!cleanPass) {
+        setSenhaError('Defina a senha para o primeiro acesso')
+        toast({
+          title: 'Senha de acesso obrigatória',
+          description:
+            'Ao cadastrar um novo leitor, defina a senha para o primeiro acesso ao sistema (mínimo 6 caracteres).',
+          variant: 'destructive',
+        })
+        return
+      }
+      if (cleanPass.length < 6) {
+        setSenhaError('A senha deve ter no mínimo 6 caracteres')
+        toast({
+          title: 'Senha muito curta',
+          description: 'A senha de acesso do leitor deve conter no mínimo 6 caracteres.',
+          variant: 'destructive',
+        })
+        return
+      }
+      if (confirmPassword && cleanPass !== confirmPassword.trim()) {
+        setSenhaError('A confirmação de senha não confere')
+        toast({
+          title: 'Senhas não coincidem',
+          description: 'A senha de primeiro acesso e sua confirmação devem ser iguais.',
+          variant: 'destructive',
+        })
+        return
       }
     }
 
@@ -363,13 +411,6 @@ export function ReaderModal({
     try {
       let finalFotoUrl = formData.foto || null
       let fileToUpload = photoFile
-
-      console.log(
-        '[ReaderModal] Salvando leitor... fileToUpload:',
-        !!fileToUpload,
-        'preview:',
-        !!photoPreview,
-      )
 
       // Fallback: se houver photoPreview (ex: dataURL ou blob colado) e não tiver photoFile, converter
       if (
@@ -379,13 +420,7 @@ export function ReaderModal({
         photoPreview !== formData.foto
       ) {
         try {
-          console.log('[ReaderModal] Convertendo photoPreview em File...')
           fileToUpload = await urlToFile(photoPreview, `leitor-${Date.now()}.png`)
-          console.log(
-            '[ReaderModal] Preview convertido com sucesso em File:',
-            fileToUpload.size,
-            'bytes',
-          )
         } catch (convErr) {
           console.warn('[ReaderModal] Erro ao converter preview para arquivo:', convErr)
         }
@@ -393,38 +428,38 @@ export function ReaderModal({
 
       if (fileToUpload) {
         try {
-          console.log('[ReaderModal] Enviando foto para storage avatars...')
           finalFotoUrl = await uploadImageToStorage(fileToUpload, 'avatars', {
             maxWidth: 400,
             maxHeight: 400,
             quality: 0.8,
             outputFormat: 'image/jpeg',
           })
-          console.log('[ReaderModal] Upload concluído, URL pública:', finalFotoUrl)
         } catch (uploadErr: any) {
-          console.error('[ReaderModal] Erro ao enviar foto do leitor para o storage:', uploadErr)
+          console.error('[ReaderModal] Erro ao enviar foto do leitor:', uploadErr)
           throw new Error(`Falha no upload da foto: ${uploadErr.message || 'Erro desconhecido'}`)
         }
       } else if (!photoPreview) {
-        console.log('[ReaderModal] Sem preview de foto, definindo foto como null')
         finalFotoUrl = null
       }
 
-      // Descobrir nome do curso primário (para compatibilidade com colunas legadas leitor.curso)
+      // Descobrir nome do curso primário
       const primaryCursoObj = allCursos.find((c) => selectedCursoIds.includes(c.id))
       const primaryCursoNome = primaryCursoObj ? primaryCursoObj.nome : null
 
+      const formattedCelular = cleanCelularDigits ? formatMobilePhone(cleanCelularDigits) : null
+      const formattedFixo = cleanFixoDigits ? formatLandlinePhone(cleanFixoDigits) : null
+
       if (readerToEdit) {
-        // Na edição, o e-mail NÃO é alterado (mantém o e-mail original como login de entrada)
+        // --- ATUALIZAÇÃO DO LEITOR ---
         const updatePayload: any = {
-          nome_do_leitor: formData.nome_do_leitor.trim(),
-          cpf: formData.cpf.trim() || null,
-          telefone: formData.telefone.trim() || null,
+          nome_do_leitor: cleanNome,
+          telefone: formattedCelular,
+          telefone_fixo: formattedFixo,
           foto: finalFotoUrl,
           curso: primaryCursoNome,
         }
 
-        // Apenas operador/admin pode alterar o status de bloqueio e acesso à diretoria
+        // Apenas operador/admin pode alterar status de bloqueio e acesso à diretoria
         if (isOperadorOrAdmin && !isSelfEdit) {
           updatePayload.bloqueado = formData.bloqueado
           updatePayload.acesso_diretoria = formData.acesso_diretoria
@@ -437,32 +472,136 @@ export function ReaderModal({
           await CursosService.setCursosForLeitor(readerToEdit.id_leitor, selectedCursoIds)
         }
 
+        // Se o operador marcou o checkbox para enviar e-mail de reset de senha
+        let resetEmailSent = false
+        if (sendPasswordReset && isOperadorOrAdmin) {
+          const resetRes = await LeitoresService.sendPasswordResetEmail(cleanEmail)
+          if (resetRes.success) {
+            resetEmailSent = true
+          } else {
+            console.warn('Aviso no resetPasswordForEmail:', resetRes.error)
+            toast({
+              title: 'Aviso sobre o e-mail de reset',
+              description: `Dados salvos, mas o envio do link de reset falhou: ${resetRes.error || 'Verifique o serviço de e-mail.'}`,
+              variant: 'destructive',
+            })
+          }
+        }
+
         await refreshProfile()
-        toast({ title: 'Sucesso', description: 'Dados do leitor atualizados com sucesso!' })
+
+        toast({
+          title: 'Dados atualizados!',
+          description: resetEmailSent
+            ? `Dados do leitor salvos e link de redefinição de senha enviado para ${cleanEmail}.`
+            : 'Dados do leitor atualizados com sucesso!',
+        })
       } else {
-        const createdLeitor = await LeitoresService.create({
-          nome_do_leitor: formData.nome_do_leitor.trim(),
-          email: formData.email.trim(),
-          cpf: formData.cpf.trim() || null,
-          telefone: formData.telefone.trim() || null,
+        // --- NOVO CADASTRO DE LEITOR ---
+        // 1. Criar usuário no Supabase Auth com a senha de primeiro acesso definida
+        let createdAuthUserId: string | null = null
+        const cleanPassword = firstAccessPassword.trim()
+
+        try {
+          // Tentativa A: Edge Function admin_create_user
+          const { data: edgeData, error: edgeErr } = await supabase.functions.invoke(
+            'admin_create_user',
+            {
+              body: {
+                email: cleanEmail,
+                password: cleanPassword,
+                nome: cleanNome,
+                papel: 'leitor',
+                avatar_url: finalFotoUrl,
+              },
+            },
+          )
+
+          if (!edgeErr && edgeData && edgeData.success) {
+            createdAuthUserId = edgeData.user?.id || null
+          } else {
+            // Tentativa B: RPC admin_create_user
+            const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)(
+              'admin_create_user',
+              {
+                new_email: cleanEmail,
+                new_password: cleanPassword,
+                new_nome: cleanNome,
+                new_papel: 'leitor',
+                new_avatar_url: finalFotoUrl,
+              },
+            )
+
+            if (!rpcErr && rpcData && rpcData.success) {
+              createdAuthUserId = rpcData.user_id || null
+            } else {
+              // Tentativa C: Fallback para supabase.auth.signUp
+              const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+                email: cleanEmail,
+                password: cleanPassword,
+                options: {
+                  data: {
+                    nome: cleanNome,
+                    full_name: cleanNome,
+                    papel: 'leitor',
+                    role: 'leitor',
+                    app_role: 'leitor',
+                    avatar_url: finalFotoUrl || undefined,
+                  },
+                },
+              })
+
+              if (signUpErr) {
+                console.warn('Aviso no fallback de signUp:', signUpErr.message)
+              } else if (signUpData?.user) {
+                createdAuthUserId = signUpData.user.id
+                try {
+                  await (supabase.rpc as any)('confirm_user_email', {
+                    user_id: createdAuthUserId,
+                  })
+                } catch {
+                  /* ignore */
+                }
+              }
+            }
+          }
+        } catch (authCreateEx) {
+          console.warn('Exceção ao criar credencial de autenticação:', authCreateEx)
+        }
+
+        // 2. Criar registro na tabela public.leitor (sem CPF)
+        const insertPayload: any = {
+          id_auth: createdAuthUserId,
+          nome_do_leitor: cleanNome,
+          email: cleanEmail,
+          telefone: formattedCelular,
+          telefone_fixo: formattedFixo,
           foto: finalFotoUrl,
           bloqueado: isOperadorOrAdmin ? formData.bloqueado : false,
           acesso_diretoria: isOperadorOrAdmin ? formData.acesso_diretoria : false,
           curso: primaryCursoNome,
-        } as any)
+          data_cadastro: new Date().toISOString().split('T')[0],
+        }
 
+        const createdLeitor = await LeitoresService.create(insertPayload)
+
+        // 3. Vincular cursos selecionados
         if (createdLeitor && createdLeitor.id_leitor && selectedCursoIds.length > 0) {
           await CursosService.setCursosForLeitor(createdLeitor.id_leitor, selectedCursoIds)
         }
 
-        toast({ title: 'Sucesso', description: 'Novo leitor cadastrado com sucesso!' })
+        toast({
+          title: 'Leitor cadastrado com sucesso!',
+          description: `O leitor ${cleanNome} foi registrado. A senha de primeiro acesso foi configurada para o e-mail ${cleanEmail}.`,
+        })
       }
+
       onSuccess()
       onOpenChange(false)
     } catch (err: any) {
       toast({
         title: 'Erro ao salvar leitor',
-        description: err.message || 'Verifique se o e-mail ou CPF já não estão cadastrados.',
+        description: err.message || 'Verifique se as informações preenchidas estão corretas.',
         variant: 'destructive',
       })
     } finally {
@@ -472,7 +611,7 @@ export function ReaderModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[520px] max-h-[92vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-slate-900">
@@ -486,9 +625,9 @@ export function ReaderModal({
             <DialogDescription>
               {readerToEdit
                 ? isSelfEdit
-                  ? 'Altere suas informações de nome, CPF, telefone e foto. O e-mail de login não pode ser alterado.'
-                  : 'Atualize as informações de contato, cursos frequentados e permissão do leitor.'
-                : 'Cadastre um leitor para habilitar a realização de empréstimos e reservas.'}
+                  ? 'Altere suas informações de nome, celular, telefone fixo e foto. O e-mail de login não pode ser alterado.'
+                  : 'Atualize as informações de contato, cursos frequentados, permissões e redefinição de senha.'
+                : 'Cadastre um novo leitor com suas formas de contato e defina a senha para o primeiro acesso.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -564,6 +703,7 @@ export function ReaderModal({
               </div>
             </div>
 
+            {/* Nome Completo */}
             <div>
               <Label htmlFor="nome_do_leitor" className="text-xs font-semibold text-slate-700">
                 Nome Completo *
@@ -574,16 +714,17 @@ export function ReaderModal({
                 placeholder="Ex: Maria dos Santos"
                 value={formData.nome_do_leitor}
                 onChange={(e) => setFormData({ ...formData, nome_do_leitor: e.target.value })}
-                className="mt-1"
+                className="mt-1 text-xs"
               />
             </div>
 
+            {/* E-mail / Login */}
             <div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="email" className="text-xs font-semibold text-slate-700">
                   {readerToEdit
-                    ? 'E-mail (Login de Entrada - Não Editável)'
-                    : 'E-mail Institucional ou Pessoal *'}
+                    ? 'E-mail (Login de Entrada — Não Editável)'
+                    : 'E-mail (Login de Acesso) *'}
                 </Label>
                 {readerToEdit ? (
                   <span className="text-[11px] font-medium text-amber-700 flex items-center gap-1">
@@ -599,7 +740,7 @@ export function ReaderModal({
                 required={!readerToEdit}
                 readOnly={!!readerToEdit}
                 disabled={!!readerToEdit}
-                placeholder="Ex: maria.santos@escola.br"
+                placeholder="Ex: maria.santos@exemplo.com"
                 value={formData.email}
                 onChange={(e) => {
                   setFormData({ ...formData, email: e.target.value })
@@ -617,57 +758,202 @@ export function ReaderModal({
                 <div className="mt-1.5 flex items-start gap-1.5 p-2 rounded bg-amber-50/80 border border-amber-200/60 text-[11px] text-amber-900 leading-snug">
                   <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
                   <span>
-                    O e-mail é o <strong>login de entrada</strong> e não pode ser alterado na
-                    edição. Para alterar o e-mail, é necessário excluir o leitor e cadastrá-lo
-                    novamente com o novo e-mail.
+                    O e-mail é o <strong>login de entrada</strong> do leitor. Para alterá-lo, exclua
+                    e recadastre o leitor com o novo e-mail.
                   </span>
                 </div>
               ) : (
                 <p className="text-[11px] text-slate-500 mt-1">
-                  Este e-mail será utilizado como identificador único de login no sistema.
+                  Este e-mail será o identificador de login exclusivo do leitor na biblioteca.
                 </p>
               )}
             </div>
 
+            {/* Telefones: Celular/WhatsApp e Telefone Fixo */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Celular/WhatsApp */}
               <div>
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="cpf" className="text-xs font-semibold text-slate-700">
-                    CPF
+                  <Label
+                    htmlFor="celular"
+                    className="text-xs font-semibold text-slate-700 flex items-center gap-1"
+                  >
+                    <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+                    Celular/WhatsApp
                   </Label>
-                  {cpfError && (
-                    <span className="text-[11px] font-medium text-rose-600">{cpfError}</span>
+                  {celularError && (
+                    <span className="text-[10px] font-medium text-rose-600">{celularError}</span>
                   )}
                 </div>
                 <Input
-                  id="cpf"
-                  placeholder="000.000.000-00"
-                  maxLength={14}
-                  value={formData.cpf}
-                  onChange={handleCpfChange}
-                  className={`mt-1 font-mono text-xs ${
-                    cpfError ? 'border-rose-500 focus-visible:ring-rose-500' : ''
+                  id="celular"
+                  type="tel"
+                  placeholder="(XX) 9XXXX-XXXX"
+                  maxLength={15}
+                  value={formData.celular}
+                  onChange={(e) => {
+                    setFormData({ ...formData, celular: formatMobilePhone(e.target.value) })
+                    if (celularError) setCelularError(null)
+                  }}
+                  className={`mt-1 text-xs font-mono ${
+                    celularError ? 'border-rose-500 focus-visible:ring-rose-500' : ''
                   }`}
                 />
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  2 dígitos DDD + 9 dígitos celular
+                </p>
               </div>
 
+              {/* Telefone Fixo */}
               <div>
-                <Label htmlFor="telefone" className="text-xs font-semibold text-slate-700">
-                  Telefone / WhatsApp
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label
+                    htmlFor="telefone_fixo"
+                    className="text-xs font-semibold text-slate-700 flex items-center gap-1"
+                  >
+                    <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                    Telefone Fixo
+                  </Label>
+                  {telefoneFixoError && (
+                    <span className="text-[10px] font-medium text-rose-600">
+                      {telefoneFixoError}
+                    </span>
+                  )}
+                </div>
                 <Input
-                  id="telefone"
+                  id="telefone_fixo"
                   type="tel"
-                  placeholder="(XX) XXXXX-XXXX"
-                  maxLength={15}
-                  value={formData.telefone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, telefone: formatPhone(e.target.value) })
-                  }
-                  className="mt-1 text-xs"
+                  placeholder="(XX) XXXX-XXXX"
+                  maxLength={14}
+                  value={formData.telefone_fixo}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      telefone_fixo: formatLandlinePhone(e.target.value),
+                    })
+                    if (telefoneFixoError) setTelefoneFixoError(null)
+                  }}
+                  className={`mt-1 text-xs font-mono ${
+                    telefoneFixoError ? 'border-rose-500 focus-visible:ring-rose-500' : ''
+                  }`}
                 />
+                <p className="text-[10px] text-slate-400 mt-0.5">2 dígitos DDD + 8 dígitos fixo</p>
               </div>
             </div>
+
+            {/* SE FOR NOVO CADASTRO: Senha de Primeiro Acesso */}
+            {!readerToEdit && (
+              <div className="space-y-3 p-3 bg-emerald-50/60 rounded-lg border border-emerald-200">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-emerald-600 text-white flex items-center justify-center">
+                    <KeyRound className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-bold text-emerald-950">
+                      Senha de Acesso (Primeiro Acesso) *
+                    </Label>
+                    <p className="text-[11px] text-emerald-800">
+                      Defina a senha que o leitor utilizará para acessar o sistema no primeiro
+                      acesso.
+                    </p>
+                  </div>
+                </div>
+
+                {senhaError && (
+                  <p className="text-[11px] font-medium text-rose-600 bg-rose-50 p-2 rounded border border-rose-200">
+                    {senhaError}
+                  </p>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  <div className="space-y-1">
+                    <Label
+                      htmlFor="first_password"
+                      className="text-[11px] font-semibold text-slate-700"
+                    >
+                      Senha Provisória * (mínimo 6 dígitos)
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="first_password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="••••••••"
+                        minLength={6}
+                        required
+                        value={firstAccessPassword}
+                        onChange={(e) => {
+                          setFirstAccessPassword(e.target.value)
+                          if (senhaError) setSenhaError(null)
+                        }}
+                        className="text-xs pr-8 bg-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        tabIndex={-1}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-3.5 h-3.5" />
+                        ) : (
+                          <Eye className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label
+                      htmlFor="confirm_first_password"
+                      className="text-[11px] font-semibold text-slate-700"
+                    >
+                      Confirmar Senha *
+                    </Label>
+                    <Input
+                      id="confirm_first_password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      minLength={6}
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value)
+                        if (senhaError) setSenhaError(null)
+                      }}
+                      className="text-xs bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* SE FOR EDIÇÃO POR OPERADOR: Checkbox de Reset de Senha */}
+            {readerToEdit && isOperadorOrAdmin && !isSelfEdit && (
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+                <div className="flex items-start gap-2.5">
+                  <Checkbox
+                    id="reset-password-check"
+                    checked={sendPasswordReset}
+                    onCheckedChange={(checked) => setSendPasswordReset(!!checked)}
+                    className="mt-0.5 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                  />
+                  <div className="space-y-0.5">
+                    <Label
+                      htmlFor="reset-password-check"
+                      className="text-xs font-semibold text-slate-900 cursor-pointer flex items-center gap-1.5"
+                    >
+                      <MailCheck className="w-3.5 h-3.5 text-emerald-600" />
+                      Enviar e-mail para redefinição de senha do leitor
+                    </Label>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Ao marcar esta opção e salvar, será enviado automaticamente um link seguro
+                      para o e-mail cadastrado (<strong>{readerToEdit.email}</strong>) para que o
+                      leitor defina uma nova senha.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Campo de Curso(s) que está frequentando na CEP */}
             <div className="space-y-2 p-3 bg-slate-50/80 rounded-lg border border-slate-200">

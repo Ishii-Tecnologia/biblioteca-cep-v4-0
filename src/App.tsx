@@ -16,6 +16,7 @@ import Historico from './pages/Historico'
 import Configuracoes from './pages/Configuracoes'
 import Usuarios from './pages/Usuarios'
 import Login from './pages/Login'
+import RedefinirSenha from './pages/RedefinirSenha'
 import NotFound from './pages/NotFound'
 
 const App = () => (
@@ -39,6 +40,7 @@ const App = () => (
                 }
               />
               <Route path="/login" element={<Login />} />
+              <Route path="/redefinir-senha" element={<RedefinirSenha />} />
 
               {/* Rotas Autenticadas */}
               <Route

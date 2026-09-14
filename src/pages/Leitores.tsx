@@ -373,13 +373,23 @@ export default function Leitores() {
                       <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span className="truncate font-mono">{reader.email}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span>
-                        {reader.telefone || (
-                          <span className="text-slate-400 italic">Não informado</span>
-                        )}
-                      </span>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>
+                          {reader.telefone ? (
+                            <span>{reader.telefone}</span>
+                          ) : (
+                            <span className="text-slate-400 italic">Sem celular</span>
+                          )}
+                        </span>
+                      </div>
+                      {reader.telefone_fixo && (
+                        <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                          <Phone className="w-3 h-3 text-slate-400 shrink-0" />
+                          <span>Fixo: {reader.telefone_fixo}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />

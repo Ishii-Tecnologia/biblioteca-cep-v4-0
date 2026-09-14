@@ -6,6 +6,7 @@ export type LeitorInsert = TablesInsert<'leitor'>
 export type LeitorUpdate = TablesUpdate<'leitor'>
 
 export interface LeitorWithStats extends Leitor {
+  telefone_fixo?: string | null
   emprestimos_ativos: number
   emprestimos_atrasados: number
   total_emprestimos: number
@@ -33,7 +34,7 @@ export const LeitoresService = {
     if (searchQuery && searchQuery.trim()) {
       const q = `%${searchQuery.trim()}%`
       query = query.or(
-        `nome_do_leitor.ilike.${q},email.ilike.${q},cpf.ilike.${q},telefone.ilike.${q}`,
+        `nome_do_leitor.ilike.${q},email.ilike.${q},telefone.ilike.${q},telefone_fixo.ilike.${q}`,
       )
     }
 
@@ -76,6 +77,7 @@ export const LeitoresService = {
         nome_do_leitor: l.nome_do_leitor,
         email: l.email,
         telefone: l.telefone,
+        telefone_fixo: l.telefone_fixo || null,
         data_cadastro: l.data_cadastro,
         bloqueado: l.bloqueado,
         curso: l.curso || null,
@@ -202,10 +204,10 @@ export const LeitoresService = {
     return data
   },
 
-  async update(id_leitor: number, updates: LeitorUpdate) {
+  async update(id_leitor: number, updates: LeitorUpdate & { telefone_fixo?: string | null }) {
     const { data, error } = await supabase
       .from('leitor')
-      .update(updates)
+      .update(updates as any)
       .eq('id_leitor', id_leitor)
       .select()
       .single()
@@ -220,6 +222,7 @@ export const LeitoresService = {
         nome: data.nome_do_leitor,
         full_name: data.nome_do_leitor,
         telefone: data.telefone,
+        telefone_fixo: (data as any).telefone_fixo || null,
         avatar_url: data.foto,
       }
       if (typeof updates.acesso_diretoria === 'boolean') {
@@ -240,6 +243,34 @@ export const LeitoresService = {
     }
 
     return data
+  },
+
+  /**
+   * Envia e-mail de redefinição de senha para o leitor via Supabase Auth
+   */
+  async sendPasswordResetEmail(email: string): Promise<{ success: boolean; error?: string }> {
+    const normalized = email.trim().toLowerCase()
+    if (!normalized) {
+      return { success: false, error: 'E-mail não informado.' }
+    }
+
+    try {
+      const redirectUrl = `${window.location.origin}/redefinir-senha`
+      const { error } = await supabase.auth.resetPasswordForEmail(normalized, {
+        redirectTo: redirectUrl,
+      })
+
+      if (error) {
+        return { success: false, error: error.message || 'Falha ao enviar e-mail de redefinição.' }
+      }
+
+      return { success: true }
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.message || 'Erro inesperado ao solicitar reset de senha.',
+      }
+    }
   },
 
   async toggleBlock(id_leitor: number, currentBlocked: boolean) {
