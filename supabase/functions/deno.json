@@ -1,7 +1,7 @@
 {
   "_versions": {
-    "admin_reset_password": 190,
-    "auditoria_mensal_expurgo": 60,
-    "admin_create_user": 31
+    "admin_reset_password": 191,
+    "auditoria_mensal_expurgo": 61,
+    "admin_create_user": 32
   }
 }
