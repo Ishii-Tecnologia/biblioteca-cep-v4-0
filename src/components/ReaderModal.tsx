@@ -40,6 +40,7 @@ import {
   MailCheck,
   Phone,
   Smartphone,
+  History,
 } from 'lucide-react'
 import { uploadImageToStorage, extractImageFileFromClipboard, urlToFile } from '@/lib/image-upload'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -60,6 +61,7 @@ interface ReaderModalProps {
   readerToEdit?: (Leitor & { telefone_fixo?: string | null }) | null
   isSelfEdit?: boolean
   onSuccess: () => void
+  onViewHistory?: () => void
 }
 
 export function ReaderModal({
@@ -68,6 +70,7 @@ export function ReaderModal({
   readerToEdit,
   isSelfEdit = false,
   onSuccess,
+  onViewHistory,
 }: ReaderModalProps) {
   const { isOperadorOrAdmin, refreshProfile } = useAuth()
   const { toast } = useToast()
@@ -1123,23 +1126,39 @@ export function ReaderModal({
             )}
           </div>
 
-          <DialogFooter className="gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              disabled={loading}
-            >
-              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {readerToEdit ? 'Salvar Alterações' : 'Salvar Cadastro'}
-            </Button>
+          <DialogFooter className="gap-2 sm:justify-between">
+            {readerToEdit && onViewHistory ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onViewHistory}
+                className="gap-1.5 text-xs text-slate-700 border-slate-300 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 mr-auto"
+              >
+                <History className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Ver Histórico de Empréstimos</span>
+              </Button>
+            ) : (
+              <div />
+            )}
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={loading}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                disabled={loading}
+              >
+                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {readerToEdit ? 'Salvar Alterações' : 'Salvar Cadastro'}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

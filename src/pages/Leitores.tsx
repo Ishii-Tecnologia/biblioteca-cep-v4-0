@@ -21,8 +21,10 @@ import {
   Phone,
   ShieldCheck,
   UserCheck,
+  History,
 } from 'lucide-react'
 import { ReaderModal } from '@/components/ReaderModal'
+import { ReaderLoanHistoryModal } from '@/components/ReaderLoanHistoryModal'
 import { formatCPF } from '@/lib/utils'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import { useToast } from '@/hooks/use-toast'
@@ -39,6 +41,10 @@ export default function Leitores() {
   const [readerModalOpen, setReaderModalOpen] = useState(false)
   const [readerToEdit, setReaderToEdit] = useState<Leitor | null>(null)
   const [isSelfEdit, setIsSelfEdit] = useState(false)
+
+  // Histórico de empréstimos do leitor
+  const [historyModalOpen, setHistoryModalOpen] = useState(false)
+  const [readerForHistory, setReaderForHistory] = useState<LeitorWithStats | null>(null)
 
   // Confirm modals state
   const [blockConfirmOpen, setBlockConfirmOpen] = useState(false)
@@ -164,6 +170,11 @@ export default function Leitores() {
     setReaderToEdit(reader)
     setIsSelfEdit(isReaderOwner(reader))
     setReaderModalOpen(true)
+  }
+
+  const handleOpenHistory = (reader: LeitorWithStats) => {
+    setReaderForHistory(reader)
+    setHistoryModalOpen(true)
   }
 
   return (
@@ -421,38 +432,52 @@ export default function Leitores() {
                 </div>
 
                 {/* Bottom Actions */}
-                {canEdit && (
-                  <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                    {isOperadorOrAdmin ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className={`h-7 text-xs px-2 gap-1 ${
-                          reader.bloqueado
-                            ? 'text-emerald-700 hover:bg-emerald-50'
-                            : 'text-amber-700 hover:bg-amber-50'
-                        }`}
-                        onClick={() => handleToggleBlock(reader)}
-                      >
-                        {reader.bloqueado ? (
-                          <>
-                            <Unlock className="w-3 h-3" />
-                            Desbloquear
-                          </>
-                        ) : (
-                          <>
-                            <Lock className="w-3 h-3" />
-                            Bloquear
-                          </>
-                        )}
-                      </Button>
-                    ) : (
-                      <span className="text-[11px] text-slate-500">
-                        Clique ao lado para editar seus dados
-                      </span>
-                    )}
+                <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-1">
+                  {/* Left action: Bloquear/Desbloquear para staff */}
+                  {isOperadorOrAdmin && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 text-xs px-2 gap-1 ${
+                        reader.bloqueado
+                          ? 'text-emerald-700 hover:bg-emerald-50'
+                          : 'text-amber-700 hover:bg-amber-50'
+                      }`}
+                      onClick={() => handleToggleBlock(reader)}
+                    >
+                      {reader.bloqueado ? (
+                        <>
+                          <Unlock className="w-3 h-3" />
+                          Desbloquear
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-3 h-3" />
+                          Bloquear
+                        </>
+                      )}
+                    </Button>
+                  )}
 
-                    <div className="flex items-center gap-1 ml-auto">
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    {/* Botão Histórico de Empréstimos */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs px-2.5 bg-white border-slate-200 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 gap-1.5 shadow-2xs"
+                      onClick={() => handleOpenHistory(reader)}
+                      title="Ver histórico de empréstimos do leitor"
+                    >
+                      <History className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Histórico</span>
+                      {reader.total_emprestimos > 0 && (
+                        <span className="text-[10px] px-1 py-0 rounded bg-slate-100 text-slate-600 font-semibold group-hover:bg-emerald-100 group-hover:text-emerald-800">
+                          {reader.total_emprestimos}
+                        </span>
+                      )}
+                    </Button>
+
+                    {canEdit && (
                       <Button
                         size={isOperadorOrAdmin ? 'icon' : 'sm'}
                         variant={isOperadorOrAdmin ? 'ghost' : 'default'}
@@ -467,21 +492,21 @@ export default function Leitores() {
                         <Edit2 className="w-3.5 h-3.5" />
                         {!isOperadorOrAdmin && <span>Editar Meus Dados</span>}
                       </Button>
+                    )}
 
-                      {isAdmin && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
-                          onClick={() => handleDelete(reader)}
-                          title="Excluir leitor"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
-                    </div>
+                    {canEdit && isAdmin && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
+                        onClick={() => handleDelete(reader)}
+                        title="Excluir leitor"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
                   </div>
-                )}
+                </div>
               </Card>
             )
           })}
@@ -489,12 +514,24 @@ export default function Leitores() {
       )}
 
       {/* Modals */}
+      <ReaderLoanHistoryModal
+        open={historyModalOpen}
+        onOpenChange={setHistoryModalOpen}
+        reader={readerForHistory}
+      />
+
       <ReaderModal
         open={readerModalOpen}
         onOpenChange={setReaderModalOpen}
         readerToEdit={readerToEdit}
         isSelfEdit={isSelfEdit}
         onSuccess={loadReaders}
+        onViewHistory={() => {
+          if (readerToEdit) {
+            setReaderForHistory(readerToEdit as any)
+            setHistoryModalOpen(true)
+          }
+        }}
       />
 
       <ConfirmModal

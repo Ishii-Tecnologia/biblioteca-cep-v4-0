@@ -34,6 +34,58 @@ export interface EmprestimoDetailed extends Emprestimo {
 }
 
 export const EmprestimosService = {
+  async getByLeitor(id_leitor: number) {
+    const { data, error } = await supabase
+      .from('emprestimo')
+      .select(`
+        *,
+        exemplar (
+          id_exemplar,
+          seq,
+          status,
+          localizacao,
+          titulo (
+            id_titulo,
+            titulo_de_livro,
+            autor,
+            editora,
+            capa_url,
+            categoria,
+            colecao
+          )
+        ),
+        leitor (
+          id_leitor,
+          nome_do_leitor,
+          email,
+          telefone,
+          cpf,
+          bloqueado
+        )
+      `)
+      .eq('id_leitor', id_leitor)
+      .order('data_emprestimo', { ascending: false })
+
+    if (error) throw error
+
+    const now = new Date()
+    return ((data || []) as unknown as EmprestimoDetailed[]).map((emp) => {
+      const isReturned = !!emp.data_devolucao_real
+      const expected = new Date(emp.data_prevista_devolucao)
+      const isOverdue = !isReturned && expected < now
+      let diffDays = 0
+      if (isOverdue) {
+        diffDays = Math.ceil((now.getTime() - expected.getTime()) / (1000 * 60 * 60 * 24))
+      }
+
+      return {
+        ...emp,
+        atraso: emp.atraso || isOverdue,
+        dias_atraso: isOverdue ? diffDays : emp.dias_atraso || 0,
+      }
+    })
+  },
+
   async getAll(
     statusFilter: 'todos' | 'ativos' | 'atrasados' | 'devolvidos' = 'todos',
     searchQuery?: string,
