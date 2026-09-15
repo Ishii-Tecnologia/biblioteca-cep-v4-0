@@ -7,6 +7,7 @@ export type LeitorUpdate = TablesUpdate<'leitor'>
 
 export interface LeitorWithStats extends Leitor {
   telefone_fixo: string | null
+  status_cadastro?: string | null
   emprestimos_ativos: number
   emprestimos_atrasados: number
   total_emprestimos: number
@@ -15,7 +16,7 @@ export interface LeitorWithStats extends Leitor {
 }
 
 export const LeitoresService = {
-  async getAll(searchQuery?: string, filterStatus?: 'all' | 'ativos' | 'bloqueados') {
+  async getAll(searchQuery?: string, filterStatus?: 'all' | 'ativos' | 'bloqueados' | 'pendentes') {
     let query = supabase
       .from('leitor')
       .select(`
@@ -26,9 +27,11 @@ export const LeitoresService = {
       .order('nome_do_leitor', { ascending: true })
 
     if (filterStatus === 'ativos') {
-      query = query.eq('bloqueado', false)
+      query = (query as any).eq('bloqueado', false).neq('status_cadastro', 'pendente')
     } else if (filterStatus === 'bloqueados') {
       query = query.eq('bloqueado', true)
+    } else if (filterStatus === 'pendentes') {
+      query = (query as any).eq('status_cadastro', 'pendente')
     }
 
     if (searchQuery && searchQuery.trim()) {
@@ -77,6 +80,7 @@ export const LeitoresService = {
         email: l.email,
         telefone: l.telefone,
         telefone_fixo: l.telefone_fixo || null,
+        status_cadastro: l.status_cadastro || 'ativo',
         data_cadastro: l.data_cadastro,
         bloqueado: l.bloqueado,
         curso: l.curso || null,
@@ -174,12 +178,123 @@ export const LeitoresService = {
         ...leitor,
         data_cadastro: leitor.data_cadastro || new Date().toISOString().split('T')[0],
         bloqueado: leitor.bloqueado ?? false,
-      })
+        status_cadastro: (leitor as any).status_cadastro || 'ativo',
+      } as any)
       .select()
       .single()
 
     if (error) throw error
     return data
+  },
+
+  /**
+   * Auto-cadastro de leitor com status pendente de validação
+   */
+  async autoRegister(leitorData: {
+    nome_do_leitor: string
+    email: string
+    telefone?: string | null
+    telefone_fixo?: string | null
+    foto?: string | null
+    curso?: string | null
+  }) {
+    const insertPayload: any = {
+      nome_do_leitor: leitorData.nome_do_leitor.trim(),
+      email: leitorData.email.trim().toLowerCase(),
+      telefone: leitorData.telefone || null,
+      telefone_fixo: leitorData.telefone_fixo || null,
+      foto: leitorData.foto || null,
+      curso: leitorData.curso || null,
+      status_cadastro: 'pendente',
+      bloqueado: false,
+      acesso_diretoria: false,
+      data_cadastro: new Date().toISOString().split('T')[0],
+    }
+
+    const { data, error } = await supabase.from('leitor').insert(insertPayload).select().single()
+
+    if (error) throw error
+    return data
+  },
+
+  /**
+   * Verifica o status de cadastro do leitor pelo e-mail
+   */
+  async checkLeitorStatus(email: string): Promise<'ativo' | 'pendente' | 'inexistente'> {
+    const normalized = email.trim().toLowerCase()
+    if (!normalized) return 'inexistente'
+
+    try {
+      const { data, error } = await (supabase.rpc as any)('check_leitor_status', {
+        p_email: normalized,
+      })
+      if (!error && data) {
+        return data as 'ativo' | 'pendente' | 'inexistente'
+      }
+    } catch {
+      // fallback
+    }
+
+    const { data: row } = await supabase
+      .from('leitor')
+      .select('status_cadastro')
+      .ilike('email', normalized)
+      .maybeSingle()
+
+    if (!row) return 'inexistente'
+    return ((row as any).status_cadastro || 'ativo') as 'ativo' | 'pendente'
+  },
+
+  /**
+   * Aprova cadastro pendente: cria conta de auth, marca como ativo e dispara e-mail de primeiro acesso
+   */
+  async approveReader(
+    id_leitor: number,
+  ): Promise<{ success: boolean; emailSent: boolean; error?: string }> {
+    try {
+      // 1. Chamar RPC segura para criar o usuário auth e atualizar leitor
+      const { data: rpcData, error: rpcError } = await (supabase.rpc as any)(
+        'aprovar_cadastro_leitor',
+        { p_id_leitor: id_leitor },
+      )
+
+      if (rpcError) {
+        throw new Error(rpcError.message || 'Falha ao aprovar cadastro.')
+      }
+
+      const leitorEmail = rpcData?.email
+      let emailSent = false
+
+      // 2. Disparar e-mail de primeiro acesso com link de definição de senha
+      if (leitorEmail) {
+        const resetRes = await LeitoresService.sendPasswordResetEmail(leitorEmail)
+        if (resetRes.success) {
+          emailSent = true
+        } else {
+          console.warn('Aviso: cadastro aprovado mas o envio do e-mail falhou:', resetRes.error)
+        }
+      }
+
+      return { success: true, emailSent }
+    } catch (err: any) {
+      return { success: false, emailSent: false, error: err.message || 'Erro ao aprovar leitor.' }
+    }
+  },
+
+  /**
+   * Recusar/rejeitar e excluir cadastro pendente
+   */
+  async rejectReader(id_leitor: number): Promise<{ success: boolean; error?: string }> {
+    try {
+      // 1. Remover cursos vinculados
+      await supabase.from('leitor_curso').delete().eq('id_leitor', id_leitor)
+      // 2. Excluir o registro de leitor
+      const { error } = await supabase.from('leitor').delete().eq('id_leitor', id_leitor)
+      if (error) throw error
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Erro ao recusar cadastro do leitor.' }
+    }
   },
 
   async update(id_leitor: number, updates: LeitorUpdate & { telefone_fixo?: string | null }) {

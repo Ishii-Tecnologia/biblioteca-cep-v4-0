@@ -76,6 +76,34 @@ export default function RedefinirSenha() {
 
     setLoading(true)
     try {
+      // 1. Checar se a sessão atual pertence a um usuário cujo leitor ainda esteja com cadastro pendente
+      try {
+        const {
+          data: { user: currentUser },
+        } = await supabase.auth.getUser()
+        if (currentUser?.email) {
+          const { data: leitorRow } = await supabase
+            .from('leitor')
+            .select('status_cadastro')
+            .ilike('email', currentUser.email)
+            .maybeSingle()
+          if (leitorRow && (leitorRow as any).status_cadastro === 'pendente') {
+            setErrorMsg(
+              'Seu cadastro de leitor ainda está pendente de validação pela equipe da Biblioteca da CEP. Aguarde a confirmação para definir sua senha.',
+            )
+            toast({
+              title: 'Cadastro pendente de validação',
+              description:
+                'Aguarde a aprovação do seu cadastro pela equipe da Biblioteca para definir sua senha de acesso.',
+              variant: 'destructive',
+            })
+            return
+          }
+        }
+      } catch (checkErr) {
+        console.warn('Erro ao verificar status do leitor em RedefinirSenha:', checkErr)
+      }
+
       const { error } = await supabase.auth.updateUser({
         password,
       })

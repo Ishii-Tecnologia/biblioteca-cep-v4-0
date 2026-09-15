@@ -22,6 +22,10 @@ import {
   ShieldCheck,
   UserCheck,
   History,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Send,
 } from 'lucide-react'
 import { ReaderModal } from '@/components/ReaderModal'
 import { ReaderLoanHistoryModal } from '@/components/ReaderLoanHistoryModal'
@@ -35,11 +39,24 @@ export default function Leitores() {
   const [readers, setReaders] = useState<LeitorWithStats[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [filterStatus, setFilterStatus] = useState<'all' | 'ativos' | 'bloqueados'>('all')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'ativos' | 'bloqueados' | 'pendentes'>(
+    'all',
+  )
 
   const [readerModalOpen, setReaderModalOpen] = useState(false)
   const [readerToEdit, setReaderToEdit] = useState<Leitor | null>(null)
   const [isSelfEdit, setIsSelfEdit] = useState(false)
+
+  // Modais de Aprovação e Rejeição de auto-cadastro pendente
+  const [approveConfirmOpen, setApproveConfirmOpen] = useState(false)
+  const [readerToApprove, setReaderToApprove] = useState<LeitorWithStats | null>(null)
+  const [approveLoading, setApproveLoading] = useState(false)
+
+  const [rejectConfirmOpen, setRejectConfirmOpen] = useState(false)
+  const [readerToReject, setReaderToReject] = useState<LeitorWithStats | null>(null)
+  const [rejectLoading, setRejectLoading] = useState(false)
+
+  const [resendLoadingId, setResendLoadingId] = useState<number | null>(null)
 
   // Histórico de empréstimos do leitor
   const [historyModalOpen, setHistoryModalOpen] = useState(false)
@@ -165,6 +182,95 @@ export default function Leitores() {
     )
   }
 
+  const handleApprove = (reader: LeitorWithStats) => {
+    setReaderToApprove(reader)
+    setApproveConfirmOpen(true)
+  }
+
+  const executeApprove = async () => {
+    if (!readerToApprove) return
+    setApproveLoading(true)
+    try {
+      const res = await LeitoresService.approveReader(readerToApprove.id_leitor)
+      if (!res.success) {
+        throw new Error(res.error || 'Falha ao aprovar cadastro.')
+      }
+
+      toast({
+        title: 'Cadastro aprovado com sucesso!',
+        description: res.emailSent
+          ? `O leitor ${readerToApprove.nome_do_leitor} foi ativado e o e-mail com o link de primeiro acesso foi enviado para ${readerToApprove.email}.`
+          : `O leitor ${readerToApprove.nome_do_leitor} foi ativado. O link de primeiro acesso pode ser reenviado pelo operador a qualquer momento.`,
+      })
+      setApproveConfirmOpen(false)
+      setReaderToApprove(null)
+      loadReaders()
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao aprovar cadastro',
+        description: err.message || 'Verifique as permissões de acesso.',
+        variant: 'destructive',
+      })
+    } finally {
+      setApproveLoading(false)
+    }
+  }
+
+  const handleReject = (reader: LeitorWithStats) => {
+    setReaderToReject(reader)
+    setRejectConfirmOpen(true)
+  }
+
+  const executeReject = async () => {
+    if (!readerToReject) return
+    setRejectLoading(true)
+    try {
+      const res = await LeitoresService.rejectReader(readerToReject.id_leitor)
+      if (!res.success) {
+        throw new Error(res.error || 'Falha ao recusar cadastro.')
+      }
+
+      toast({
+        title: 'Cadastro recusado e excluído',
+        description: `A solicitação de cadastro de ${readerToReject.nome_do_leitor} foi removida.`,
+      })
+      setRejectConfirmOpen(false)
+      setReaderToReject(null)
+      loadReaders()
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao recusar cadastro',
+        description: err.message || 'Não foi possível excluir a solicitação.',
+        variant: 'destructive',
+      })
+    } finally {
+      setRejectLoading(false)
+    }
+  }
+
+  const handleResendFirstAccessEmail = async (reader: LeitorWithStats) => {
+    setResendLoadingId(reader.id_leitor)
+    try {
+      const res = await LeitoresService.sendPasswordResetEmail(reader.email)
+      if (res.success) {
+        toast({
+          title: 'E-mail enviado!',
+          description: `Link de definição de senha reenviado com sucesso para ${reader.email}.`,
+        })
+      } else {
+        throw new Error(res.error || 'Falha ao reenviar e-mail.')
+      }
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao reenviar e-mail',
+        description: err.message || 'Não foi possível enviar o link.',
+        variant: 'destructive',
+      })
+    } finally {
+      setResendLoadingId(null)
+    }
+  }
+
   const handleEditReader = (reader: LeitorWithStats) => {
     setReaderToEdit(reader)
     setIsSelfEdit(isReaderOwner(reader))
@@ -245,6 +351,14 @@ export default function Leitores() {
               onClick={() => setFilterStatus('ativos')}
             >
               Ativos
+            </Button>
+            <Button
+              size="sm"
+              variant={filterStatus === 'pendentes' ? 'default' : 'ghost'}
+              className={`h-7 text-xs ${filterStatus === 'pendentes' ? 'bg-amber-500 text-white shadow-sm hover:bg-amber-600' : 'text-amber-700 hover:bg-amber-50'}`}
+              onClick={() => setFilterStatus('pendentes')}
+            >
+              Pendentes de Validação
             </Button>
             <Button
               size="sm"
@@ -345,7 +459,12 @@ export default function Leitores() {
                     </div>
 
                     <div className="flex flex-col items-end gap-1">
-                      {reader.bloqueado ? (
+                      {reader.status_cadastro === 'pendente' ? (
+                        <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-900 gap-1 shrink-0 select-none shadow-2xs animate-pulse">
+                          <Clock className="w-3 h-3 text-amber-700" />
+                          Pendente de Validação
+                        </span>
+                      ) : reader.bloqueado ? (
                         <span className="inline-flex items-center rounded-full border border-rose-200 bg-rose-100 px-2.5 py-0.5 text-[10px] font-medium text-rose-800 gap-1 shrink-0 select-none">
                           <Lock className="w-3 h-3 text-rose-600" />
                           Bloqueado
@@ -421,79 +540,140 @@ export default function Leitores() {
 
                 {/* Bottom Actions */}
                 <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-1">
-                  {/* Left action: Bloquear/Desbloquear para staff */}
-                  {isOperadorOrAdmin && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className={`h-7 text-xs px-2 gap-1 ${
-                        reader.bloqueado
-                          ? 'text-emerald-700 hover:bg-emerald-50'
-                          : 'text-amber-700 hover:bg-amber-50'
-                      }`}
-                      onClick={() => handleToggleBlock(reader)}
-                    >
-                      {reader.bloqueado ? (
-                        <>
-                          <Unlock className="w-3 h-3" />
-                          Desbloquear
-                        </>
-                      ) : (
-                        <>
-                          <Lock className="w-3 h-3" />
-                          Bloquear
-                        </>
+                  {reader.status_cadastro === 'pendente' && isOperadorOrAdmin ? (
+                    /* Ações para leitor pendente de validação */
+                    <div className="flex items-center justify-between w-full gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1 px-2.5 shadow-xs"
+                          onClick={() => handleApprove(reader)}
+                          title="Aprovar cadastro e enviar e-mail com link de primeiro acesso"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Aprovar</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 gap-1 px-2"
+                          onClick={() => handleReject(reader)}
+                          title="Recusar e excluir solicitação de cadastro"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>Recusar</span>
+                        </Button>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-slate-500 hover:text-slate-900"
+                          onClick={() => handleEditReader(reader)}
+                          title="Ver/Editar dados cadastrais"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Ações normais para leitor ativo/aprovado */
+                    <>
+                      {/* Left action: Bloquear/Desbloquear para staff */}
+                      {isOperadorOrAdmin && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className={`h-7 text-xs px-2 gap-1 ${
+                            reader.bloqueado
+                              ? 'text-emerald-700 hover:bg-emerald-50'
+                              : 'text-amber-700 hover:bg-amber-50'
+                          }`}
+                          onClick={() => handleToggleBlock(reader)}
+                        >
+                          {reader.bloqueado ? (
+                            <>
+                              <Unlock className="w-3 h-3" />
+                              Desbloquear
+                            </>
+                          ) : (
+                            <>
+                              <Lock className="w-3 h-3" />
+                              Bloquear
+                            </>
+                          )}
+                        </Button>
                       )}
-                    </Button>
+
+                      <div className="flex items-center gap-1.5 ml-auto">
+                        {/* Botão de reenviar e-mail de acesso para o leitor (se for staff) */}
+                        {isOperadorOrAdmin && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs px-2 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 gap-1"
+                            onClick={() => handleResendFirstAccessEmail(reader)}
+                            disabled={resendLoadingId === reader.id_leitor}
+                            title="Reenviar e-mail de primeiro acesso / redefinição de senha"
+                          >
+                            {resendLoadingId === reader.id_leitor ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Send className="w-3.5 h-3.5 text-emerald-600" />
+                            )}
+                            <span className="hidden sm:inline">Reenviar Link</span>
+                          </Button>
+                        )}
+
+                        {/* Botão Histórico de Empréstimos */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs px-2.5 bg-white border-slate-200 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 gap-1.5 shadow-2xs"
+                          onClick={() => handleOpenHistory(reader)}
+                          title="Ver histórico de empréstimos do leitor"
+                        >
+                          <History className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Histórico</span>
+                          {reader.total_emprestimos > 0 && (
+                            <span className="text-[10px] px-1 py-0 rounded bg-slate-100 text-slate-600 font-semibold group-hover:bg-emerald-100 group-hover:text-emerald-800">
+                              {reader.total_emprestimos}
+                            </span>
+                          )}
+                        </Button>
+
+                        {canEdit && (
+                          <Button
+                            size={isOperadorOrAdmin ? 'icon' : 'sm'}
+                            variant={isOperadorOrAdmin ? 'ghost' : 'default'}
+                            className={
+                              isOperadorOrAdmin
+                                ? 'h-7 w-7 text-slate-500 hover:text-slate-900'
+                                : 'h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1 px-3 shadow-xs'
+                            }
+                            onClick={() => handleEditReader(reader)}
+                            title="Editar cadastro"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            {!isOperadorOrAdmin && <span>Editar Meus Dados</span>}
+                          </Button>
+                        )}
+
+                        {canEdit && isAdmin && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
+                            onClick={() => handleDelete(reader)}
+                            title="Excluir leitor"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </>
                   )}
-
-                  <div className="flex items-center gap-1.5 ml-auto">
-                    {/* Botão Histórico de Empréstimos */}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs px-2.5 bg-white border-slate-200 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 gap-1.5 shadow-2xs"
-                      onClick={() => handleOpenHistory(reader)}
-                      title="Ver histórico de empréstimos do leitor"
-                    >
-                      <History className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Histórico</span>
-                      {reader.total_emprestimos > 0 && (
-                        <span className="text-[10px] px-1 py-0 rounded bg-slate-100 text-slate-600 font-semibold group-hover:bg-emerald-100 group-hover:text-emerald-800">
-                          {reader.total_emprestimos}
-                        </span>
-                      )}
-                    </Button>
-
-                    {canEdit && (
-                      <Button
-                        size={isOperadorOrAdmin ? 'icon' : 'sm'}
-                        variant={isOperadorOrAdmin ? 'ghost' : 'default'}
-                        className={
-                          isOperadorOrAdmin
-                            ? 'h-7 w-7 text-slate-500 hover:text-slate-900'
-                            : 'h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1 px-3 shadow-xs'
-                        }
-                        onClick={() => handleEditReader(reader)}
-                        title="Editar cadastro"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                        {!isOperadorOrAdmin && <span>Editar Meus Dados</span>}
-                      </Button>
-                    )}
-
-                    {canEdit && isAdmin && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
-                        onClick={() => handleDelete(reader)}
-                        title="Excluir leitor"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    )}
-                  </div>
                 </div>
               </Card>
             )
@@ -535,6 +715,55 @@ export default function Leitores() {
         variant={readerToToggleBlock?.bloqueado ? 'primary' : 'warning'}
         loading={blockLoading}
         onConfirm={executeToggleBlock}
+      />
+
+      <ConfirmModal
+        open={approveConfirmOpen}
+        onOpenChange={setApproveConfirmOpen}
+        title="Aprovar Cadastro de Leitor"
+        description={
+          readerToApprove ? (
+            <div className="space-y-2">
+              <p>
+                Deseja aprovar o cadastro de <strong>{readerToApprove.nome_do_leitor}</strong> (
+                {readerToApprove.email})?
+              </p>
+              <div className="bg-emerald-50 border border-emerald-200 rounded p-2.5 text-xs text-emerald-900">
+                Ao confirmar, a conta do leitor será ativada e um e-mail com o link de primeiro
+                acesso será disparado automaticamente para que ele defina sua senha.
+              </div>
+            </div>
+          ) : (
+            'Deseja aprovar o cadastro deste leitor?'
+          )
+        }
+        confirmLabel="Sim, Aprovar e Enviar E-mail"
+        variant="primary"
+        loading={approveLoading}
+        onConfirm={executeApprove}
+      />
+
+      <ConfirmModal
+        open={rejectConfirmOpen}
+        onOpenChange={setRejectConfirmOpen}
+        title="Recusar Solicitação de Cadastro"
+        description={
+          readerToReject ? (
+            <div className="space-y-1.5">
+              <p>Deseja recusar a solicitação de cadastro do leitor:</p>
+              <p className="text-rose-600 font-semibold break-words">
+                "{readerToReject.nome_do_leitor}" ({readerToReject.email})
+              </p>
+              <p className="text-slate-500">O registro pendente será removido da base de dados.</p>
+            </div>
+          ) : (
+            'Deseja recusar o cadastro deste leitor?'
+          )
+        }
+        confirmLabel="Sim, Recusar e Excluir"
+        variant="destructive"
+        loading={rejectLoading}
+        onConfirm={executeReject}
       />
 
       <ConfirmModal

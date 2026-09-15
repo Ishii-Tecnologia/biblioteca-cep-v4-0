@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
-import { Library, LogIn, Loader2, Lock } from 'lucide-react'
+import { Library, LogIn, Loader2, Lock, UserPlus, Info } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { ReaderSelfRegisterModal } from '@/components/ReaderSelfRegisterModal'
+import { LeitoresService } from '@/services/leitores'
 
 export default function Login() {
   const { signIn, user, profile } = useAuth()
@@ -17,6 +19,7 @@ export default function Login() {
   const from = (location.state as any)?.from?.pathname || '/'
 
   const [loading, setLoading] = useState(false)
+  const [registerModalOpen, setRegisterModalOpen] = useState(false)
 
   // Sign in form
   const [email, setEmail] = useState('')
@@ -43,6 +46,23 @@ export default function Login() {
     }
     setLoading(true)
     try {
+      // Verificar se o e-mail informado pertence a um leitor com cadastro ainda pendente
+      const cleanEmail = email.trim().toLowerCase()
+      try {
+        const leitorStatus = await LeitoresService.checkLeitorStatus(cleanEmail)
+        if (leitorStatus === 'pendente') {
+          toast({
+            title: 'Cadastro em validação',
+            description:
+              'Seu cadastro de leitor está em processo de validação pela Biblioteca da CEP. Assim que for aprovado, você receberá um e-mail com o link para definir sua senha de acesso.',
+            variant: 'destructive',
+          })
+          return
+        }
+      } catch (checkErr) {
+        console.warn('Erro ao verificar status do leitor no login:', checkErr)
+      }
+
       const { data, error } = await signIn(email, password)
       if (error) {
         toast({
@@ -162,12 +182,28 @@ export default function Login() {
                 Entrar no Sistema
               </Button>
 
-              <p className="text-[11px] text-slate-400 text-center leading-relaxed">
-                O cadastro de usuários é realizado internamente pela administração da biblioteca.
-              </p>
+              <div className="pt-2 border-t border-slate-100 w-full text-center space-y-2">
+                <p className="text-xs text-slate-600">Ainda não possui cadastro de leitor?</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setRegisterModalOpen(true)}
+                  className="w-full border-emerald-600 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 font-medium text-xs h-9 gap-1.5"
+                >
+                  <UserPlus className="w-4 h-4 text-emerald-600" />
+                  Cadastrar-se como Leitor
+                </Button>
+                <p className="text-[11px] text-slate-400 text-center leading-relaxed flex items-center justify-center gap-1">
+                  <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>Cadastros são validados pela equipe da Biblioteca da CEP.</span>
+                </p>
+              </div>
             </CardFooter>
           </form>
         </Card>
+
+        {/* Modal de Auto-Cadastro de Leitor */}
+        <ReaderSelfRegisterModal open={registerModalOpen} onOpenChange={setRegisterModalOpen} />
 
         <div className="text-center">
           <Link
