@@ -31,10 +31,12 @@ import { ReaderModal } from '@/components/ReaderModal'
 import { ReaderLoanHistoryModal } from '@/components/ReaderLoanHistoryModal'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import { useToast } from '@/hooks/use-toast'
+import { useHeaderCounters } from '@/hooks/use-header-counters'
 
 export default function Leitores() {
   const { user, profile, isOperadorOrAdmin, isAdmin } = useAuth()
   const { toast } = useToast()
+  const { refreshLeitoresPendentes } = useHeaderCounters()
 
   const [readers, setReaders] = useState<LeitorWithStats[]>([])
   const [loading, setLoading] = useState(true)
@@ -204,7 +206,7 @@ export default function Leitores() {
       })
       setApproveConfirmOpen(false)
       setReaderToApprove(null)
-      loadReaders()
+      await Promise.all([loadReaders(), refreshLeitoresPendentes()])
     } catch (err: any) {
       toast({
         title: 'Erro ao aprovar cadastro',
@@ -236,7 +238,7 @@ export default function Leitores() {
       })
       setRejectConfirmOpen(false)
       setReaderToReject(null)
-      loadReaders()
+      await Promise.all([loadReaders(), refreshLeitoresPendentes()])
     } catch (err: any) {
       toast({
         title: 'Erro ao recusar cadastro',

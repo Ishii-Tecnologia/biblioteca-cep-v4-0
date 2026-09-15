@@ -339,7 +339,9 @@ export const LeitoresService = {
   },
 
   /**
-   * Envia e-mail de redefinição de senha para o leitor via Supabase Auth
+   * Envia e-mail de primeiro acesso / definição de senha para o leitor.
+   * Utiliza o fluxo de recuperação de senha com redirecionamento institucional
+   * para <origin>/redefinir-senha da Biblioteca da CEP.
    */
   async sendPasswordResetEmail(email: string): Promise<{ success: boolean; error?: string }> {
     const normalized = email.trim().toLowerCase()
@@ -348,20 +350,24 @@ export const LeitoresService = {
     }
 
     try {
+      // Manter a origem exata da aplicação para redirecionar à tela institucional de definição de senha
       const redirectUrl = `${window.location.origin}/redefinir-senha`
       const { error } = await supabase.auth.resetPasswordForEmail(normalized, {
         redirectTo: redirectUrl,
       })
 
       if (error) {
-        return { success: false, error: error.message || 'Falha ao enviar e-mail de redefinição.' }
+        return {
+          success: false,
+          error: error.message || 'Falha ao enviar e-mail de primeiro acesso.',
+        }
       }
 
       return { success: true }
     } catch (err: any) {
       return {
         success: false,
-        error: err.message || 'Erro inesperado ao solicitar reset de senha.',
+        error: err.message || 'Erro inesperado ao solicitar e-mail de primeiro acesso.',
       }
     }
   },
