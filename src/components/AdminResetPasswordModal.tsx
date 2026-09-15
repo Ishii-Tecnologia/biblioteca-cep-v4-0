@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast'
 import { KeyRound, Eye, EyeOff, Loader2, CheckCircle2, ShieldAlert } from 'lucide-react'
 import { adminResetPassword } from '@/services/auth-passwords'
 import { ProfileRecord } from '@/pages/Usuarios'
+import { isRateLimitError, getFriendlyAuthErrorMessage } from '@/lib/auth-errors'
 
 interface AdminResetPasswordModalProps {
   open: boolean
@@ -88,11 +89,12 @@ export function AdminResetPasswordModal({
       onOpenChange(false)
       onSuccess?.()
     } catch (err: any) {
-      setErrorMsg(err.message || 'Erro ao redefinir a senha.')
+      const friendlyMsg = getFriendlyAuthErrorMessage(err, 'Falha ao redefinir a senha do usuário.')
+      setErrorMsg(friendlyMsg)
       toast({
-        title: 'Erro ao redefinir senha',
-        description: err.message || 'Falha ao redefinir a senha do usuário.',
-        variant: 'destructive',
+        title: isRateLimitError(err) ? 'Aguarde antes de reenviar' : 'Erro ao redefinir senha',
+        description: friendlyMsg,
+        variant: isRateLimitError(err) ? 'default' : 'destructive',
       })
     } finally {
       setLoading(false)

@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { LeitoresService, LeitorWithStats, Leitor } from '@/services/leitores'
+import {
+  isRateLimitError,
+  getFriendlyAuthErrorMessage,
+  getRemainingCooldownSeconds,
+} from '@/lib/auth-errors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -59,6 +64,15 @@ export default function Leitores() {
   const [rejectLoading, setRejectLoading] = useState(false)
 
   const [resendLoadingId, setResendLoadingId] = useState<number | null>(null)
+  const [nowTimestamp, setNowTimestamp] = useState<number>(Date.now())
+
+  // Atualiza timestamp a cada segundo para refrescar contadores de cooldown
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowTimestamp(Date.now())
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   // Histórico de empréstimos do leitor
   const [historyModalOpen, setHistoryModalOpen] = useState(false)
@@ -198,19 +212,30 @@ export default function Leitores() {
         throw new Error(res.error || 'Falha ao aprovar cadastro.')
       }
 
-      toast({
-        title: 'Cadastro aprovado com sucesso!',
-        description: res.emailSent
-          ? `O leitor ${readerToApprove.nome_do_leitor} foi ativado e o e-mail com o link de primeiro acesso foi enviado para ${readerToApprove.email}.`
-          : `O leitor ${readerToApprove.nome_do_leitor} foi ativado. O link de primeiro acesso pode ser reenviado pelo operador a qualquer momento.`,
-      })
+      if (res.emailSent) {
+        toast({
+          title: 'Cadastro aprovado com sucesso!',
+          description: `O leitor ${readerToApprove.nome_do_leitor} foi ativado e o e-mail com o link de primeiro acesso foi enviado para ${readerToApprove.email}.`,
+        })
+      } else if (res.isRateLimit) {
+        toast({
+          title: 'Cadastro aprovado (limite de envio)',
+          description: `O leitor foi ativado com sucesso! Porém, um e-mail já foi enviado recentemente para ${readerToApprove.email}. Aguarde alguns minutos antes de reenviar o link de acesso.`,
+        })
+      } else {
+        toast({
+          title: 'Cadastro aprovado',
+          description: `O leitor ${readerToApprove.nome_do_leitor} foi ativado. O link de primeiro acesso pode ser reenviado pelo operador quando desejar.`,
+        })
+      }
       setApproveConfirmOpen(false)
       setReaderToApprove(null)
       await Promise.all([loadReaders(), refreshLeitoresPendentes()])
     } catch (err: any) {
+      const friendlyMsg = getFriendlyAuthErrorMessage(err, 'Verifique as permissões de acesso.')
       toast({
         title: 'Erro ao aprovar cadastro',
-        description: err.message || 'Verifique as permissões de acesso.',
+        description: friendlyMsg,
         variant: 'destructive',
       })
     } finally {
@@ -251,22 +276,45 @@ export default function Leitores() {
   }
 
   const handleResendFirstAccessEmail = async (reader: LeitorWithStats) => {
+    // 1. Verificação prévia no cliente: evitar requisições repetidas se dentro da janela de cooldown
+    const cooldownRemaining = getRemainingCooldownSeconds(reader.ultimo_envio_email_em)
+    if (cooldownRemaining > 0) {
+      toast({
+        title: 'Aguarde antes de reenviar',
+        description: `Você já enviou um e-mail para este leitor recentemente. Aguarde ${cooldownRemaining} segundo(s) antes de reenviar.`,
+      })
+      return
+    }
+
     setResendLoadingId(reader.id_leitor)
     try {
       const res = await LeitoresService.sendPasswordResetEmail(reader.email)
       if (res.success) {
         toast({
-          title: 'E-mail enviado!',
-          description: `Link de definição de senha reenviado com sucesso para ${reader.email}.`,
+          title: 'E-mail enviado com sucesso!',
+          description: `Link de definição de senha reenviado para ${reader.email}.`,
+        })
+        await loadReaders()
+      } else if (res.isRateLimit) {
+        toast({
+          title: 'Aguarde antes de reenviar',
+          description:
+            res.error ||
+            'Você já enviou um e-mail para este leitor recentemente. Aguarde alguns minutos antes de reenviar.',
         })
       } else {
         throw new Error(res.error || 'Falha ao reenviar e-mail.')
       }
     } catch (err: any) {
+      const isRate = isRateLimitError(err)
+      const friendlyMsg = getFriendlyAuthErrorMessage(
+        err,
+        'Não foi possível enviar o link de primeiro acesso.',
+      )
       toast({
-        title: 'Erro ao reenviar e-mail',
-        description: err.message || 'Não foi possível enviar o link.',
-        variant: 'destructive',
+        title: isRate ? 'Aguarde antes de reenviar' : 'Erro ao reenviar e-mail',
+        description: friendlyMsg,
+        variant: isRate ? 'default' : 'destructive',
       })
     } finally {
       setResendLoadingId(null)
@@ -610,23 +658,44 @@ export default function Leitores() {
 
                       <div className="flex items-center gap-1.5 ml-auto">
                         {/* Botão de reenviar e-mail de acesso para o leitor (se for staff) */}
-                        {isOperadorOrAdmin && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 text-xs px-2 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 gap-1"
-                            onClick={() => handleResendFirstAccessEmail(reader)}
-                            disabled={resendLoadingId === reader.id_leitor}
-                            title="Reenviar e-mail de primeiro acesso / redefinição de senha"
-                          >
-                            {resendLoadingId === reader.id_leitor ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <Send className="w-3.5 h-3.5 text-emerald-600" />
-                            )}
-                            <span className="hidden sm:inline">Reenviar Link</span>
-                          </Button>
-                        )}
+                        {isOperadorOrAdmin &&
+                          (() => {
+                            const cooldown = getRemainingCooldownSeconds(
+                              reader.ultimo_envio_email_em,
+                            )
+                            const isCooldownActive = cooldown > 0
+                            const isCurrentLoading = resendLoadingId === reader.id_leitor
+
+                            return (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className={`h-7 text-xs px-2 gap-1 transition-colors ${
+                                  isCooldownActive
+                                    ? 'text-slate-400 bg-slate-100/60 cursor-not-allowed'
+                                    : 'text-slate-600 hover:text-emerald-700 hover:bg-emerald-50'
+                                }`}
+                                onClick={() => handleResendFirstAccessEmail(reader)}
+                                disabled={isCurrentLoading || isCooldownActive}
+                                title={
+                                  isCooldownActive
+                                    ? `E-mail enviado recentemente. Aguarde ${cooldown}s antes de reenviar.`
+                                    : 'Reenviar e-mail de primeiro acesso / redefinição de senha'
+                                }
+                              >
+                                {isCurrentLoading ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                                ) : isCooldownActive ? (
+                                  <Clock className="w-3.5 h-3.5 text-amber-600" />
+                                ) : (
+                                  <Send className="w-3.5 h-3.5 text-emerald-600" />
+                                )}
+                                <span className="hidden sm:inline">
+                                  {isCooldownActive ? `Reenviar (${cooldown}s)` : 'Reenviar Link'}
+                                </span>
+                              </Button>
+                            )
+                          })()}
 
                         {/* Botão Histórico de Empréstimos */}
                         <Button

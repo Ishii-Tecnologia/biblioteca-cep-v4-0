@@ -17,6 +17,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { isRateLimitError, getFriendlyAuthErrorMessage } from '@/lib/auth-errors'
 
 export default function RedefinirSenha() {
   const navigate = useNavigate()
@@ -191,10 +192,15 @@ export default function RedefinirSenha() {
         navigate('/', { replace: true })
       }, 2000)
     } catch (err: any) {
-      setErrorMsg(err.message || 'Não foi possível redefinir sua senha. O link pode ter expirado.')
+      const isRate = isRateLimitError(err)
+      const friendlyMsg = getFriendlyAuthErrorMessage(
+        err,
+        'Não foi possível redefinir sua senha. O link pode ter expirado.',
+      )
+      setErrorMsg(friendlyMsg)
       toast({
-        title: 'Falha ao redefinir senha',
-        description: err.message || 'Verifique se o link recebido por e-mail ainda é válido.',
+        title: isRate ? 'Limite de tentativas excedido' : 'Falha ao redefinir senha',
+        description: friendlyMsg,
         variant: 'destructive',
       })
     } finally {

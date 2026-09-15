@@ -477,16 +477,23 @@ export function ReaderModal({
 
         // Se o operador marcou o checkbox para enviar e-mail de reset de senha
         let resetEmailSent = false
+        let isRateLimitReset = false
+        let resetErrorMessage: string | null = null
+
         if (sendPasswordReset && isOperadorOrAdmin) {
           const resetRes = await LeitoresService.sendPasswordResetEmail(cleanEmail)
           if (resetRes.success) {
             resetEmailSent = true
           } else {
+            isRateLimitReset = !!resetRes.isRateLimit
+            resetErrorMessage = resetRes.error || null
             console.warn('Aviso no resetPasswordForEmail:', resetRes.error)
             toast({
-              title: 'Aviso sobre o e-mail de reset',
-              description: `Dados salvos, mas o envio do link de reset falhou: ${resetRes.error || 'Verifique o serviço de e-mail.'}`,
-              variant: 'destructive',
+              title: isRateLimitReset ? 'Limite de envio recente' : 'Aviso sobre o e-mail de reset',
+              description: isRateLimitReset
+                ? 'Dados salvos com sucesso! Porém, um e-mail já foi enviado recentemente para este leitor. Aguarde alguns minutos antes de reenviar.'
+                : `Dados salvos, mas o envio do link de reset falhou: ${resetRes.error || 'Verifique o serviço de e-mail.'}`,
+              variant: isRateLimitReset ? 'default' : 'destructive',
             })
           }
         }
@@ -497,7 +504,9 @@ export function ReaderModal({
           title: 'Dados atualizados!',
           description: resetEmailSent
             ? `Dados do leitor salvos e link de redefinição de senha enviado para ${cleanEmail}.`
-            : 'Dados do leitor atualizados com sucesso!',
+            : isRateLimitReset
+              ? 'Dados do leitor atualizados. Para novo e-mail de acesso, aguarde alguns minutos.'
+              : 'Dados do leitor atualizados com sucesso!',
         })
       } else {
         // --- NOVO CADASTRO DE LEITOR ---

@@ -1,13 +1,25 @@
 import { supabase } from '@/lib/supabase/client'
 import type { Tables, TablesInsert, TablesUpdate } from '@/lib/supabase/types'
+import {
+  isRateLimitError,
+  getFriendlyAuthErrorMessage,
+  RATE_LIMIT_USER_MESSAGE,
+} from '@/lib/auth-errors'
 
-export type Leitor = Tables<'leitor'>
-export type LeitorInsert = TablesInsert<'leitor'>
-export type LeitorUpdate = TablesUpdate<'leitor'>
+export type Leitor = Tables<'leitor'> & {
+  ultimo_envio_email_em?: string | null
+}
+export type LeitorInsert = TablesInsert<'leitor'> & {
+  ultimo_envio_email_em?: string | null
+}
+export type LeitorUpdate = TablesUpdate<'leitor'> & {
+  ultimo_envio_email_em?: string | null
+}
 
 export interface LeitorWithStats extends Leitor {
   telefone_fixo: string | null
   status_cadastro: string
+  ultimo_envio_email_em?: string | null
   emprestimos_ativos: number
   emprestimos_atrasados: number
   total_emprestimos: number
@@ -81,6 +93,7 @@ export const LeitoresService = {
         telefone: l.telefone,
         telefone_fixo: l.telefone_fixo || null,
         status_cadastro: l.status_cadastro || 'ativo',
+        ultimo_envio_email_em: l.ultimo_envio_email_em || null,
         data_cadastro: l.data_cadastro,
         bloqueado: l.bloqueado,
         curso: l.curso || null,
@@ -250,7 +263,7 @@ export const LeitoresService = {
    */
   async approveReader(
     id_leitor: number,
-  ): Promise<{ success: boolean; emailSent: boolean; error?: string }> {
+  ): Promise<{ success: boolean; emailSent: boolean; isRateLimit?: boolean; error?: string }> {
     try {
       // 1. Chamar RPC segura para criar o usuário auth e atualizar leitor
       const { data: rpcData, error: rpcError } = await (supabase.rpc as any)(
@@ -264,6 +277,8 @@ export const LeitoresService = {
 
       const leitorEmail = rpcData?.email
       let emailSent = false
+      let isRateLimit = false
+      let sendError: string | undefined
 
       // 2. Disparar e-mail de primeiro acesso com link de definição de senha
       if (leitorEmail) {
@@ -271,11 +286,13 @@ export const LeitoresService = {
         if (resetRes.success) {
           emailSent = true
         } else {
+          isRateLimit = !!resetRes.isRateLimit
+          sendError = resetRes.error
           console.warn('Aviso: cadastro aprovado mas o envio do e-mail falhou:', resetRes.error)
         }
       }
 
-      return { success: true, emailSent }
+      return { success: true, emailSent, isRateLimit, error: sendError }
     } catch (err: any) {
       return { success: false, emailSent: false, error: err.message || 'Erro ao aprovar leitor.' }
     }
@@ -342,8 +359,11 @@ export const LeitoresService = {
    * Envia e-mail de primeiro acesso / definição de senha para o leitor.
    * Utiliza o fluxo de recuperação de senha com redirecionamento institucional
    * para <origin>/redefinir-senha da Biblioteca da CEP.
+   * Trata rate limit do Supabase Auth de forma clara e amigável.
    */
-  async sendPasswordResetEmail(email: string): Promise<{ success: boolean; error?: string }> {
+  async sendPasswordResetEmail(
+    email: string,
+  ): Promise<{ success: boolean; isRateLimit?: boolean; error?: string }> {
     const normalized = email.trim().toLowerCase()
     if (!normalized) {
       return { success: false, error: 'E-mail não informado.' }
@@ -366,17 +386,37 @@ export const LeitoresService = {
       })
 
       if (error) {
+        const isRate = isRateLimitError(error)
+        const friendlyMsg = getFriendlyAuthErrorMessage(
+          error,
+          'Falha ao enviar e-mail de primeiro acesso.',
+        )
         return {
           success: false,
-          error: error.message || 'Falha ao enviar e-mail de primeiro acesso.',
+          isRateLimit: isRate,
+          error: friendlyMsg,
         }
+      }
+
+      // 3. Sucesso: registrar timestamp do envio para controle de cooldown no front e banco
+      try {
+        await (supabase.rpc as any)('registrar_envio_email_acesso', {
+          p_email: normalized,
+        })
+      } catch (logErr) {
+        console.warn('Aviso ao registrar timestamp de envio:', logErr)
       }
 
       return { success: true }
     } catch (err: any) {
+      const isRate = isRateLimitError(err)
+      const friendlyMsg = isRate
+        ? RATE_LIMIT_USER_MESSAGE
+        : err.message || 'Erro inesperado ao solicitar e-mail de primeiro acesso.'
       return {
         success: false,
-        error: err.message || 'Erro inesperado ao solicitar e-mail de primeiro acesso.',
+        isRateLimit: isRate,
+        error: friendlyMsg,
       }
     }
   },
