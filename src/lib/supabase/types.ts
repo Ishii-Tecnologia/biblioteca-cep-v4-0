@@ -265,6 +265,7 @@ export type Database = {
           status_cadastro: string
           telefone: string | null
           telefone_fixo: string | null
+          ultimo_envio_email_em: string | null
         }
         Insert: {
           acesso_diretoria?: boolean
@@ -282,6 +283,7 @@ export type Database = {
           status_cadastro?: string
           telefone?: string | null
           telefone_fixo?: string | null
+          ultimo_envio_email_em?: string | null
         }
         Update: {
           acesso_diretoria?: boolean
@@ -299,6 +301,7 @@ export type Database = {
           status_cadastro?: string
           telefone?: string | null
           telefone_fixo?: string | null
+          ultimo_envio_email_em?: string | null
         }
         Relationships: [
           {
@@ -388,6 +391,7 @@ export type Database = {
           senha_redefinida: boolean
           telefone: string | null
           telefone_fixo: string | null
+          ultimo_envio_email_em: string | null
         }
         Insert: {
           acesso_diretoria?: boolean
@@ -406,6 +410,7 @@ export type Database = {
           senha_redefinida?: boolean
           telefone?: string | null
           telefone_fixo?: string | null
+          ultimo_envio_email_em?: string | null
         }
         Update: {
           acesso_diretoria?: boolean
@@ -424,6 +429,7 @@ export type Database = {
           senha_redefinida?: boolean
           telefone?: string | null
           telefone_fixo?: string | null
+          ultimo_envio_email_em?: string | null
         }
         Relationships: [
           {
@@ -636,6 +642,7 @@ export type Database = {
         Args: { "": string }
         Returns: Record<string, unknown>[]
       }
+      registrar_envio_email_acesso: { Args: { p_email: string }; Returns: Json }
       renovar_emprestimo: {
         Args: { p_id_emprestimo: number; p_usuario_sistema?: string }
         Returns: Json
