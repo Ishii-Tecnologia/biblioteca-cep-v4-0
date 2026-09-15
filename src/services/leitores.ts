@@ -7,7 +7,7 @@ export type LeitorUpdate = TablesUpdate<'leitor'>
 
 export interface LeitorWithStats extends Leitor {
   telefone_fixo: string | null
-  status_cadastro?: string | null
+  status_cadastro: string
   emprestimos_ativos: number
   emprestimos_atrasados: number
   total_emprestimos: number
