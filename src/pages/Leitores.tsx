@@ -530,6 +530,26 @@ export default function Leitores() {
                           Diretoria: Sim
                         </span>
                       )}
+
+                      {/* Botão Editar posicionado no canto superior direito abaixo do status */}
+                      {canEdit && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 mt-0.5"
+                              onClick={() => handleEditReader(reader)}
+                              aria-label="Editar"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="left" className="text-xs">
+                            Editar
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                     </div>
                   </div>
 
@@ -614,25 +634,6 @@ export default function Leitores() {
                           <XCircle className="w-3.5 h-3.5" />
                           <span>Recusar</span>
                         </Button>
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7 text-slate-500 hover:text-slate-900"
-                              onClick={() => handleEditReader(reader)}
-                              aria-label="Editar"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs">
-                            Editar
-                          </TooltipContent>
-                        </Tooltip>
                       </div>
                     </div>
                   ) : (
@@ -722,26 +723,6 @@ export default function Leitores() {
                           )}
                         </Button>
 
-                        {/* Botão Editar: só ícone com tooltip e acessibilidade adequada */}
-                        {canEdit && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-7 w-7 text-slate-500 hover:text-slate-900"
-                                onClick={() => handleEditReader(reader)}
-                                aria-label="Editar"
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="text-xs">
-                              Editar
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-
                         {canEdit && isAdmin && (
                           <Button
                             size="icon"
@@ -749,6 +730,7 @@ export default function Leitores() {
                             className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
                             onClick={() => handleDelete(reader)}
                             title="Excluir leitor"
+                            aria-label="Excluir leitor"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
