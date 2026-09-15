@@ -28,7 +28,6 @@ export interface EmprestimoDetailed extends Emprestimo {
     nome_do_leitor: string
     email: string
     telefone: string | null
-    cpf: string | null
     bloqueado: boolean
   }
 }
@@ -59,7 +58,6 @@ export const EmprestimosService = {
           nome_do_leitor,
           email,
           telefone,
-          cpf,
           bloqueado
         )
       `)
@@ -113,7 +111,6 @@ export const EmprestimosService = {
           nome_do_leitor,
           email,
           telefone,
-          cpf,
           bloqueado
         )
       `)

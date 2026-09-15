@@ -25,7 +25,6 @@ import {
 } from 'lucide-react'
 import { ReaderModal } from '@/components/ReaderModal'
 import { ReaderLoanHistoryModal } from '@/components/ReaderLoanHistoryModal'
-import { formatCPF } from '@/lib/utils'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import { useToast } from '@/hooks/use-toast'
 
@@ -189,7 +188,7 @@ export default function Leitores() {
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
             {isOperadorOrAdmin
               ? 'Cadastre leitores, consulte histórico de empréstimos e gerencie permissões de retirada.'
-              : 'Visualize seus dados cadastrais e atualize seu Nome, CPF, Telefone e Foto de perfil.'}
+              : 'Visualize seus dados cadastrais e atualize seu Nome, Telefones e Foto de perfil.'}
           </p>
         </div>
 
@@ -215,7 +214,7 @@ export default function Leitores() {
             <div className="relative flex-1">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <Input
-                placeholder="Buscar por nome, e-mail, telefone ou CPF..."
+                placeholder="Buscar por nome, e-mail ou telefone..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 text-xs sm:text-sm bg-white"
@@ -262,7 +261,7 @@ export default function Leitores() {
           <div className="flex items-center gap-2">
             <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>
-              Você está visualizando suas informações de leitor. Mantenha seu telefone e CPF
+              Você está visualizando suas informações de leitor. Mantenha seus dados de contato
               atualizados para avisos de empréstimos.
             </span>
           </div>
@@ -401,17 +400,6 @@ export default function Leitores() {
                           <span>Fixo: {reader.telefone_fixo}</span>
                         </div>
                       )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="font-mono">
-                        CPF:{' '}
-                        {reader.cpf ? (
-                          formatCPF(reader.cpf)
-                        ) : (
-                          <span className="text-slate-400 italic">Não informado</span>
-                        )}
-                      </span>
                     </div>
                   </div>
 

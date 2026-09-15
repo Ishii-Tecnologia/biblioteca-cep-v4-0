@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { HistoricoService, HistoricoDetailed, MovimentacaoReportItem } from '@/services/historico'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
-import { formatDate, formatDateTime, formatCPF, formatPhone } from '@/lib/utils'
+import { formatDate, formatDateTime, formatPhone } from '@/lib/utils'
 import { exportToCsv } from '@/lib/csv'
 import { getCsvSeparador } from '@/services/parametros'
 import { AuditoriaJobService, AuditoriaJobConfig } from '@/services/auditoria-job'
@@ -166,7 +166,6 @@ export default function Historico() {
   const defaultColsLeitores = {
     id: true,
     nome: true,
-    cpf: true,
     email: true,
     telefone: true,
     status: true,
@@ -559,7 +558,6 @@ export default function Historico() {
     return (
       (l.nome_do_leitor && l.nome_do_leitor.toLowerCase().includes(q)) ||
       (l.email && l.email.toLowerCase().includes(q)) ||
-      (l.cpf && l.cpf.toLowerCase().includes(q)) ||
       (l.telefone && l.telefone.toLowerCase().includes(q))
     )
   })
@@ -691,7 +689,6 @@ export default function Historico() {
     const exportData = filteredLeitores.map((l) => ({
       ID: l.id_leitor,
       Nome: l.nome_do_leitor || '-',
-      CPF: l.cpf ? formatCPF(l.cpf) : '-',
       Email: l.email || '-',
       Telefone: l.telefone ? formatPhone(l.telefone) : '-',
       Status: l.bloqueado ? 'Bloqueado' : 'Ativo',
@@ -720,7 +717,6 @@ export default function Historico() {
     const ths: string[] = []
     if (colsLeitores.id) ths.push('<th>ID</th>')
     if (colsLeitores.nome) ths.push('<th>Nome</th>')
-    if (colsLeitores.cpf) ths.push('<th>CPF</th>')
     if (colsLeitores.email) ths.push('<th>E-mail</th>')
     if (colsLeitores.telefone) ths.push('<th>Telefone</th>')
     if (colsLeitores.status) ths.push('<th>Status</th>')
@@ -739,11 +735,6 @@ export default function Historico() {
         if (colsLeitores.nome) {
           tds.push(
             `<td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0; font-weight: 600;">${l.nome_do_leitor || 'Sem nome'}</td>`,
-          )
-        }
-        if (colsLeitores.cpf) {
-          tds.push(
-            `<td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0; font-family: monospace;">${l.cpf ? formatCPF(l.cpf) : '-'}</td>`,
           )
         }
         if (colsLeitores.email) {
@@ -1654,8 +1645,8 @@ export default function Historico() {
                     Relatório de Leitores Cadastrados
                   </CardTitle>
                   <CardDescription>
-                    Listagem consolidada contendo Nome, CPF, E-mail, Telefone, Status de bloqueio,
-                    Data de Cadastro e estatísticas de empréstimos (dd/mm/yy).
+                    Listagem consolidada contendo Nome, E-mail, Telefone, Status de bloqueio, Data
+                    de Cadastro e estatísticas de empréstimos (dd/mm/yy).
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -1690,15 +1681,6 @@ export default function Historico() {
                               }
                             />
                             <span>Nome</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsLeitores.cpf}
-                              onCheckedChange={(v) =>
-                                setColsLeitores((prev) => ({ ...prev, cpf: !!v }))
-                              }
-                            />
-                            <span>CPF</span>
                           </label>
                           <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
                             <Checkbox
@@ -1775,7 +1757,7 @@ export default function Historico() {
                 <div className="relative">
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Buscar por nome, email, CPF ou telefone..."
+                    placeholder="Buscar por nome, email ou telefone..."
                     value={searchLeitores}
                     onChange={(e) => setSearchLeitores(e.target.value)}
                     className="pl-9"
@@ -1822,7 +1804,6 @@ export default function Historico() {
                       <TableRow>
                         <TableHead>ID</TableHead>
                         <TableHead>Nome</TableHead>
-                        <TableHead>CPF</TableHead>
                         <TableHead>E-mail</TableHead>
                         <TableHead>Telefone</TableHead>
                         <TableHead>Status</TableHead>
@@ -1838,9 +1819,6 @@ export default function Historico() {
                           </TableCell>
                           <TableCell className="font-semibold text-foreground">
                             {leitorItem.nome_do_leitor || 'Sem nome'}
-                          </TableCell>
-                          <TableCell className="font-mono text-xs text-muted-foreground">
-                            {leitorItem.cpf ? formatCPF(leitorItem.cpf) : '-'}
                           </TableCell>
                           <TableCell className="text-muted-foreground">
                             <div className="flex items-center gap-1.5">

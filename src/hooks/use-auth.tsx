@@ -323,7 +323,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               id_auth: data.user.id,
               nome_do_leitor: cleanName,
               email: cleanEmail,
-              cpf: '',
               data_cadastro: new Date().toISOString().split('T')[0],
               bloqueado: false,
             })

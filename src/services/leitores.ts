@@ -73,7 +73,6 @@ export const LeitoresService = {
       return {
         id_leitor: l.id_leitor,
         id_auth: l.id_auth,
-        cpf: l.cpf,
         nome_do_leitor: l.nome_do_leitor,
         email: l.email,
         telefone: l.telefone,
@@ -115,27 +114,6 @@ export const LeitoresService = {
 
     if (error) throw error
     return data
-  },
-
-  async checkCpfExists(cpf: string, excludeIdLeitor?: number): Promise<boolean> {
-    const cleanCpf = cpf.replace(/\D/g, '')
-    if (!cleanCpf) return false
-
-    // Formatos possíveis salvos no banco: formatado ou apenas dígitos
-    const formattedCpf = `${cleanCpf.slice(0, 3)}.${cleanCpf.slice(3, 6)}.${cleanCpf.slice(6, 9)}-${cleanCpf.slice(9, 11)}`
-
-    let query = supabase
-      .from('leitor')
-      .select('id_leitor')
-      .or(`cpf.eq.${cleanCpf},cpf.eq.${formattedCpf}`)
-
-    if (excludeIdLeitor) {
-      query = query.neq('id_leitor', excludeIdLeitor)
-    }
-
-    const { data, error } = await query
-    if (error) throw error
-    return (data || []).length > 0
   },
 
   async checkEmailExists(email: string, excludeIdLeitor?: number): Promise<boolean> {

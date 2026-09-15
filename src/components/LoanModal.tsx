@@ -120,8 +120,7 @@ export function LoanModal({
     const q = searchReader.toLowerCase()
     const name = reader.nome_do_leitor.toLowerCase()
     const email = reader.email.toLowerCase()
-    const cpf = (reader.cpf || '').toLowerCase()
-    return name.includes(q) || email.includes(q) || cpf.includes(q)
+    return name.includes(q) || email.includes(q)
   })
 
   const expectedDate = new Date()
@@ -281,7 +280,7 @@ export function LoanModal({
                 <div className="mt-1">
                   <div className="flex items-center gap-2 mb-1.5">
                     <Input
-                      placeholder="Filtrar por nome, email ou CPF..."
+                      placeholder="Filtrar por nome ou email..."
                       value={searchReader}
                       onChange={(e) => setSearchReader(e.target.value)}
                       className="w-2/3 text-xs h-8"

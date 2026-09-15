@@ -477,7 +477,6 @@ export const HistoricoService = {
       return {
         id_leitor: l.id_leitor,
         id_auth: l.id_auth,
-        cpf: l.cpf,
         nome_do_leitor: l.nome_do_leitor,
         email: l.email,
         telefone: l.telefone,
