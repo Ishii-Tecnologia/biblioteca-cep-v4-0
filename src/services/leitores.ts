@@ -6,20 +6,11 @@ import {
   RATE_LIMIT_USER_MESSAGE,
 } from '@/lib/auth-errors'
 
-export type Leitor = Tables<'leitor'> & {
-  ultimo_envio_email_em?: string | null
-}
-export type LeitorInsert = TablesInsert<'leitor'> & {
-  ultimo_envio_email_em?: string | null
-}
-export type LeitorUpdate = TablesUpdate<'leitor'> & {
-  ultimo_envio_email_em?: string | null
-}
+export type Leitor = Tables<'leitor'>
+export type LeitorInsert = TablesInsert<'leitor'>
+export type LeitorUpdate = TablesUpdate<'leitor'>
 
 export interface LeitorWithStats extends Leitor {
-  telefone_fixo: string | null
-  status_cadastro: string
-  ultimo_envio_email_em?: string | null
   emprestimos_ativos: number
   emprestimos_atrasados: number
   total_emprestimos: number
@@ -93,9 +84,11 @@ export const LeitoresService = {
         telefone: l.telefone,
         telefone_fixo: l.telefone_fixo || null,
         status_cadastro: l.status_cadastro || 'ativo',
+        primeiro_acesso_pendente: Boolean(l.primeiro_acesso_pendente),
+        senha_redefinida: Boolean(l.senha_redefinida),
         ultimo_envio_email_em: l.ultimo_envio_email_em || null,
         data_cadastro: l.data_cadastro,
-        bloqueado: l.bloqueado,
+        bloqueado: Boolean(l.bloqueado),
         curso: l.curso || null,
         acesso_diretoria: Boolean(l.acesso_diretoria),
         cursos_nomes: cursosNomes,

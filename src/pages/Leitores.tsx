@@ -15,7 +15,7 @@ import {
   Users,
   Search,
   UserPlus,
-  Edit2,
+  Pencil,
   Trash2,
   Lock,
   Unlock,
@@ -32,6 +32,7 @@ import {
   XCircle,
   Send,
 } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ReaderModal } from '@/components/ReaderModal'
 import { ReaderLoanHistoryModal } from '@/components/ReaderLoanHistoryModal'
 import { ConfirmModal } from '@/components/ConfirmModal'
@@ -616,15 +617,22 @@ export default function Leitores() {
                       </div>
 
                       <div className="flex items-center gap-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 text-slate-500 hover:text-slate-900"
-                          onClick={() => handleEditReader(reader)}
-                          title="Ver/Editar dados cadastrais"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-slate-500 hover:text-slate-900"
+                              onClick={() => handleEditReader(reader)}
+                              aria-label="Editar"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs">
+                            Editar
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     </div>
                   ) : (
@@ -714,21 +722,24 @@ export default function Leitores() {
                           )}
                         </Button>
 
+                        {/* Botão Editar: só ícone com tooltip e acessibilidade adequada */}
                         {canEdit && (
-                          <Button
-                            size={isOperadorOrAdmin ? 'icon' : 'sm'}
-                            variant={isOperadorOrAdmin ? 'ghost' : 'default'}
-                            className={
-                              isOperadorOrAdmin
-                                ? 'h-7 w-7 text-slate-500 hover:text-slate-900'
-                                : 'h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1 px-3 shadow-xs'
-                            }
-                            onClick={() => handleEditReader(reader)}
-                            title="Editar cadastro"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                            {!isOperadorOrAdmin && <span>Editar Meus Dados</span>}
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 text-slate-500 hover:text-slate-900"
+                                onClick={() => handleEditReader(reader)}
+                                aria-label="Editar"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">
+                              Editar
+                            </TooltipContent>
+                          </Tooltip>
                         )}
 
                         {canEdit && isAdmin && (
