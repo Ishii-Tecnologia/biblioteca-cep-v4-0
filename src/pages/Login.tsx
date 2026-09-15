@@ -25,14 +25,20 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
+  const { isPasswordResetRequired } = useAuth()
+
   // If already logged in, redirect
   React.useEffect(() => {
     if (user) {
+      if (isPasswordResetRequired) {
+        navigate('/redefinir-senha', { replace: true })
+        return
+      }
       // Se a rota de origem for o próprio /login, redireciona para a raiz /
       const targetPath = from === '/login' ? '/' : from
       navigate(targetPath, { replace: true })
     }
-  }, [user, navigate, from])
+  }, [user, navigate, from, isPasswordResetRequired])
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()

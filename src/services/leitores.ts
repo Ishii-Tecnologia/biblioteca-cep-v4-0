@@ -350,7 +350,16 @@ export const LeitoresService = {
     }
 
     try {
-      // Manter a origem exata da aplicação para redirecionar à tela institucional de definição de senha
+      // 1. Marca no banco que este usuário/leitor está com reset/definição pendente
+      try {
+        await (supabase.rpc as any)('marcar_reset_senha_pendente', {
+          p_email: normalized,
+        })
+      } catch (markErr) {
+        console.warn('Aviso ao marcar reset pendente via RPC:', markErr)
+      }
+
+      // 2. Manter a origem exata da aplicação para redirecionar à tela institucional de definição de senha
       const redirectUrl = `${window.location.origin}/redefinir-senha`
       const { error } = await supabase.auth.resetPasswordForEmail(normalized, {
         redirectTo: redirectUrl,

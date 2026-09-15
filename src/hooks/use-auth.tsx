@@ -18,6 +18,8 @@ export interface UserProfile {
   role: UserRole
   avatar_url?: string
   id_leitor?: number
+  senha_redefinida?: boolean
+  primeiro_acesso_pendente?: boolean
 }
 
 interface AuthContextType {
@@ -45,6 +47,8 @@ interface AuthContextType {
   checkEmailInUse: (email: string, excludeUserId?: string) => Promise<boolean>
   loading: boolean
   refreshProfile: () => Promise<void>
+  isPasswordResetRequired: boolean
+  markPasswordResetCompleted: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -60,11 +64,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isRecoveryActive, setIsRecoveryActive] = useState(false)
   const hadSessionRef = useRef(false)
 
   // Inicializa o interceptor fetch global uma vez
   useEffect(() => {
     setupFetchSessionExpirationInterceptor()
+  }, [])
+
+  // Detecção precoce de link de recovery na URL (hash com type=recovery ou code ou query params)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const hash = window.location.hash || ''
+    const search = window.location.search || ''
+    if (
+      hash.includes('type=recovery') ||
+      hash.includes('type=invite') ||
+      search.includes('type=recovery')
+    ) {
+      setIsRecoveryActive(true)
+      // Se estiver na raiz "/" ou outra rota e tiver o fragmento de recovery,
+      // redirecionar imediatamente para /redefinir-senha preservando o hash
+      if (window.location.pathname !== '/redefinir-senha') {
+        const target = `/redefinir-senha${window.location.search}${window.location.hash}`
+        window.history.replaceState(null, '', target)
+      }
+    }
   }, [])
 
   const fetchProfile = async (currentUser: User | null) => {
@@ -81,18 +106,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // Check if there is a leitor record linked
-      const { data: leitorData } = await supabase
-        .from('leitor')
-        .select('id_leitor, nome_do_leitor')
+      const { data: rawLeitorData } = await (supabase.from('leitor') as any)
+        .select('id_leitor, nome_do_leitor, senha_redefinida, primeiro_acesso_pendente')
         .or(`id_auth.eq.${currentUser.id},email.eq.${currentUser.email}`)
         .maybeSingle()
 
       // Fetch public.profiles to get real-time avatar_url and latest name/papel
-      const { data: profileRow } = await supabase
-        .from('profiles')
-        .select('nome, full_name, role, papel, avatar_url, telefone')
+      const { data: rawProfileData } = await (supabase.from('profiles') as any)
+        .select(
+          'nome, full_name, role, papel, avatar_url, telefone, senha_redefinida, primeiro_acesso_pendente',
+        )
         .eq('id', currentUser.id)
         .maybeSingle()
+
+      const leitorData: any = rawLeitorData
+      const profileRow: any = rawProfileData
+
       const fullName =
         profileRow?.nome ||
         profileRow?.full_name ||
@@ -103,6 +132,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const avatarUrl = profileRow?.avatar_url || userMeta.avatar_url || undefined
 
+      // Checa status de senha_redefinida tanto no profile quanto no leitor
+      const senhaRedefinida =
+        profileRow?.senha_redefinida !== false && leitorData?.senha_redefinida !== false
+      const primeiroAcessoPendente =
+        profileRow?.primeiro_acesso_pendente === true ||
+        leitorData?.primeiro_acesso_pendente === true ||
+        userMeta.primeiro_acesso_pendente === true
+
       setProfile({
         id: currentUser.id,
         email: currentUser.email || '',
@@ -111,6 +148,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         role: (profileRow?.papel || profileRow?.role || role) as UserRole,
         avatar_url: avatarUrl,
         id_leitor: leitorData?.id_leitor,
+        senha_redefinida: senhaRedefinida,
+        primeiro_acesso_pendente: primeiroAcessoPendente,
       })
     } catch (e) {
       console.error('Error loading profile:', e)
@@ -120,6 +159,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         full_name: currentUser.email?.split('@')[0] || 'Usuário',
         nome: currentUser.email?.split('@')[0] || 'Usuário',
         role: currentUser.email?.includes('admin') ? 'admin' : 'leitor',
+        senha_redefinida: true,
+        primeiro_acesso_pendente: false,
       })
     }
   }
@@ -140,12 +181,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         hadSessionRef.current = false
       }
 
+      // Detecção de evento de recuperação de senha pelo GoTrue
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsRecoveryActive(true)
+        if (typeof window !== 'undefined' && window.location.pathname !== '/redefinir-senha') {
+          setTimeout(() => {
+            const search = window.location.search || ''
+            const hash = window.location.hash || ''
+            window.location.assign(`/redefinir-senha${search}${hash}`)
+          }, 0)
+        }
+      }
+
       // Detecção de sessão expirada via onAuthStateChange:
       // Se havia uma sessão ativa e agora ocorreu SIGNED_OUT ou newSession é nulo sem que tenha sido
       // um logout voluntário pelo usuário (isManualSignOut() === false), disparar expiração apenas se em rota autenticada.
       if (prevHadSession && !newSession && event === 'SIGNED_OUT' && !isManualSignOut()) {
         const curPath = typeof window !== 'undefined' ? window.location.pathname : ''
-        if (curPath !== '/' && curPath !== '/acervo' && curPath !== '/login') {
+        if (
+          curPath !== '/' &&
+          curPath !== '/acervo' &&
+          curPath !== '/login' &&
+          curPath !== '/redefinir-senha'
+        ) {
           setTimeout(() => {
             handleSessionExpired('onAuthStateChange_SIGNED_OUT')
           }, 0)
@@ -181,6 +239,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await fetchProfile(user)
     }
   }
+
+  const markPasswordResetCompleted = async () => {
+    setIsRecoveryActive(false)
+    try {
+      await (supabase.rpc as any)('concluir_definicao_senha')
+    } catch (rpcErr) {
+      console.warn('Falha na RPC concluir_definicao_senha:', rpcErr)
+    }
+    await refreshProfile()
+  }
+
+  // Verifica se o usuário atual é obrigado a passar pela definição de nova senha:
+  // 1. Está em fluxo ativo de recuperação (PASSWORD_RECOVERY ou hash de recovery detectado)
+  // 2. Ou profile indica senha_redefinida === false (primeiro acesso aprovado ou reset pendente)
+  // Administradores e operadores principais não são bloqueados a menos que estejam explicitamente no fluxo de recovery
+  const isSuperUser = user?.email === 'admin@cep.edu.br' || user?.email === 'ishii7883@gmail.com'
+  const isPasswordResetRequired =
+    !isSuperUser &&
+    Boolean(
+      isRecoveryActive ||
+      profile?.senha_redefinida === false ||
+      profile?.primeiro_acesso_pendente === true,
+    )
 
   const checkEmailInUse = async (email: string, excludeUserId?: string): Promise<boolean> => {
     const normalized = email.trim().toLowerCase()
@@ -446,6 +527,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         checkEmailInUse,
         loading,
         refreshProfile,
+        isPasswordResetRequired,
+        markPasswordResetCompleted,
       }}
     >
       {children}

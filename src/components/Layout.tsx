@@ -2,6 +2,7 @@ import React from 'react'
 import { NavLink, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { useHeaderCounters } from '@/hooks/use-header-counters'
+import { useLocation } from 'react-router-dom'
 import {
   BookOpen,
   Users,
@@ -55,7 +56,9 @@ export default function Layout({ children }: LayoutProps) {
     isSimulatingReader,
     toggleReaderViewSimulation,
     signOut,
+    isPasswordResetRequired,
   } = useAuth()
+  const location = useLocation()
   const {
     emprestimosAtivos,
     reservasAtivas,
@@ -67,6 +70,14 @@ export default function Layout({ children }: LayoutProps) {
   const [editPhotoOpen, setEditPhotoOpen] = React.useState(false)
   const [changePasswordOpen, setChangePasswordOpen] = React.useState(false)
   const navigate = useNavigate()
+
+  // Se o usuário precisa definir senha de primeiro acesso e não está em /redefinir-senha,
+  // força a ida imediata para /redefinir-senha antes de qualquer uso da aplicação
+  React.useEffect(() => {
+    if (isPasswordResetRequired && location.pathname !== '/redefinir-senha') {
+      navigate('/redefinir-senha', { replace: true })
+    }
+  }, [isPasswordResetRequired, location.pathname, navigate])
 
   const handleSignOut = async () => {
     await signOut()
@@ -126,6 +137,35 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* Banner de Primeiro Acesso Obrigatório */}
+      {isPasswordResetRequired && (
+        <aside
+          aria-label="Aviso de Primeiro Acesso Obrigatório"
+          className="bg-emerald-700 text-white px-4 py-2.5 text-xs font-medium shadow-sm flex items-center justify-between gap-3 sticky top-0 z-50 animate-in fade-in duration-200"
+        >
+          <div className="flex items-center gap-2 max-w-4xl mx-auto flex-1">
+            <KeyRound className="w-4 h-4 shrink-0 text-emerald-200" />
+            <div className="leading-tight">
+              <span className="font-bold">Primeiro Acesso:</span>{' '}
+              <span className="text-emerald-100">
+                Por favor, cadastre sua senha definitiva de acesso para desbloquear o uso da
+                biblioteca.
+              </span>
+            </div>
+          </div>
+          {location.pathname !== '/redefinir-senha' && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => navigate('/redefinir-senha')}
+              className="h-7 text-xs bg-white text-emerald-900 hover:bg-emerald-50 font-bold shrink-0 shadow-xs"
+            >
+              Definir Senha
+            </Button>
+          )}
+        </aside>
+      )}
+
       {/* Banner de Modo de Simulação de Visualização do Leitor para Administradores */}
       {isSimulatingReader && (
         <aside

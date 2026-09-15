@@ -1,16 +1,28 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { supabase } from '@/lib/supabase/client'
+import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
-import { Library, KeyRound, Loader2, Eye, EyeOff, CheckCircle2, ShieldAlert } from 'lucide-react'
+import {
+  Library,
+  KeyRound,
+  Loader2,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  ShieldAlert,
+  Sparkles,
+} from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 export default function RedefinirSenha() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { toast } = useToast()
+  const { user, profile, markPasswordResetCompleted, isPasswordResetRequired } = useAuth()
 
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -21,39 +33,89 @@ export default function RedefinirSenha() {
   const [success, setSuccess] = useState(false)
   const [checkingSession, setCheckingSession] = useState(true)
   const [hasValidSession, setHasValidSession] = useState(false)
+  const [targetEmail, setTargetEmail] = useState<string | null>(null)
 
   useEffect(() => {
-    // Supabase recupera a sessão dos fragmentos do hash (#access_token=...&type=recovery)
+    let isMounted = true
+
+    // Trata fragmentos do hash (#access_token=... ou ?code=...)
     const checkRecoverySession = async () => {
       try {
+        // Verifica se há parâmetros de erro na URL do GoTrue (ex: link expirado ou otp_expired)
+        if (typeof window !== 'undefined') {
+          const rawHash = window.location.hash.replace(/^#/, '')
+          const hashParams = new URLSearchParams(rawHash)
+          const searchParams = new URLSearchParams(window.location.search)
+
+          const errCode = hashParams.get('error_code') || searchParams.get('error_code')
+          const errDesc =
+            hashParams.get('error_description') || searchParams.get('error_description')
+
+          if (errCode || errDesc) {
+            const friendlyDesc =
+              errCode === 'otp_expired' || errDesc?.toLowerCase().includes('expired')
+                ? 'Este link de acesso expirou. Solicite um novo link ao operador da biblioteca.'
+                : errDesc || 'Link inválido ou expirado.'
+            if (isMounted) {
+              setErrorMsg(friendlyDesc)
+            }
+          }
+        }
+
+        // Verifica se já temos sessão ativa
         const {
           data: { session },
         } = await supabase.auth.getSession()
-        if (session) {
-          setHasValidSession(true)
-        } else {
-          // Aguardar brevemente caso o evento onAuthStateChange de recovery esteja em processamento
-          const { data: authListener } = supabase.auth.onAuthStateChange((event, newSession) => {
-            if (event === 'PASSWORD_RECOVERY' || newSession) {
-              setHasValidSession(true)
-              setCheckingSession(false)
-            }
-          })
-          setTimeout(() => {
+
+        if (session && session.user) {
+          if (isMounted) {
+            setHasValidSession(true)
+            setTargetEmail(session.user.email || null)
             setCheckingSession(false)
-            authListener.subscription.unsubscribe()
-          }, 1500)
+          }
           return
         }
+
+        // Se ainda não tiver sessão, aguardar evento onAuthStateChange do Supabase
+        const { data: authListener } = supabase.auth.onAuthStateChange((event, newSession) => {
+          if (!isMounted) return
+          if (event === 'PASSWORD_RECOVERY' || newSession?.user) {
+            setHasValidSession(true)
+            if (newSession?.user?.email) {
+              setTargetEmail(newSession.user.email)
+            }
+            setCheckingSession(false)
+          }
+        })
+
+        setTimeout(() => {
+          if (isMounted) {
+            setCheckingSession(false)
+          }
+          authListener.subscription.unsubscribe()
+        }, 1500)
       } catch (err) {
         console.warn('Erro ao verificar sessão de recuperação:', err)
-      } finally {
-        setCheckingSession(false)
+        if (isMounted) {
+          setCheckingSession(false)
+        }
       }
     }
 
     checkRecoverySession()
-  }, [])
+
+    return () => {
+      isMounted = false
+    }
+  }, [location])
+
+  // Se o usuário logado tiver email, preenche targetEmail
+  useEffect(() => {
+    if (user?.email) {
+      setTargetEmail(user.email)
+      setHasValidSession(true)
+    }
+  }, [user])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -112,15 +174,22 @@ export default function RedefinirSenha() {
         throw error
       }
 
+      // Conclui o primeiro acesso no banco via RPC
+      try {
+        await markPasswordResetCompleted()
+      } catch (rpcErr) {
+        console.warn('Aviso ao marcar redefinição concluída:', rpcErr)
+      }
+
       setSuccess(true)
       toast({
         title: 'Senha definida com sucesso!',
-        description: 'Sua senha de acesso foi salva. Você já pode acessar o sistema.',
+        description: 'Sua senha definitiva foi salva. Seja bem-vindo à Biblioteca CEP!',
       })
 
       setTimeout(() => {
         navigate('/', { replace: true })
-      }, 2500)
+      }, 2000)
     } catch (err: any) {
       setErrorMsg(err.message || 'Não foi possível redefinir sua senha. O link pode ter expirado.')
       toast({
@@ -153,12 +222,18 @@ export default function RedefinirSenha() {
               <span>Definição de Senha de Acesso</span>
             </div>
             <h2 className="text-lg font-bold text-slate-900">
-              {success ? 'Senha Alterada!' : 'Defina sua Nova Senha'}
+              {success
+                ? 'Senha Cadastrada com Sucesso!'
+                : isPasswordResetRequired
+                  ? 'Primeiro Acesso — Defina sua Senha'
+                  : 'Defina sua Nova Senha'}
             </h2>
             <p className="text-xs text-slate-500">
               {success
                 ? 'Sua nova senha foi gravada com sucesso.'
-                : 'Cadastre sua senha de acesso para utilizar os serviços da biblioteca'}
+                : targetEmail
+                  ? `Definindo senha para a conta: ${targetEmail}`
+                  : 'Cadastre sua senha de acesso para utilizar os serviços da biblioteca'}
             </p>
           </CardHeader>
 
@@ -197,6 +272,16 @@ export default function RedefinirSenha() {
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-[11px] text-amber-800 leading-relaxed">
                     Aviso: Se você acabou de abrir o link do e-mail, insira sua nova senha abaixo.
                     Caso o link tenha expirado, solicite um novo envio ao operador da biblioteca.
+                  </div>
+                )}
+
+                {isPasswordResetRequired && (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2.5 text-[11px] text-emerald-900 leading-relaxed flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>
+                      Este é o seu primeiro acesso. Por segurança, é obrigatório cadastrar sua senha
+                      definitiva antes de navegar pelo acervo e serviços da biblioteca.
+                    </span>
                   </div>
                 )}
 
