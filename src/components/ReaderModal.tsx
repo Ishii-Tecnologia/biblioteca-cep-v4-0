@@ -763,9 +763,9 @@ export function ReaderModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-[96vw] sm:max-w-4xl md:max-w-5xl lg:max-w-6xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 md:p-7">
+      <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <form onSubmit={handleSubmit} className="space-y-5">
-          <DialogHeader className="pb-2 border-b border-slate-100">
+          <DialogHeader className="pb-3 border-b border-slate-100">
             <DialogTitle className="flex items-center gap-2 text-slate-900 text-lg sm:text-xl">
               <UserPlus className="w-5 h-5 text-emerald-600 shrink-0" />
               <span>
@@ -785,567 +785,532 @@ export function ReaderModal({
             </DialogDescription>
           </DialogHeader>
 
-          {/* Grid Principal com 2 Colunas em telas médias/largas:
-              Coluna 1: Identificação, Foto e Contatos
-              Coluna 2: Cursos, Permissões e Acessos */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
-            {/* COLUNA ESQUERDA: Dados Cadastrais e Contatos */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-1 border-b border-slate-100">
-                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  1. Identificação e Contatos
+          {/* Layout de Coluna Única: campos organizados um abaixo do outro com scroll vertical */}
+          <div className="flex flex-col space-y-4">
+            {/* Foto do Leitor */}
+            <div
+              onPaste={handlePaste}
+              tabIndex={0}
+              className="flex flex-col sm:flex-row items-center gap-4 p-3 bg-slate-50 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all cursor-default"
+              title="Clique aqui e pressione Ctrl+V / Cmd+V para colar uma imagem da área de transferência"
+            >
+              <Avatar className="w-16 h-16 border-2 border-emerald-500 shadow-sm shrink-0">
+                {photoPreview ? (
+                  <AvatarImage src={photoPreview} alt="Preview da foto" className="object-cover" />
+                ) : (
+                  <AvatarFallback className="bg-emerald-100 text-emerald-800 text-base font-bold">
+                    <Camera className="w-6 h-6 text-emerald-600" />
+                  </AvatarFallback>
+                )}
+              </Avatar>
+
+              <div className="space-y-1.5 flex-1 min-w-0 text-center sm:text-left">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-slate-800">
+                    Foto do Leitor (Opcional)
+                  </Label>
+                  <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-slate-400">
+                    <ClipboardPaste className="w-3 h-3" /> Ctrl+V aceito
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Selecione um arquivo ou cole (Ctrl+V) diretamente aqui. Comprimida
+                  automaticamente.
+                </p>
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 shadow-xs">
+                    <Upload className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Selecionar Foto</span>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/jpg"
+                      onChange={handlePhotoSelect}
+                      className="hidden"
+                      disabled={loading}
+                    />
+                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePasteButtonClick}
+                    disabled={loading}
+                    className="h-7 text-xs px-2.5 bg-white border-slate-300 text-slate-700 hover:bg-slate-100"
+                    title="Colar imagem da área de transferência"
+                  >
+                    <ClipboardPaste className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                    Colar
+                  </Button>
+                  {photoPreview && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRemovePhoto}
+                      disabled={loading}
+                      className="h-7 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2"
+                    >
+                      <X className="w-3.5 h-3.5 mr-1" />
+                      Remover
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Nome Completo */}
+            <div className="space-y-1">
+              <Label htmlFor="nome_do_leitor" className="text-xs font-semibold text-slate-700">
+                Nome Completo *
+              </Label>
+              <Input
+                id="nome_do_leitor"
+                required
+                placeholder="Ex: Maria dos Santos"
+                value={formData.nome_do_leitor}
+                onChange={(e) => setFormData({ ...formData, nome_do_leitor: e.target.value })}
+                className="text-xs"
+              />
+            </div>
+
+            {/* E-mail / Login */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="email" className="text-xs font-semibold text-slate-700">
+                  {readerToEdit
+                    ? 'E-mail (Login de Entrada — Não Editável)'
+                    : 'E-mail (Login de Acesso) *'}
+                </Label>
+                {readerToEdit ? (
+                  <span className="text-[11px] font-medium text-amber-700 flex items-center gap-1">
+                    <Info className="w-3 h-3" /> Login Bloqueado
+                  </span>
+                ) : emailValidating ? (
+                  <span className="text-[11px] font-medium text-slate-500 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin text-emerald-600" />
+                    Validando domínio...
+                  </span>
+                ) : emailValidSuccess && !emailError ? (
+                  <span className="text-[11px] font-medium text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Domínio de e-mail válido
+                  </span>
+                ) : null}
+              </div>
+              <div className="relative">
+                <Input
+                  id="email"
+                  type="email"
+                  required={!readerToEdit}
+                  readOnly={!!readerToEdit}
+                  disabled={!!readerToEdit}
+                  placeholder="Ex: maria.santos@exemplo.com"
+                  value={formData.email}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setFormData({ ...formData, email: val })
+                    if (!readerToEdit) {
+                      triggerEmailValidation(val)
+                    }
+                  }}
+                  onBlur={() => {
+                    if (!readerToEdit && formData.email) {
+                      triggerEmailValidation(formData.email)
+                    }
+                  }}
+                  className={`text-xs ${
+                    readerToEdit
+                      ? 'bg-slate-100 text-slate-500 cursor-not-allowed border-slate-200 select-none'
+                      : emailError
+                        ? 'border-rose-500 focus-visible:ring-rose-500 pr-8'
+                        : emailValidSuccess
+                          ? 'border-emerald-500 focus-visible:ring-emerald-500 pr-8'
+                          : ''
+                  }`}
+                />
+                {!readerToEdit && (
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                    {emailValidating ? (
+                      <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />
+                    ) : emailError ? (
+                      <ShieldAlert className="w-3.5 h-3.5 text-rose-500" />
+                    ) : emailValidSuccess ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    ) : null}
+                  </div>
+                )}
+              </div>
+              {readerToEdit ? (
+                <div className="mt-1 flex items-start gap-1.5 p-2 rounded bg-amber-50/80 border border-amber-200/60 text-[11px] text-amber-900 leading-snug">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                  <span>
+                    O e-mail é o <strong>login de entrada</strong> do leitor. Para alterá-lo, exclua
+                    e recadastre o leitor com o novo e-mail.
+                  </span>
+                </div>
+              ) : emailError ? (
+                <div className="mt-1 flex items-start gap-1.5 p-2 rounded bg-rose-50 border border-rose-200 text-[11px] text-rose-800 leading-snug">
+                  <ShieldAlert className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
+                  <span>{emailError}</span>
+                </div>
+              ) : emailValidSuccess ? (
+                <p className="text-[11px] text-emerald-700 mt-1 flex items-center gap-1 font-medium">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  E-mail permanente com domínio e recebimento verificados.
+                </p>
+              ) : (
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Este e-mail será o identificador de login exclusivo do leitor na biblioteca.
+                </p>
+              )}
+            </div>
+
+            {/* Celular/WhatsApp */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label
+                  htmlFor="celular"
+                  className="text-xs font-semibold text-slate-700 flex items-center gap-1"
+                >
+                  <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+                  Celular/WhatsApp
+                </Label>
+                {celularError && (
+                  <span className="text-[10px] font-medium text-rose-600">{celularError}</span>
+                )}
+              </div>
+              <Input
+                id="celular"
+                type="tel"
+                placeholder="(XX) 9XXXX-XXXX"
+                maxLength={15}
+                value={formData.celular}
+                onChange={(e) => {
+                  setFormData({ ...formData, celular: formatMobilePhone(e.target.value) })
+                  if (celularError) setCelularError(null)
+                }}
+                className={`text-xs font-mono ${
+                  celularError ? 'border-rose-500 focus-visible:ring-rose-500' : ''
+                }`}
+              />
+              <p className="text-[10px] text-slate-400 mt-0.5">2 dígitos DDD + 9 dígitos celular</p>
+            </div>
+
+            {/* Telefone Fixo */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label
+                  htmlFor="telefone_fixo"
+                  className="text-xs font-semibold text-slate-700 flex items-center gap-1"
+                >
+                  <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                  Telefone Fixo
+                </Label>
+                {telefoneFixoError && (
+                  <span className="text-[10px] font-medium text-rose-600">{telefoneFixoError}</span>
+                )}
+              </div>
+              <Input
+                id="telefone_fixo"
+                type="tel"
+                placeholder="(XX) XXXX-XXXX"
+                maxLength={14}
+                value={formData.telefone_fixo}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    telefone_fixo: formatLandlinePhone(e.target.value),
+                  })
+                  if (telefoneFixoError) setTelefoneFixoError(null)
+                }}
+                className={`text-xs font-mono ${
+                  telefoneFixoError ? 'border-rose-500 focus-visible:ring-rose-500' : ''
+                }`}
+              />
+              <p className="text-[10px] text-slate-400 mt-0.5">2 dígitos DDD + 8 dígitos fixo</p>
+            </div>
+
+            {/* Campo de Curso(s) que está frequentando na CEP */}
+            <div className="space-y-2.5 p-3.5 bg-slate-50/80 rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+                  <GraduationCap className="w-4 h-4 text-emerald-600" />
+                  Curso(s) que está frequentando na CEP
+                </Label>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  {selectedCursoIds.length === 0
+                    ? 'Nenhum curso vinculado'
+                    : `${selectedCursoIds.length} curso(s)`}
                 </span>
               </div>
 
-              {/* Foto do Leitor */}
-              <div
-                onPaste={handlePaste}
-                tabIndex={0}
-                className="flex flex-col sm:flex-row items-center gap-4 p-3 bg-slate-50 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all cursor-default"
-                title="Clique aqui e pressione Ctrl+V / Cmd+V para colar uma imagem da área de transferência"
-              >
-                <Avatar className="w-16 h-16 border-2 border-emerald-500 shadow-sm shrink-0">
-                  {photoPreview ? (
-                    <AvatarImage
-                      src={photoPreview}
-                      alt="Preview da foto"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <AvatarFallback className="bg-emerald-100 text-emerald-800 text-base font-bold">
-                      <Camera className="w-6 h-6 text-emerald-600" />
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-
-                <div className="space-y-1.5 flex-1 min-w-0 text-center sm:text-left">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold text-slate-800">
-                      Foto do Leitor (Opcional)
-                    </Label>
-                    <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-slate-400">
-                      <ClipboardPaste className="w-3 h-3" /> Ctrl+V aceito
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    Selecione um arquivo ou cole (Ctrl+V) diretamente aqui. Comprimida
-                    automaticamente.
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
-                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 shadow-xs">
-                      <Upload className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Selecionar Foto</span>
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp,image/jpg"
-                        onChange={handlePhotoSelect}
-                        className="hidden"
-                        disabled={loading}
-                      />
-                    </label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handlePasteButtonClick}
-                      disabled={loading}
-                      className="h-7 text-xs px-2.5 bg-white border-slate-300 text-slate-700 hover:bg-slate-100"
-                      title="Colar imagem da área de transferência"
-                    >
-                      <ClipboardPaste className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                      Colar
-                    </Button>
-                    {photoPreview && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleRemovePhoto}
-                        disabled={loading}
-                        className="h-7 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2"
-                      >
-                        <X className="w-3.5 h-3.5 mr-1" />
-                        Remover
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Nome Completo */}
-              <div>
-                <Label htmlFor="nome_do_leitor" className="text-xs font-semibold text-slate-700">
-                  Nome Completo *
-                </Label>
-                <Input
-                  id="nome_do_leitor"
-                  required
-                  placeholder="Ex: Maria dos Santos"
-                  value={formData.nome_do_leitor}
-                  onChange={(e) => setFormData({ ...formData, nome_do_leitor: e.target.value })}
-                  className="mt-1 text-xs"
-                />
-              </div>
-
-              {/* E-mail / Login */}
-              <div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="email" className="text-xs font-semibold text-slate-700">
-                    {readerToEdit
-                      ? 'E-mail (Login de Entrada — Não Editável)'
-                      : 'E-mail (Login de Acesso) *'}
-                  </Label>
-                  {readerToEdit ? (
-                    <span className="text-[11px] font-medium text-amber-700 flex items-center gap-1">
-                      <Info className="w-3 h-3" /> Login Bloqueado
-                    </span>
-                  ) : emailValidating ? (
-                    <span className="text-[11px] font-medium text-slate-500 flex items-center gap-1">
-                      <Loader2 className="w-3 h-3 animate-spin text-emerald-600" />
-                      Validando domínio...
-                    </span>
-                  ) : emailValidSuccess && !emailError ? (
-                    <span className="text-[11px] font-medium text-emerald-600 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Domínio de e-mail válido
-                    </span>
-                  ) : null}
-                </div>
-                <div className="relative mt-1">
-                  <Input
-                    id="email"
-                    type="email"
-                    required={!readerToEdit}
-                    readOnly={!!readerToEdit}
-                    disabled={!!readerToEdit}
-                    placeholder="Ex: maria.santos@exemplo.com"
-                    value={formData.email}
-                    onChange={(e) => {
-                      const val = e.target.value
-                      setFormData({ ...formData, email: val })
-                      if (!readerToEdit) {
-                        triggerEmailValidation(val)
-                      }
-                    }}
-                    onBlur={() => {
-                      if (!readerToEdit && formData.email) {
-                        triggerEmailValidation(formData.email)
-                      }
-                    }}
-                    className={`text-xs ${
-                      readerToEdit
-                        ? 'bg-slate-100 text-slate-500 cursor-not-allowed border-slate-200 select-none'
-                        : emailError
-                          ? 'border-rose-500 focus-visible:ring-rose-500 pr-8'
-                          : emailValidSuccess
-                            ? 'border-emerald-500 focus-visible:ring-emerald-500 pr-8'
-                            : ''
-                    }`}
-                  />
-                  {!readerToEdit && (
-                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                      {emailValidating ? (
-                        <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />
-                      ) : emailError ? (
-                        <ShieldAlert className="w-3.5 h-3.5 text-rose-500" />
-                      ) : emailValidSuccess ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      ) : null}
-                    </div>
-                  )}
-                </div>
-                {readerToEdit ? (
-                  <div className="mt-1.5 flex items-start gap-1.5 p-2 rounded bg-amber-50/80 border border-amber-200/60 text-[11px] text-amber-900 leading-snug">
-                    <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
-                    <span>
-                      O e-mail é o <strong>login de entrada</strong> do leitor. Para alterá-lo,
-                      exclua e recadastre o leitor com o novo e-mail.
-                    </span>
-                  </div>
-                ) : emailError ? (
-                  <div className="mt-1.5 flex items-start gap-1.5 p-2 rounded bg-rose-50 border border-rose-200 text-[11px] text-rose-800 leading-snug">
-                    <ShieldAlert className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
-                    <span>{emailError}</span>
-                  </div>
-                ) : emailValidSuccess ? (
-                  <p className="text-[11px] text-emerald-700 mt-1 flex items-center gap-1 font-medium">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                    E-mail permanente com domínio e recebimento verificados.
-                  </p>
+              {/* Badges dos cursos selecionados */}
+              <div className="flex flex-wrap gap-1.5 min-h-[32px] p-2 bg-white rounded-md border border-slate-200/80 items-center">
+                {selectedCursoIds.length === 0 ? (
+                  <span className="text-xs text-slate-400 italic">
+                    Nenhum curso selecionado no momento. Use o seletor abaixo e o botão (+) para
+                    adicionar cursos.
+                  </span>
                 ) : (
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Este e-mail será o identificador de login exclusivo do leitor na biblioteca.
-                  </p>
+                  selectedCursoIds.map((cId) => {
+                    const cObj = allCursos.find((c) => c.id === cId)
+                    const cNome = cObj?.nome || cId
+                    return (
+                      <Badge
+                        key={cId}
+                        variant="secondary"
+                        className="bg-emerald-100 text-emerald-900 border-emerald-300 text-xs py-1 px-2.5 gap-1.5 font-medium flex items-center"
+                      >
+                        <span>{cNome}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCurso(cId)}
+                          className="hover:bg-emerald-200 rounded-full p-0.5 text-emerald-700 hover:text-emerald-950 transition-colors"
+                          title="Remover curso"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    )
+                  })
                 )}
               </div>
 
-              {/* Telefones: Celular/WhatsApp e Telefone Fixo */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Celular/WhatsApp */}
-                <div>
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="celular"
-                      className="text-xs font-semibold text-slate-700 flex items-center gap-1"
-                    >
-                      <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
-                      Celular/WhatsApp
-                    </Label>
-                    {celularError && (
-                      <span className="text-[10px] font-medium text-rose-600">{celularError}</span>
+              {/* Seletor + Botão (+) para adicionar curso */}
+              <div className="flex items-center gap-2 pt-1">
+                <Select value={cursoToAdd} onValueChange={setCursoToAdd} disabled={loadingCursos}>
+                  <SelectTrigger className="text-xs h-8 bg-white flex-1 min-w-0">
+                    <SelectValue placeholder="Selecione um curso para acrescentar..." />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-56">
+                    {allCursos
+                      .filter((c) => !selectedCursoIds.includes(c.id))
+                      .map((c) => (
+                        <SelectItem key={c.id} value={c.id} className="text-xs">
+                          {c.nome}
+                        </SelectItem>
+                      ))}
+                    {allCursos.filter((c) => !selectedCursoIds.includes(c.id)).length === 0 && (
+                      <div className="p-2 text-xs text-slate-400 text-center">
+                        Todos os cursos disponíveis já foram adicionados.
+                      </div>
                     )}
-                  </div>
-                  <Input
-                    id="celular"
-                    type="tel"
-                    placeholder="(XX) 9XXXX-XXXX"
-                    maxLength={15}
-                    value={formData.celular}
-                    onChange={(e) => {
-                      setFormData({ ...formData, celular: formatMobilePhone(e.target.value) })
-                      if (celularError) setCelularError(null)
-                    }}
-                    className={`mt-1 text-xs font-mono ${
-                      celularError ? 'border-rose-500 focus-visible:ring-rose-500' : ''
-                    }`}
-                  />
-                  <p className="text-[10px] text-slate-400 mt-0.5">
-                    2 dígitos DDD + 9 dígitos celular
-                  </p>
-                </div>
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleAddCurso}
+                  disabled={!cursoToAdd}
+                  className="h-8 px-3 text-xs bg-emerald-600 hover:bg-emerald-700 text-white hover:text-white border-none gap-1 font-semibold shrink-0 shadow-xs"
+                  title="Adicionar outro curso"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Adicionar (+)</span>
+                </Button>
+              </div>
+            </div>
 
-                {/* Telefone Fixo */}
-                <div>
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="telefone_fixo"
-                      className="text-xs font-semibold text-slate-700 flex items-center gap-1"
-                    >
-                      <Phone className="w-3.5 h-3.5 text-emerald-600" />
-                      Telefone Fixo
-                    </Label>
-                    {telefoneFixoError && (
-                      <span className="text-[10px] font-medium text-rose-600">
-                        {telefoneFixoError}
-                      </span>
-                    )}
-                  </div>
-                  <Input
-                    id="telefone_fixo"
-                    type="tel"
-                    placeholder="(XX) XXXX-XXXX"
-                    maxLength={14}
-                    value={formData.telefone_fixo}
-                    onChange={(e) => {
-                      setFormData({
-                        ...formData,
-                        telefone_fixo: formatLandlinePhone(e.target.value),
-                      })
-                      if (telefoneFixoError) setTelefoneFixoError(null)
-                    }}
-                    className={`mt-1 text-xs font-mono ${
-                      telefoneFixoError ? 'border-rose-500 focus-visible:ring-rose-500' : ''
-                    }`}
+            {/* SE FOR EDIÇÃO POR OPERADOR: Checkbox de Reset de Senha */}
+            {readerToEdit && isOperadorOrAdmin && !isSelfEdit && (
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+                <div className="flex items-start gap-2.5">
+                  <Checkbox
+                    id="reset-password-check"
+                    checked={sendPasswordReset}
+                    onCheckedChange={(checked) => setSendPasswordReset(!!checked)}
+                    className="mt-0.5 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
                   />
-                  <p className="text-[10px] text-slate-400 mt-0.5">
-                    2 dígitos DDD + 8 dígitos fixo
-                  </p>
+                  <div className="space-y-0.5">
+                    <Label
+                      htmlFor="reset-password-check"
+                      className="text-xs font-semibold text-slate-900 cursor-pointer flex items-center gap-1.5"
+                    >
+                      <MailCheck className="w-3.5 h-3.5 text-emerald-600" />
+                      Enviar e-mail para redefinição de senha do leitor
+                    </Label>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Ao marcar esta opção e salvar, será enviado automaticamente um link seguro
+                      para o e-mail cadastrado (<strong>{readerToEdit.email}</strong>) para que o
+                      leitor defina uma nova senha.
+                    </p>
+                  </div>
                 </div>
               </div>
+            )}
 
-              {/* SE FOR NOVO CADASTRO: Senha de Primeiro Acesso */}
-              {!readerToEdit && (
-                <div className="space-y-3 p-3 bg-emerald-50/60 rounded-lg border border-emerald-200">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-md bg-emerald-600 text-white flex items-center justify-center">
-                      <KeyRound className="w-3.5 h-3.5" />
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold text-emerald-950">
-                        Senha de Acesso (Primeiro Acesso) *
-                      </Label>
-                      <p className="text-[11px] text-emerald-800">
-                        Defina a senha que o leitor utilizará para acessar o sistema no primeiro
-                        acesso.
-                      </p>
-                    </div>
+            {/* Flag de acesso aos livros da diretoria: Sim/Não com default Não */}
+            {isOperadorOrAdmin && !isSelfEdit && (
+              <div
+                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border transition-colors ${
+                  formData.acesso_diretoria
+                    ? 'bg-amber-50/60 border-amber-200'
+                    : 'bg-slate-50 border-slate-200'
+                }`}
+              >
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    {formData.acesso_diretoria ? (
+                      <ShieldCheck className="w-4 h-4 text-amber-600" />
+                    ) : (
+                      <ShieldAlert className="w-4 h-4 text-slate-400" />
+                    )}
+                    <Label className="text-xs font-semibold text-slate-800">
+                      Acesso aos Livros da Diretoria
+                    </Label>
                   </div>
+                  <p className="text-[11px] text-slate-500">
+                    Permite ao leitor realizar empréstimos e reservas de obras pertencentes ao
+                    Acervo da Diretoria.
+                  </p>
+                </div>
 
-                  {senhaError && (
-                    <p className="text-[11px] font-medium text-rose-600 bg-rose-50 p-2 rounded border border-rose-200">
-                      {senhaError}
+                <div className="flex items-center gap-2.5 self-start sm:self-auto shrink-0">
+                  <span
+                    className={`text-xs font-bold px-2 py-0.5 rounded select-none ${
+                      formData.acesso_diretoria
+                        ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                        : 'bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {formData.acesso_diretoria ? 'Sim' : 'Não'}
+                  </span>
+                  <Switch
+                    checked={formData.acesso_diretoria}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, acesso_diretoria: checked })
+                    }
+                    className="data-[state=checked]:bg-amber-600 data-[state=unchecked]:bg-slate-400"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Bloqueio de Empréstimos */}
+            {readerToEdit && isOperadorOrAdmin && !isSelfEdit && (
+              <div
+                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border transition-colors ${
+                  formData.bloqueado
+                    ? 'bg-rose-50/50 border-rose-200'
+                    : 'bg-slate-50 border-slate-200'
+                }`}
+              >
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-semibold text-slate-800">
+                    Bloquear Empréstimos
+                  </Label>
+                  <p className="text-[11px] text-slate-500">
+                    Impede o leitor de solicitar novos livros por pendências
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setFormData({ ...formData, bloqueado: !formData.bloqueado })}
+                    className={`h-8 text-xs font-semibold transition-colors gap-1.5 shadow-xs ${
+                      formData.bloqueado
+                        ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                        : 'bg-slate-700 hover:bg-slate-800 text-white'
+                    }`}
+                  >
+                    {formData.bloqueado ? 'Empréstimos Bloqueados' : 'Bloquear Empréstimos'}
+                  </Button>
+                  <Switch
+                    checked={formData.bloqueado}
+                    onCheckedChange={(checked) => setFormData({ ...formData, bloqueado: checked })}
+                    className="data-[state=checked]:bg-rose-600 data-[state=unchecked]:bg-slate-700"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* SE FOR NOVO CADASTRO: Senha de Primeiro Acesso */}
+            {!readerToEdit && (
+              <div className="space-y-3 p-3 bg-emerald-50/60 rounded-lg border border-emerald-200">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-emerald-600 text-white flex items-center justify-center">
+                    <KeyRound className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-bold text-emerald-950">
+                      Senha de Acesso (Primeiro Acesso) *
+                    </Label>
+                    <p className="text-[11px] text-emerald-800">
+                      Defina a senha que o leitor utilizará para acessar o sistema no primeiro
+                      acesso.
                     </p>
-                  )}
+                  </div>
+                </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                    <div className="space-y-1">
-                      <Label
-                        htmlFor="first_password"
-                        className="text-[11px] font-semibold text-slate-700"
-                      >
-                        Senha Provisória * (mínimo 6 dígitos)
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          id="first_password"
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="••••••••"
-                          minLength={6}
-                          required
-                          value={firstAccessPassword}
-                          onChange={(e) => {
-                            setFirstAccessPassword(e.target.value)
-                            if (senhaError) setSenhaError(null)
-                          }}
-                          className="text-xs pr-8 bg-white"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                          tabIndex={-1}
-                        >
-                          {showPassword ? (
-                            <EyeOff className="w-3.5 h-3.5" />
-                          ) : (
-                            <Eye className="w-3.5 h-3.5" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
+                {senhaError && (
+                  <p className="text-[11px] font-medium text-rose-600 bg-rose-50 p-2 rounded border border-rose-200">
+                    {senhaError}
+                  </p>
+                )}
 
-                    <div className="space-y-1">
-                      <Label
-                        htmlFor="confirm_first_password"
-                        className="text-[11px] font-semibold text-slate-700"
-                      >
-                        Confirmar Senha *
-                      </Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  <div className="space-y-1">
+                    <Label
+                      htmlFor="first_password"
+                      className="text-[11px] font-semibold text-slate-700"
+                    >
+                      Senha Provisória * (mínimo 6 dígitos)
+                    </Label>
+                    <div className="relative">
                       <Input
-                        id="confirm_first_password"
+                        id="first_password"
                         type={showPassword ? 'text' : 'password'}
                         placeholder="••••••••"
                         minLength={6}
                         required
-                        value={confirmPassword}
+                        value={firstAccessPassword}
                         onChange={(e) => {
-                          setConfirmPassword(e.target.value)
+                          setFirstAccessPassword(e.target.value)
                           if (senhaError) setSenhaError(null)
                         }}
-                        className="text-xs bg-white"
+                        className="text-xs pr-8 bg-white"
                       />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* COLUNA DIREITA: Cursos Frequentados e Permissões */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-1 border-b border-slate-100">
-                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  2. Cursos e Permissões
-                </span>
-              </div>
-
-              {/* Campo de Curso(s) que está frequentando na CEP */}
-              <div className="space-y-2.5 p-3.5 bg-slate-50/80 rounded-lg border border-slate-200">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                    <GraduationCap className="w-4 h-4 text-emerald-600" />
-                    Curso(s) que está frequentando na CEP
-                  </Label>
-                  <span className="text-[11px] text-slate-500 font-medium">
-                    {selectedCursoIds.length === 0
-                      ? 'Nenhum curso vinculado'
-                      : `${selectedCursoIds.length} curso(s)`}
-                  </span>
-                </div>
-
-                {/* Badges dos cursos selecionados */}
-                <div className="flex flex-wrap gap-1.5 min-h-[32px] p-2 bg-white rounded-md border border-slate-200/80 items-center">
-                  {selectedCursoIds.length === 0 ? (
-                    <span className="text-xs text-slate-400 italic">
-                      Nenhum curso selecionado no momento. Use o seletor abaixo e o botão (+) para
-                      adicionar cursos.
-                    </span>
-                  ) : (
-                    selectedCursoIds.map((cId) => {
-                      const cObj = allCursos.find((c) => c.id === cId)
-                      const cNome = cObj?.nome || cId
-                      return (
-                        <Badge
-                          key={cId}
-                          variant="secondary"
-                          className="bg-emerald-100 text-emerald-900 border-emerald-300 text-xs py-1 px-2.5 gap-1.5 font-medium flex items-center"
-                        >
-                          <span>{cNome}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveCurso(cId)}
-                            className="hover:bg-emerald-200 rounded-full p-0.5 text-emerald-700 hover:text-emerald-950 transition-colors"
-                            title="Remover curso"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </Badge>
-                      )
-                    })
-                  )}
-                </div>
-
-                {/* Seletor + Botão (+) para adicionar curso */}
-                <div className="flex items-center gap-2 pt-1">
-                  <Select value={cursoToAdd} onValueChange={setCursoToAdd} disabled={loadingCursos}>
-                    <SelectTrigger className="text-xs h-8 bg-white flex-1 min-w-0">
-                      <SelectValue placeholder="Selecione um curso para acrescentar..." />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-56">
-                      {allCursos
-                        .filter((c) => !selectedCursoIds.includes(c.id))
-                        .map((c) => (
-                          <SelectItem key={c.id} value={c.id} className="text-xs">
-                            {c.nome}
-                          </SelectItem>
-                        ))}
-                      {allCursos.filter((c) => !selectedCursoIds.includes(c.id)).length === 0 && (
-                        <div className="p-2 text-xs text-slate-400 text-center">
-                          Todos os cursos disponíveis já foram adicionados.
-                        </div>
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={handleAddCurso}
-                    disabled={!cursoToAdd}
-                    className="h-8 px-3 text-xs bg-emerald-600 hover:bg-emerald-700 text-white hover:text-white border-none gap-1 font-semibold shrink-0 shadow-xs"
-                    title="Adicionar outro curso"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Adicionar (+)</span>
-                  </Button>
-                </div>
-              </div>
-
-              {/* SE FOR EDIÇÃO POR OPERADOR: Checkbox de Reset de Senha */}
-              {readerToEdit && isOperadorOrAdmin && !isSelfEdit && (
-                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
-                  <div className="flex items-start gap-2.5">
-                    <Checkbox
-                      id="reset-password-check"
-                      checked={sendPasswordReset}
-                      onCheckedChange={(checked) => setSendPasswordReset(!!checked)}
-                      className="mt-0.5 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
-                    />
-                    <div className="space-y-0.5">
-                      <Label
-                        htmlFor="reset-password-check"
-                        className="text-xs font-semibold text-slate-900 cursor-pointer flex items-center gap-1.5"
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        tabIndex={-1}
                       >
-                        <MailCheck className="w-3.5 h-3.5 text-emerald-600" />
-                        Enviar e-mail para redefinição de senha do leitor
-                      </Label>
-                      <p className="text-[11px] text-slate-500 leading-relaxed">
-                        Ao marcar esta opção e salvar, será enviado automaticamente um link seguro
-                        para o e-mail cadastrado (<strong>{readerToEdit.email}</strong>) para que o
-                        leitor defina uma nova senha.
-                      </p>
+                        {showPassword ? (
+                          <EyeOff className="w-3.5 h-3.5" />
+                        ) : (
+                          <Eye className="w-3.5 h-3.5" />
+                        )}
+                      </button>
                     </div>
                   </div>
-                </div>
-              )}
 
-              {/* Flag de acesso aos livros da diretoria: Sim/Não com default Não */}
-              {isOperadorOrAdmin && !isSelfEdit && (
-                <div
-                  className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border transition-colors ${
-                    formData.acesso_diretoria
-                      ? 'bg-amber-50/60 border-amber-200'
-                      : 'bg-slate-50 border-slate-200'
-                  }`}
-                >
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-1.5">
-                      {formData.acesso_diretoria ? (
-                        <ShieldCheck className="w-4 h-4 text-amber-600" />
-                      ) : (
-                        <ShieldAlert className="w-4 h-4 text-slate-400" />
-                      )}
-                      <Label className="text-xs font-semibold text-slate-800">
-                        Acesso aos Livros da Diretoria
-                      </Label>
-                    </div>
-                    <p className="text-[11px] text-slate-500">
-                      Permite ao leitor realizar empréstimos e reservas de obras pertencentes ao
-                      Acervo da Diretoria.
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2.5 self-start sm:self-auto shrink-0">
-                    <span
-                      className={`text-xs font-bold px-2 py-0.5 rounded select-none ${
-                        formData.acesso_diretoria
-                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                          : 'bg-slate-200 text-slate-700'
-                      }`}
+                  <div className="space-y-1">
+                    <Label
+                      htmlFor="confirm_first_password"
+                      className="text-[11px] font-semibold text-slate-700"
                     >
-                      {formData.acesso_diretoria ? 'Sim' : 'Não'}
-                    </span>
-                    <Switch
-                      checked={formData.acesso_diretoria}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, acesso_diretoria: checked })
-                      }
-                      className="data-[state=checked]:bg-amber-600 data-[state=unchecked]:bg-slate-400"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Bloqueio de Empréstimos */}
-              {readerToEdit && isOperadorOrAdmin && !isSelfEdit && (
-                <div
-                  className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border transition-colors ${
-                    formData.bloqueado
-                      ? 'bg-rose-50/50 border-rose-200'
-                      : 'bg-slate-50 border-slate-200'
-                  }`}
-                >
-                  <div className="space-y-0.5">
-                    <Label className="text-xs font-semibold text-slate-800">
-                      Bloquear Empréstimos
+                      Confirmar Senha *
                     </Label>
-                    <p className="text-[11px] text-slate-500">
-                      Impede o leitor de solicitar novos livros por pendências
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 self-start sm:self-auto">
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => setFormData({ ...formData, bloqueado: !formData.bloqueado })}
-                      className={`h-8 text-xs font-semibold transition-colors gap-1.5 shadow-xs ${
-                        formData.bloqueado
-                          ? 'bg-rose-600 hover:bg-rose-700 text-white'
-                          : 'bg-slate-700 hover:bg-slate-800 text-white'
-                      }`}
-                    >
-                      {formData.bloqueado ? 'Empréstimos Bloqueados' : 'Bloquear Empréstimos'}
-                    </Button>
-                    <Switch
-                      checked={formData.bloqueado}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, bloqueado: checked })
-                      }
-                      className="data-[state=checked]:bg-rose-600 data-[state=unchecked]:bg-slate-700"
+                    <Input
+                      id="confirm_first_password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      minLength={6}
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value)
+                        if (senhaError) setSenhaError(null)
+                      }}
+                      className="text-xs bg-white"
                     />
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2 sm:justify-between pt-3 border-t border-slate-100">
