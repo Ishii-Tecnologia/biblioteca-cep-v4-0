@@ -278,7 +278,7 @@ export default function Emprestimos() {
                             className="bg-emerald-50 text-emerald-800 border-emerald-300 font-medium text-[11px] shadow-none select-none"
                             title="Acervo Geral"
                           >
-                            Cecilia Braga
+                            Cecíclia Braga
                           </Badge>
                         )
                       })()}

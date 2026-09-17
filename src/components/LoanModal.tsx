@@ -263,7 +263,7 @@ export function LoanModal({
                                 variant="outline"
                                 className="bg-emerald-50 text-emerald-800 border-emerald-300 text-[10px] px-1 py-0 mr-1.5 align-middle font-medium"
                               >
-                                Cecilia Braga
+                                Cecíclia Braga
                               </Badge>
                             )}
                             <span className="font-medium text-slate-800">

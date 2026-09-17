@@ -338,7 +338,7 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
               <BookOpen
                 className={`w-6 h-6 ${isDiretoria ? 'text-amber-600' : 'text-emerald-600'}`}
               />
-              {isDiretoria ? 'Acervo Rino Curti' : 'Acervo Cecilia Braga'}
+              {isDiretoria ? 'Acervo Rino Curti' : 'Acervo Cecíclia Braga'}
             </h1>
             {isDiretoria && (
               <Badge className="bg-amber-100 text-amber-900 border-amber-300 font-semibold text-xs">
