@@ -2,7 +2,7 @@
   "name": "skip-react-template",
   "description": "Biblioteca CEP v4.0 - Sistema de Gestao da Biblioteca",
   "private": true,
-  "version": "0.0.48",
+  "version": "0.0.49",
   "type": "module",
   "scripts": {
     "start": "vite dev",
