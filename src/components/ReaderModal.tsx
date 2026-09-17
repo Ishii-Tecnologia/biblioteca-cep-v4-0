@@ -490,7 +490,10 @@ export function ReaderModal({
         let resetErrorMessage: string | null = null
 
         if (sendPasswordReset && isOperadorOrAdmin) {
-          const resetRes = await LeitoresService.sendPasswordResetEmail(cleanEmail)
+          const resetRes = await LeitoresService.sendPasswordResetEmail(cleanEmail, {
+            nome: cleanNome,
+            tipo: 'primeiro_acesso',
+          })
           if (resetRes.success) {
             resetEmailSent = true
           } else {

@@ -19,7 +19,11 @@ export interface LeitorWithStats extends Leitor {
 }
 
 export const LeitoresService = {
-  async getAll(searchQuery?: string, filterStatus?: 'all' | 'ativos' | 'bloqueados' | 'pendentes') {
+  async getAll(
+    searchQuery?: string,
+    filterStatus?: 'all' | 'ativos' | 'bloqueados' | 'pendentes',
+    filterCursoId?: string,
+  ) {
     let query = supabase
       .from('leitor')
       .select(`
@@ -48,7 +52,7 @@ export const LeitoresService = {
     if (error) throw error
 
     const now = new Date()
-    const formatted: LeitorWithStats[] = (data || []).map((l: any) => {
+    let formatted: LeitorWithStats[] = (data || []).map((l: any) => {
       const loans = l.emprestimo || []
       const activeLoans = loans.filter((lo: any) => !lo.data_devolucao_real)
       const overdueLoans = activeLoans.filter((lo: any) => {
@@ -100,6 +104,24 @@ export const LeitoresService = {
         total_emprestimos: loans.length,
       }
     })
+
+    // Filtro por curso selecionado (considerando IDs e compatibilidade com nome)
+    if (filterCursoId && filterCursoId !== 'all') {
+      formatted = formatted.filter((reader) => {
+        // 1. Checa se o ID do curso está nos cursos_ids do relacionamento leitor_curso
+        if (reader.cursos_ids && reader.cursos_ids.includes(filterCursoId)) {
+          return true
+        }
+        // 2. Fallback caso a filtragem ocorra também pelo identificador legado ou correspondência
+        if (
+          reader.curso &&
+          (reader.curso === filterCursoId || reader.cursos_nomes?.includes(filterCursoId))
+        ) {
+          return true
+        }
+        return false
+      })
+    }
 
     return formatted
   },
@@ -300,9 +322,12 @@ export const LeitoresService = {
       let isRateLimit = false
       let sendError: string | undefined
 
-      // 2. Disparar e-mail de primeiro acesso com link de definição de senha
+      // 2. Disparar e-mail de primeiro acesso com link de definição de senha e identidade visual
       if (leitorEmail) {
-        const resetRes = await LeitoresService.sendPasswordResetEmail(leitorEmail)
+        const resetRes = await LeitoresService.sendPasswordResetEmail(leitorEmail, {
+          nome: rpcData?.nome,
+          tipo: 'primeiro_acesso',
+        })
         if (resetRes.success) {
           emailSent = true
         } else {
@@ -403,21 +428,58 @@ export const LeitoresService = {
   },
 
   /**
-   * Envia e-mail de primeiro acesso / definição de senha para o leitor.
-   * Utiliza o fluxo de recuperação de senha com redirecionamento institucional
-   * para <origin>/redefinir-senha da Biblioteca da CEP.
-   * Trata rate limit do Supabase Auth de forma clara e amigável.
+   * Envia e-mail de primeiro acesso / definição de senha para o leitor com identidade visual da Biblioteca da CEP.
+   * Utiliza a Edge Function send_access_email com SMTP próprio e action_link gerado via Admin API,
+   * suprimindo e-mails padrão e prevenindo rate-limits desnecessários.
+   * Possui fallback resiliente com resetPasswordForEmail caso a função esteja indisponível.
    */
   async sendPasswordResetEmail(
     email: string,
+    options?: { nome?: string; tipo?: 'primeiro_acesso' | 'reset_senha' },
   ): Promise<{ success: boolean; isRateLimit?: boolean; error?: string }> {
     const normalized = email.trim().toLowerCase()
     if (!normalized) {
       return { success: false, error: 'E-mail não informado.' }
     }
 
+    const redirectUrl = `${window.location.origin}/redefinir-senha`
+
     try {
-      // 1. Marca no banco que este usuário/leitor está com reset/definição pendente
+      // 1. Tentar envio personalizado via Edge Function send_access_email
+      const { data: funcData, error: funcError } = await supabase.functions.invoke(
+        'send_access_email',
+        {
+          body: {
+            email: normalized,
+            nome: options?.nome,
+            redirectTo: redirectUrl,
+            tipo: options?.tipo || 'primeiro_acesso',
+          },
+        },
+      )
+
+      if (!funcError && funcData && (funcData.success || !funcData.error)) {
+        // Envio concluído via SMTP institucional
+        return { success: true }
+      }
+
+      // Se a Edge Function retornou erro específico
+      if (funcError || funcData?.error) {
+        const errorMsg = funcError?.message || funcData?.error || ''
+        const isRate = isRateLimitError(errorMsg)
+        console.warn('Aviso no envio customizado via Edge Function:', errorMsg)
+
+        // Se for erro de rate limit do Supabase na geração do link
+        if (isRate) {
+          return {
+            success: false,
+            isRateLimit: true,
+            error: RATE_LIMIT_USER_MESSAGE,
+          }
+        }
+      }
+
+      // 2. Fallback resiliente: se a Edge Function falhar por conexão ou rede, utilizar o fluxo padrão
       try {
         await (supabase.rpc as any)('marcar_reset_senha_pendente', {
           p_email: normalized,
@@ -426,16 +488,14 @@ export const LeitoresService = {
         console.warn('Aviso ao marcar reset pendente via RPC:', markErr)
       }
 
-      // 2. Manter a origem exata da aplicação para redirecionar à tela institucional de definição de senha
-      const redirectUrl = `${window.location.origin}/redefinir-senha`
-      const { error } = await supabase.auth.resetPasswordForEmail(normalized, {
+      const { error: fallbackError } = await supabase.auth.resetPasswordForEmail(normalized, {
         redirectTo: redirectUrl,
       })
 
-      if (error) {
-        const isRate = isRateLimitError(error)
+      if (fallbackError) {
+        const isRate = isRateLimitError(fallbackError)
         const friendlyMsg = getFriendlyAuthErrorMessage(
-          error,
+          fallbackError,
           'Falha ao enviar e-mail de primeiro acesso.',
         )
         return {
@@ -445,7 +505,6 @@ export const LeitoresService = {
         }
       }
 
-      // 3. Sucesso: registrar timestamp do envio para controle de cooldown no front e banco
       try {
         await (supabase.rpc as any)('registrar_envio_email_acesso', {
           p_email: normalized,

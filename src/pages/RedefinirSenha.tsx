@@ -175,11 +175,20 @@ export default function RedefinirSenha() {
         throw error
       }
 
-      // Conclui o primeiro acesso no banco via RPC
+      // Conclui o primeiro acesso no banco via RPC e limpa flags
       try {
         await markPasswordResetCompleted()
       } catch (rpcErr) {
         console.warn('Aviso ao marcar redefinição concluída:', rpcErr)
+      }
+
+      // Limpar hash da URL para evitar que re-renderizações detectem fragmento recovery
+      if (typeof window !== 'undefined' && window.location.hash) {
+        try {
+          window.history.replaceState(null, '', window.location.pathname)
+        } catch {
+          /* intentionally ignored */
+        }
       }
 
       setSuccess(true)
@@ -190,7 +199,7 @@ export default function RedefinirSenha() {
 
       setTimeout(() => {
         navigate('/', { replace: true })
-      }, 2000)
+      }, 1500)
     } catch (err: any) {
       const isRate = isRateLimitError(err)
       const friendlyMsg = getFriendlyAuthErrorMessage(

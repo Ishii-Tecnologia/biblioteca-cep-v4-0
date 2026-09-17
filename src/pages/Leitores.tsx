@@ -31,13 +31,23 @@ import {
   CheckCircle2,
   XCircle,
   Send,
+  GraduationCap,
+  X,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { ReaderModal } from '@/components/ReaderModal'
 import { ReaderLoanHistoryModal } from '@/components/ReaderLoanHistoryModal'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import { useToast } from '@/hooks/use-toast'
 import { useHeaderCounters } from '@/hooks/use-header-counters'
+import { CursosService, Curso } from '@/services/cursos'
 
 export default function Leitores() {
   const { user, profile, isOperadorOrAdmin, isAdmin } = useAuth()
@@ -50,6 +60,8 @@ export default function Leitores() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'ativos' | 'bloqueados' | 'pendentes'>(
     'all',
   )
+  const [selectedCursoId, setSelectedCursoId] = useState<string>('all')
+  const [cursosDisponiveis, setCursosDisponiveis] = useState<Curso[]>([])
 
   const [readerModalOpen, setReaderModalOpen] = useState(false)
   const [readerToEdit, setReaderToEdit] = useState<(Leitor & { cursos_ids?: string[] }) | null>(
@@ -68,6 +80,19 @@ export default function Leitores() {
 
   const [resendLoadingId, setResendLoadingId] = useState<number | null>(null)
   const [nowTimestamp, setNowTimestamp] = useState<number>(Date.now())
+
+  // Carregar lista de cursos para o filtro
+  useEffect(() => {
+    const loadCursos = async () => {
+      try {
+        const cursos = await CursosService.getAll()
+        setCursosDisponiveis(cursos)
+      } catch (err) {
+        console.warn('Erro ao carregar cursos para filtro:', err)
+      }
+    }
+    loadCursos()
+  }, [])
 
   // Atualiza timestamp a cada segundo para refrescar contadores de cooldown
   useEffect(() => {
@@ -100,7 +125,7 @@ export default function Leitores() {
   const loadReaders = async () => {
     setLoading(true)
     try {
-      const data = await LeitoresService.getAll(searchQuery, filterStatus)
+      const data = await LeitoresService.getAll(searchQuery, filterStatus, selectedCursoId)
       if (isOperadorOrAdmin) {
         setReaders(data)
       } else {
@@ -126,7 +151,7 @@ export default function Leitores() {
 
   useEffect(() => {
     loadReaders()
-  }, [filterStatus, isOperadorOrAdmin, user?.id, user?.email])
+  }, [filterStatus, selectedCursoId, isOperadorOrAdmin, user?.id, user?.email])
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -291,7 +316,10 @@ export default function Leitores() {
 
     setResendLoadingId(reader.id_leitor)
     try {
-      const res = await LeitoresService.sendPasswordResetEmail(reader.email)
+      const res = await LeitoresService.sendPasswordResetEmail(reader.email, {
+        nome: reader.nome_do_leitor,
+        tipo: 'primeiro_acesso',
+      })
       if (res.success) {
         toast({
           title: 'E-mail enviado com sucesso!',
@@ -368,59 +396,109 @@ export default function Leitores() {
 
       {/* Filter and Search Bar (Visível apenas para operador/admin ou quando houver filtros) */}
       {isOperadorOrAdmin ? (
-        <div className="flex flex-col sm:flex-row gap-3">
-          <form onSubmit={handleSearchSubmit} className="flex gap-2 flex-1">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <Input
-                placeholder="Buscar por nome, e-mail ou telefone..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 text-xs sm:text-sm bg-white"
-              />
-            </div>
-            <Button
-              type="submit"
-              variant="default"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4"
-            >
-              Buscar
-            </Button>
-          </form>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <form onSubmit={handleSearchSubmit} className="flex gap-2 flex-1">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Input
+                  placeholder="Buscar por nome, e-mail ou telefone..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 text-xs sm:text-sm bg-white"
+                />
+              </div>
+              <Button
+                type="submit"
+                variant="default"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4"
+              >
+                Buscar
+              </Button>
+            </form>
 
-          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg self-start sm:self-auto">
-            <Button
-              size="sm"
-              variant={filterStatus === 'all' ? 'default' : 'ghost'}
-              className={`h-7 text-xs ${filterStatus === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
-              onClick={() => setFilterStatus('all')}
-            >
-              Todos
-            </Button>
-            <Button
-              size="sm"
-              variant={filterStatus === 'ativos' ? 'default' : 'ghost'}
-              className={`h-7 text-xs ${filterStatus === 'ativos' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
-              onClick={() => setFilterStatus('ativos')}
-            >
-              Ativos
-            </Button>
-            <Button
-              size="sm"
-              variant={filterStatus === 'pendentes' ? 'default' : 'ghost'}
-              className={`h-7 text-xs ${filterStatus === 'pendentes' ? 'bg-amber-500 text-white shadow-sm hover:bg-amber-600' : 'text-amber-700 hover:bg-amber-50'}`}
-              onClick={() => setFilterStatus('pendentes')}
-            >
-              Pendentes de Validação
-            </Button>
-            <Button
-              size="sm"
-              variant={filterStatus === 'bloqueados' ? 'default' : 'ghost'}
-              className={`h-7 text-xs ${filterStatus === 'bloqueados' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
-              onClick={() => setFilterStatus('bloqueados')}
-            >
-              Bloqueados
-            </Button>
+            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg self-start sm:self-auto overflow-x-auto max-w-full">
+              <Button
+                size="sm"
+                variant={filterStatus === 'all' ? 'default' : 'ghost'}
+                className={`h-7 text-xs shrink-0 ${filterStatus === 'all' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600'}`}
+                onClick={() => setFilterStatus('all')}
+              >
+                Todos
+              </Button>
+              <Button
+                size="sm"
+                variant={filterStatus === 'ativos' ? 'default' : 'ghost'}
+                className={`h-7 text-xs shrink-0 ${filterStatus === 'ativos' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600'}`}
+                onClick={() => setFilterStatus('ativos')}
+              >
+                Ativos
+              </Button>
+              <Button
+                size="sm"
+                variant={filterStatus === 'pendentes' ? 'default' : 'ghost'}
+                className={`h-7 text-xs shrink-0 ${filterStatus === 'pendentes' ? 'bg-amber-500 text-white shadow-sm font-semibold hover:bg-amber-600' : 'text-amber-700 hover:bg-amber-50'}`}
+                onClick={() => setFilterStatus('pendentes')}
+              >
+                Pendentes de Validação
+              </Button>
+              <Button
+                size="sm"
+                variant={filterStatus === 'bloqueados' ? 'default' : 'ghost'}
+                className={`h-7 text-xs shrink-0 ${filterStatus === 'bloqueados' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600'}`}
+                onClick={() => setFilterStatus('bloqueados')}
+              >
+                Bloqueados
+              </Button>
+            </div>
+          </div>
+
+          {/* Linha de Filtro por Curso Frequentado na CEP */}
+          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 shrink-0">
+              <GraduationCap className="w-4 h-4 text-emerald-600" />
+              <span>Filtrar por Curso:</span>
+            </div>
+            <div className="w-full sm:w-72">
+              <Select value={selectedCursoId} onValueChange={setSelectedCursoId}>
+                <SelectTrigger className="h-8 text-xs bg-white border-slate-200">
+                  <SelectValue placeholder="Todos os Cursos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">
+                    Todos os Cursos
+                  </SelectItem>
+                  {cursosDisponiveis.map((c) => (
+                    <SelectItem key={c.id} value={c.id} className="text-xs">
+                      {c.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedCursoId !== 'all' && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedCursoId('all')}
+                className="h-8 text-xs text-slate-500 hover:text-slate-800 gap-1 px-2"
+                title="Limpar filtro de curso"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Limpar filtro de curso</span>
+              </Button>
+            )}
+
+            {selectedCursoId !== 'all' && (
+              <span className="text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-medium ml-auto">
+                Exibindo leitores do curso:{' '}
+                <strong>
+                  {cursosDisponiveis.find((c) => c.id === selectedCursoId)?.nome || selectedCursoId}
+                </strong>
+              </span>
+            )}
           </div>
         </div>
       ) : (

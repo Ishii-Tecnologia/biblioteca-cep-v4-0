@@ -97,6 +97,10 @@ export async function changeOwnPassword({
     // 2. Atualização para a nova senha
     const { error: updateError } = await supabase.auth.updateUser({
       password: newPassword,
+      data: {
+        primeiro_acesso_pendente: false,
+        senha_redefinida: true,
+      },
     })
 
     if (updateError) {
@@ -104,6 +108,13 @@ export async function changeOwnPassword({
         success: false,
         error: updateError.message || 'Não foi possível atualizar sua senha.',
       }
+    }
+
+    // 3. Concluir definição no banco
+    try {
+      await (supabase.rpc as any)('concluir_definicao_senha')
+    } catch (rpcErr) {
+      console.warn('Aviso ao sincronizar alteração de senha via RPC:', rpcErr)
     }
 
     return { success: true }

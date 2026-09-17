@@ -65,6 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [isRecoveryActive, setIsRecoveryActive] = useState(false)
+  const passwordResetCompletedRef = useRef(false)
   const hadSessionRef = useRef(false)
 
   // Inicializa o interceptor fetch global uma vez
@@ -75,6 +76,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Detecção precoce de link de recovery na URL (hash com type=recovery ou code ou query params)
   useEffect(() => {
     if (typeof window === 'undefined') return
+    // Se a definição de senha acabou de ser concluída neste ciclo, não reativar recovery
+    if (passwordResetCompletedRef.current) return
+
     const hash = window.location.hash || ''
     const search = window.location.search || ''
     if (
@@ -82,6 +86,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       hash.includes('type=invite') ||
       search.includes('type=recovery')
     ) {
+      // Se já estiver concluído no localStorage (sessão pós-reset), não ativar
+      const resetDoneAt = sessionStorage.getItem('cep_pwd_reset_done')
+      if (resetDoneAt && Date.now() - Number(resetDoneAt) < 60000) {
+        setIsRecoveryActive(false)
+        return
+      }
       setIsRecoveryActive(true)
       // Se estiver na raiz "/" ou outra rota e tiver o fragmento de recovery,
       // redirecionar imediatamente para /redefinir-senha preservando o hash
@@ -133,12 +143,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const avatarUrl = profileRow?.avatar_url || userMeta.avatar_url || undefined
 
       // Checa status de senha_redefinida tanto no profile quanto no leitor
-      const senhaRedefinida =
-        profileRow?.senha_redefinida !== false && leitorData?.senha_redefinida !== false
-      const primeiroAcessoPendente =
-        profileRow?.primeiro_acesso_pendente === true ||
-        leitorData?.primeiro_acesso_pendente === true ||
-        userMeta.primeiro_acesso_pendente === true
+      // Se o reset foi marcado como concluído nesta sessão recente, garantir que flags pendentes sejam false
+      const recentlyCompleted =
+        passwordResetCompletedRef.current ||
+        (typeof sessionStorage !== 'undefined' &&
+          Boolean(sessionStorage.getItem('cep_pwd_reset_done')))
+
+      const senhaRedefinida = recentlyCompleted
+        ? true
+        : profileRow?.senha_redefinida !== false && leitorData?.senha_redefinida !== false
+
+      const primeiroAcessoPendente = recentlyCompleted
+        ? false
+        : profileRow?.primeiro_acesso_pendente === true ||
+          leitorData?.primeiro_acesso_pendente === true ||
+          (userMeta.primeiro_acesso_pendente === true && !profileRow && !leitorData)
 
       setProfile({
         id: currentUser.id,
@@ -183,13 +202,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Detecção de evento de recuperação de senha pelo GoTrue
       if (event === 'PASSWORD_RECOVERY') {
-        setIsRecoveryActive(true)
-        if (typeof window !== 'undefined' && window.location.pathname !== '/redefinir-senha') {
-          setTimeout(() => {
-            const search = window.location.search || ''
-            const hash = window.location.hash || ''
-            window.location.assign(`/redefinir-senha${search}${hash}`)
-          }, 0)
+        const recentlyDone =
+          passwordResetCompletedRef.current ||
+          (typeof sessionStorage !== 'undefined' &&
+            Boolean(sessionStorage.getItem('cep_pwd_reset_done')))
+        if (!recentlyDone) {
+          setIsRecoveryActive(true)
+          if (typeof window !== 'undefined' && window.location.pathname !== '/redefinir-senha') {
+            setTimeout(() => {
+              const search = window.location.search || ''
+              const hash = window.location.hash || ''
+              window.location.assign(`/redefinir-senha${search}${hash}`)
+            }, 0)
+          }
         }
       }
 
@@ -241,12 +266,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const markPasswordResetCompleted = async () => {
+    passwordResetCompletedRef.current = true
     setIsRecoveryActive(false)
+    if (typeof sessionStorage !== 'undefined') {
+      try {
+        sessionStorage.setItem('cep_pwd_reset_done', String(Date.now()))
+      } catch {
+        /* intentionally ignored */
+      }
+    }
+    // Limpar fragmentos residuais de URL hash e search
+    if (typeof window !== 'undefined') {
+      try {
+        if (window.location.hash && window.location.hash.includes('access_token')) {
+          window.history.replaceState(null, '', window.location.pathname)
+        }
+      } catch {
+        /* intentionally ignored */
+      }
+    }
+
     try {
       await (supabase.rpc as any)('concluir_definicao_senha')
     } catch (rpcErr) {
       console.warn('Falha na RPC concluir_definicao_senha:', rpcErr)
     }
+
+    // Atualizar metadados do auth user para sincronizar estado no cliente Supabase
+    try {
+      await supabase.auth.updateUser({
+        data: {
+          primeiro_acesso_pendente: false,
+          senha_redefinida: true,
+        },
+      })
+    } catch (updateUserErr) {
+      console.warn('Falha ao atualizar user_metadata:', updateUserErr)
+    }
+
+    // Forçar refresh da sessão para obter JWT e user atualizados
+    try {
+      const { data: refreshData } = await supabase.auth.refreshSession()
+      if (refreshData?.user) {
+        setUser(refreshData.user)
+      }
+    } catch (refreshErr) {
+      console.warn('Falha ao atualizar sessão após definir senha:', refreshErr)
+    }
+
     await refreshProfile()
   }
 
