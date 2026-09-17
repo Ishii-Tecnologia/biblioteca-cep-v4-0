@@ -257,6 +257,20 @@ export const LeitoresService = {
       } catch (err) {
         console.warn('Aviso ao vincular cursos no autoRegister:', err)
       }
+    } else if (data && data.id_leitor && leitorData.curso) {
+      // Se não passou cursos_ids mas passou curso (nome), tentar resolver o id e vincular
+      try {
+        const { CursosService } = await import('@/services/cursos')
+        const all = await CursosService.getAll()
+        const match = all.find(
+          (c) => c.nome.trim().toLowerCase() === leitorData.curso?.trim().toLowerCase(),
+        )
+        if (match) {
+          await CursosService.setCursosForLeitor(data.id_leitor, [match.id])
+        }
+      } catch (matchErr) {
+        console.warn('Aviso ao resolver ID do curso por nome no autoRegister:', matchErr)
+      }
     }
 
     return data

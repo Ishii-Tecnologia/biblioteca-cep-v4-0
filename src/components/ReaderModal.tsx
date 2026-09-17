@@ -613,12 +613,13 @@ export function ReaderModal({
           bloqueado: isOperadorOrAdmin ? formData.bloqueado : false,
           acesso_diretoria: isOperadorOrAdmin ? formData.acesso_diretoria : false,
           curso: primaryCursoNome,
+          cursos_ids: selectedCursoIds,
           data_cadastro: new Date().toISOString().split('T')[0],
         }
 
         const createdLeitor = await LeitoresService.create(insertPayload)
 
-        // 3. Vincular cursos selecionados
+        // 3. Vincular cursos selecionados explicitamente também
         if (createdLeitor && createdLeitor.id_leitor && selectedCursoIds.length > 0) {
           await CursosService.setCursosForLeitor(createdLeitor.id_leitor, selectedCursoIds)
         }
