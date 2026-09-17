@@ -143,9 +143,8 @@ export function ReaderModal({
       setPhotoFile(null)
 
       // Se o objeto readerToEdit já trouxer cursos_ids em cache, pré-popula imediatamente
-      if (Array.isArray(readerToEdit.cursos_ids) && readerToEdit.cursos_ids.length > 0) {
-        setSelectedCursoIds(readerToEdit.cursos_ids)
-      }
+      const initialIds = Array.isArray(readerToEdit.cursos_ids) ? [...readerToEdit.cursos_ids] : []
+      setSelectedCursoIds(initialIds)
 
       // Carregar cursos vinculados ao leitor via CursosService para ter a lista mais recente
       setLoadingCursos(true)
@@ -153,8 +152,14 @@ export function ReaderModal({
         .then((cursosDoLeitor) => {
           if (cursosDoLeitor.length > 0) {
             setSelectedCursoIds(cursosDoLeitor.map((c) => c.id))
-          } else if (!readerToEdit.cursos_ids || readerToEdit.cursos_ids.length === 0) {
-            setSelectedCursoIds([])
+          } else if (readerToEdit.curso && allCursos.length > 0) {
+            // Fallback caso leitor_curso estivesse vazio mas leitor.curso tenha valor
+            const match = allCursos.find(
+              (c) => c.nome.trim().toLowerCase() === readerToEdit.curso?.trim().toLowerCase(),
+            )
+            if (match) {
+              setSelectedCursoIds([match.id])
+            }
           }
         })
         .catch((err) => {
@@ -175,7 +180,7 @@ export function ReaderModal({
       setPhotoFile(null)
       setSelectedCursoIds([])
     }
-  }, [readerToEdit, open])
+  }, [readerToEdit, open, allCursos.length])
 
   const handleAddCurso = () => {
     if (!cursoToAdd) return
@@ -480,9 +485,7 @@ export function ReaderModal({
         await LeitoresService.update(readerToEdit.id_leitor, updatePayload)
 
         // Salvar múltiplos cursos vinculados também explicitamente
-        if (isOperadorOrAdmin || !isSelfEdit) {
-          await CursosService.setCursosForLeitor(readerToEdit.id_leitor, selectedCursoIds)
-        }
+        await CursosService.setCursosForLeitor(readerToEdit.id_leitor, selectedCursoIds)
 
         // Se o operador marcou o checkbox para enviar e-mail de reset de senha
         let resetEmailSent = false

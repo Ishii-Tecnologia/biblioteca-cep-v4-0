@@ -199,19 +199,33 @@ export const LeitoresService = {
     return (profileData && profileData.length > 0) || false
   },
 
-  async create(leitor: LeitorInsert) {
+  async create(leitor: LeitorInsert & { cursos_ids?: string[] }) {
+    const { cursos_ids, ...rawLeitor } = leitor as any
+
     const { data, error } = await supabase
       .from('leitor')
       .insert({
-        ...leitor,
-        data_cadastro: leitor.data_cadastro || new Date().toISOString().split('T')[0],
-        bloqueado: leitor.bloqueado ?? false,
-        status_cadastro: (leitor as any).status_cadastro || 'ativo',
+        ...rawLeitor,
+        data_cadastro: rawLeitor.data_cadastro || new Date().toISOString().split('T')[0],
+        bloqueado: rawLeitor.bloqueado ?? false,
+        status_cadastro: rawLeitor.status_cadastro || 'ativo',
       } as any)
       .select()
       .single()
 
     if (error) throw error
+
+    // Sincronizar cursos_ids informados na inclusão de leitor
+    if (data && data.id_leitor && Array.isArray(cursos_ids)) {
+      try {
+        const { CursosService } = await import('@/services/cursos')
+        await CursosService.setCursosForLeitor(data.id_leitor, cursos_ids)
+      } catch (cursoErr) {
+        console.error('Erro ao salvar cursos do leitor na criação:', cursoErr)
+        // Não quebra a criação mas avisa
+      }
+    }
+
     return data
   },
 

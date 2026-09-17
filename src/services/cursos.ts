@@ -210,23 +210,72 @@ export const CursosService = {
    * Sincroniza a lista de cursos de um leitor (adiciona novos, remove desmarcados).
    */
   async setCursosForLeitor(id_leitor: number, cursoIds: string[]): Promise<void> {
-    // 1. Remover cursos anteriores
+    if (!id_leitor) return
+
+    const uniqueIds = Array.from(new Set((cursoIds || []).filter(Boolean)))
+
+    // 1. Tentativa principal: RPC com SECURITY DEFINER (sync_leitor_cursos)
+    // Isso garante sincronização atômica em leitor_curso, leitor.curso e profiles.curso sem problemas de RLS
+    try {
+      const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)('sync_leitor_cursos', {
+        p_id_leitor: id_leitor,
+        p_curso_ids: uniqueIds,
+      })
+
+      if (!rpcErr && rpcData && rpcData.success !== false) {
+        return
+      }
+      if (rpcErr) {
+        console.warn(
+          '[CursosService] RPC sync_leitor_cursos falhou, executando fallback direto:',
+          rpcErr,
+        )
+      }
+    } catch (rpcEx) {
+      console.warn('[CursosService] Exceção na chamada da RPC sync_leitor_cursos:', rpcEx)
+    }
+
+    // 2. Fallback resiliente direto caso a RPC encontre qualquer problema
+    // 2.1. Remover cursos anteriores
     const { error: delErr } = await supabase
       .from('leitor_curso' as any)
       .delete()
       .eq('id_leitor', id_leitor)
 
-    if (delErr) throw delErr
+    if (delErr) {
+      console.error('[CursosService] Erro ao limpar leitor_curso no fallback:', delErr)
+    }
 
-    // 2. Inserir novos vínculos únicos
-    const uniqueIds = Array.from(new Set(cursoIds.filter(Boolean)))
+    // 2.2. Inserir novos vínculos únicos
     if (uniqueIds.length > 0) {
       const rows = uniqueIds.map((id_curso) => ({
         id_leitor,
         id_curso,
       }))
       const { error: insErr } = await supabase.from('leitor_curso' as any).insert(rows)
-      if (insErr) throw insErr
+      if (insErr) {
+        console.error('[CursosService] Erro ao inserir leitor_curso no fallback:', insErr)
+        throw insErr
+      }
+    }
+
+    // 2.3. Sincronizar leitor.curso com o primeiro curso ou null
+    try {
+      let primaryCursoNome: string | null = null
+      if (uniqueIds.length > 0) {
+        const { data: cursoRow } = await supabase
+          .from('cursos' as any)
+          .select('nome')
+          .eq('id', uniqueIds[0])
+          .maybeSingle()
+        if (cursoRow && (cursoRow as any).nome) {
+          primaryCursoNome = (cursoRow as any).nome
+        }
+      }
+
+      await supabase.from('leitor').update({ curso: primaryCursoNome }).eq('id_leitor', id_leitor)
+    } catch (syncColErr) {
+      console.warn('[CursosService] Aviso ao atualizar leitor.curso no fallback:', syncColErr)
     }
   },
 }
