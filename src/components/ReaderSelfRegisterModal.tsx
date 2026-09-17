@@ -233,13 +233,17 @@ export function ReaderSelfRegisterModal({
     try {
       const emailExists = await LeitoresService.checkEmailExists(cleanEmail)
       if (emailExists) {
-        setEmailError('E-mail já cadastrado')
-        toast({
-          title: 'E-mail já cadastrado',
-          description: `O e-mail "${cleanEmail}" já está em uso no sistema. Caso já tenha cadastro, aguarde a validação ou entre em contato com a biblioteca.`,
-          variant: 'destructive',
-        })
-        return
+        // Verificar se há registro ativo na tabela leitor
+        const { data: existingReader } = await LeitoresService.findByEmail(cleanEmail)
+        if (existingReader) {
+          setEmailError('E-mail já cadastrado')
+          toast({
+            title: 'E-mail já cadastrado',
+            description: `O e-mail "${cleanEmail}" já está em uso no sistema. Caso já tenha cadastro, aguarde a validação ou entre em contato com a biblioteca.`,
+            variant: 'destructive',
+          })
+          return
+        }
       }
     } catch (checkEmailErr) {
       console.warn('Erro ao verificar email:', checkEmailErr)

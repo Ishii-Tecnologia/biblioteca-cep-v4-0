@@ -243,6 +243,16 @@ export const LeitoresService = {
   /**
    * Verifica o status de cadastro do leitor pelo e-mail
    */
+  async findByEmail(email: string): Promise<{ data: Leitor | null; error: any }> {
+    const normalized = email.trim().toLowerCase()
+    const { data, error } = await supabase
+      .from('leitor')
+      .select('*')
+      .ilike('email', normalized)
+      .maybeSingle()
+    return { data, error }
+  },
+
   async checkLeitorStatus(email: string): Promise<'ativo' | 'pendente' | 'inexistente'> {
     const normalized = email.trim().toLowerCase()
     if (!normalized) return 'inexistente'
@@ -309,13 +319,24 @@ export const LeitoresService = {
   },
 
   /**
-   * Recusar/rejeitar e excluir cadastro pendente
+   * Recusar/rejeitar e excluir cadastro pendente, removendo também eventuais
+   * contas de autenticação vinculadas ou órfãs.
    */
   async rejectReader(id_leitor: number): Promise<{ success: boolean; error?: string }> {
     try {
-      // 1. Remover cursos vinculados
+      // 1. Chamar RPC delete_leitor para exclusão atômica e segura (inclui auth se houver)
+      const { data: rpcData, error: rpcError } = await (supabase.rpc as any)('delete_leitor', {
+        p_id_leitor: id_leitor,
+      })
+
+      if (!rpcError) {
+        return { success: true }
+      }
+
+      console.warn('Fallback delete_leitor RPC:', rpcError)
+
+      // 2. Fallback caso a RPC não esteja disponível
       await supabase.from('leitor_curso').delete().eq('id_leitor', id_leitor)
-      // 2. Excluir o registro de leitor
       const { error } = await supabase.from('leitor').delete().eq('id_leitor', id_leitor)
       if (error) throw error
       return { success: true }
@@ -500,7 +521,19 @@ export const LeitoresService = {
       throw new Error('Não é possível excluir leitor com reserva ativa pendente.')
     }
 
-    // 3. Excluir reservas não ativas (Cancelada ou Atendida) para evitar bloqueio por foreign key (RESTRICT)
+    // 3. Executar exclusão completa via RPC delete_leitor
+    // Essa função exclui registros de leitor_curso, reservas não ativas, leitor E A CONTA DE AUTH associada
+    const { data: rpcData, error: rpcError } = await (supabase.rpc as any)('delete_leitor', {
+      p_id_leitor: id_leitor,
+    })
+
+    if (!rpcError) {
+      return rpcData
+    }
+
+    console.warn('Aviso delete_leitor RPC falhou, tentando fallback:', rpcError)
+
+    // 4. Fallback se RPC falhar por qualquer motivo
     const { error: deleteResError } = await supabase
       .from('reserva')
       .delete()
@@ -509,7 +542,8 @@ export const LeitoresService = {
 
     if (deleteResError) throw deleteResError
 
-    // 4. Excluir o leitor
+    await supabase.from('leitor_curso').delete().eq('id_leitor', id_leitor)
+
     const { error } = await supabase.from('leitor').delete().eq('id_leitor', id_leitor)
     if (error) throw error
   },

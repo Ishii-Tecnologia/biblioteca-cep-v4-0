@@ -574,6 +574,15 @@ export function ReaderModal({
 
               if (signUpErr) {
                 console.warn('Aviso no fallback de signUp:', signUpErr.message)
+                const isDup =
+                  signUpErr.message?.toLowerCase().includes('already registered') ||
+                  signUpErr.message?.toLowerCase().includes('already exists')
+                if (isDup) {
+                  throw new Error(
+                    `O e-mail "${cleanEmail}" já está cadastrado no sistema. Verifique a lista de usuários ou utilize outro e-mail.`,
+                  )
+                }
+                throw signUpErr
               } else if (signUpData?.user) {
                 createdAuthUserId = signUpData.user.id
                 try {

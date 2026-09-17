@@ -57,8 +57,35 @@ Deno.serve(async (req: Request) => {
       },
     })
 
+    // Se for papel 'leitor', verificar se existe uma conta órfã em auth.users ou profiles
+    // sem registro na tabela public.leitor para limpá-la e evitar duplicate key error
+    if (papel === 'leitor') {
+      try {
+        const { data: existingLeitor } = await supabaseAdmin
+          .from('leitor')
+          .select('id_leitor')
+          .ilike('email', normalizedEmail)
+          .maybeSingle()
+
+        if (!existingLeitor) {
+          // Não tem leitor na tabela leitor. Verificar se tem auth.user órfão
+          const { data: listUserData } = await supabaseAdmin.auth.admin.listUsers()
+          const orphanUser = listUserData?.users?.find(
+            (u) => u.email?.toLowerCase() === normalizedEmail,
+          )
+          if (orphanUser) {
+            console.log(`Limpando usuário órfão auth ${orphanUser.id} (${normalizedEmail})`)
+            await supabaseAdmin.from('profiles').delete().eq('id', orphanUser.id)
+            await supabaseAdmin.auth.admin.deleteUser(orphanUser.id)
+          }
+        }
+      } catch (cleanOrphanErr) {
+        console.warn('Aviso ao verificar órfãos na edge function:', cleanOrphanErr)
+      }
+    }
+
     // 1. Criar o usuário diretamente no Auth com email_confirm: true
-    const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+    let { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: normalizedEmail,
       password,
       email_confirm: true,
@@ -74,10 +101,54 @@ Deno.serve(async (req: Request) => {
     })
 
     if (createError) {
-      return new Response(JSON.stringify({ error: createError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      // Se deu duplicate email ou already registered, verificar novamente se é órfão
+      if (
+        papel === 'leitor' &&
+        (createError.message.toLowerCase().includes('already registered') ||
+          createError.message.toLowerCase().includes('already exists'))
+      ) {
+        const { data: existingLeitor } = await supabaseAdmin
+          .from('leitor')
+          .select('id_leitor')
+          .ilike('email', normalizedEmail)
+          .maybeSingle()
+
+        if (!existingLeitor) {
+          const { data: listUserData } = await supabaseAdmin.auth.admin.listUsers()
+          const orphanUser = listUserData?.users?.find(
+            (u) => u.email?.toLowerCase() === normalizedEmail,
+          )
+          if (orphanUser) {
+            await supabaseAdmin.from('profiles').delete().eq('id', orphanUser.id)
+            await supabaseAdmin.auth.admin.deleteUser(orphanUser.id)
+
+            // Tentar novamente a criação
+            const retryCreate = await supabaseAdmin.auth.admin.createUser({
+              email: normalizedEmail,
+              password,
+              email_confirm: true,
+              user_metadata: {
+                nome: nome.trim(),
+                full_name: nome.trim(),
+                papel,
+                role: papel,
+                app_role: papel,
+                avatar_url: avatar_url || undefined,
+                email_verified: true,
+              },
+            })
+            createData = retryCreate.data
+            createError = retryCreate.error
+          }
+        }
+      }
+
+      if (createError) {
+        return new Response(JSON.stringify({ error: createError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
     }
 
     const createdUser = createData.user
