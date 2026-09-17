@@ -21,6 +21,7 @@ export interface EmprestimoDetailed extends Emprestimo {
       editora: string | null
       capa_url: string | null
       categoria: string | null
+      colecao?: string | null
     }
   }
   leitor?: {
@@ -103,7 +104,8 @@ export const EmprestimosService = {
             autor,
             editora,
             capa_url,
-            categoria
+            categoria,
+            colecao
           )
         ),
         leitor (

@@ -260,6 +260,28 @@ export default function Emprestimos() {
                       <span className="font-mono text-xs font-bold px-2 py-0.5 bg-slate-100 text-slate-800 rounded border">
                         {loan.id_exemplar}
                       </span>
+                      {(() => {
+                        const isDiretoria =
+                          loan.exemplar?.titulo?.colecao === 'diretoria' ||
+                          loan.id_exemplar?.toUpperCase().startsWith('DIR-')
+                        return isDiretoria ? (
+                          <Badge
+                            variant="outline"
+                            className="bg-amber-50 text-amber-900 border-amber-300 font-semibold text-[11px] shadow-none select-none"
+                            title="Acervo da Diretoria"
+                          >
+                            Rino Curti
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="bg-emerald-50 text-emerald-800 border-emerald-300 font-medium text-[11px] shadow-none select-none"
+                            title="Acervo Geral"
+                          >
+                            Cecilia Braga
+                          </Badge>
+                        )
+                      })()}
                       {isReturned ? (
                         <Badge className="bg-slate-100 text-slate-700 border-slate-300 gap-1 text-[11px] shadow-none select-none">
                           <CheckCircle2 className="w-3 h-3 text-slate-500" />

@@ -26,6 +26,7 @@ import { useToast } from '@/hooks/use-toast'
 import { formatDate } from '@/lib/utils'
 import { Repeat, Loader2, Book, UserCheck, AlertCircle, Calendar } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 
 interface LoanModalProps {
   open: boolean
@@ -248,6 +249,23 @@ export function LoanModal({
                             <span className="font-mono font-semibold text-emerald-700 mr-2">
                               [{copy.id_exemplar}]
                             </span>
+                            {copy.titulo?.colecao === 'diretoria' ||
+                            (copy as any)?.colecao === 'diretoria' ||
+                            copy.id_exemplar?.toUpperCase().startsWith('DIR-') ? (
+                              <Badge
+                                variant="outline"
+                                className="bg-amber-100 text-amber-900 border-amber-300 text-[10px] px-1 py-0 mr-1.5 align-middle font-semibold"
+                              >
+                                Rino Curti
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="bg-emerald-50 text-emerald-800 border-emerald-300 text-[10px] px-1 py-0 mr-1.5 align-middle font-medium"
+                              >
+                                Cecilia Braga
+                              </Badge>
+                            )}
                             <span className="font-medium text-slate-800">
                               {copy.titulo?.titulo_de_livro}
                             </span>

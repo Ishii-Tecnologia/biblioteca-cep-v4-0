@@ -38,6 +38,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
@@ -86,7 +89,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const navItems = [
     { to: '/', label: 'Início', icon: LayoutDashboard, authRequired: false },
-    { to: '/acervo', label: 'Livros', icon: BookOpen, authRequired: false },
+    { to: '/acervo', label: 'Bibliotecas', icon: BookOpen, authRequired: false },
     {
       to: '/emprestimos',
       label: 'Empréstimos',
@@ -229,17 +232,17 @@ export default function Layout({ children }: LayoutProps) {
                 if (item.operatorOnly && !isOperadorOrAdmin) return null
                 const Icon = item.icon
 
-                // Se for o item "Livros" e o usuário for Diretoria ou Admin, renderiza menu dropdown
+                // Se for o item "Bibliotecas" e o usuário for Diretoria ou Admin, renderiza menu dropdown
                 if (item.to === '/acervo' && isDiretoriaOrAdmin) {
                   return (
-                    <DropdownMenu key="menu-livros">
+                    <DropdownMenu key="menu-bibliotecas">
                       <DropdownMenuTrigger asChild>
                         <button
                           type="button"
                           className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus:bg-slate-100"
                         >
                           <Icon className="w-4 h-4" />
-                          <span>Livros</span>
+                          <span>Bibliotecas</span>
                           <ChevronDown className="w-3.5 h-3.5 opacity-60 ml-0.5" />
                         </button>
                       </DropdownMenuTrigger>
@@ -376,17 +379,38 @@ export default function Layout({ children }: LayoutProps) {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/acervo" className="cursor-pointer">
-                        <BookMarked className="w-4 h-4 mr-2" />
-                        {isDiretoriaOrAdmin ? 'Biblioteca Cecilia Braga' : 'Explorar Acervo'}
-                      </Link>
-                    </DropdownMenuItem>
-                    {isDiretoriaOrAdmin && (
+                    {isDiretoriaOrAdmin ? (
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger className="cursor-pointer">
+                          <BookOpen className="w-4 h-4 mr-2 text-emerald-600" />
+                          <span>Bibliotecas</span>
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent className="w-56">
+                          <DropdownMenuItem asChild>
+                            <Link to="/acervo" className="cursor-pointer flex items-center">
+                              <BookMarked className="w-4 h-4 mr-2 text-emerald-600" />
+                              <span>Biblioteca Cecilia Braga</span>
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link
+                              to="/acervo-diretoria"
+                              className="cursor-pointer flex items-center text-amber-900"
+                            >
+                              <Briefcase className="w-4 h-4 mr-2 text-amber-600" />
+                              <span className="flex-1">Biblioteca Rino Curti</span>
+                              <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[9px] px-1 py-0 ml-1">
+                                Restrito
+                              </Badge>
+                            </Link>
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                    ) : (
                       <DropdownMenuItem asChild>
-                        <Link to="/acervo-diretoria" className="cursor-pointer text-amber-900">
-                          <Briefcase className="w-4 h-4 mr-2 text-amber-600" />
-                          Biblioteca Rino Curti
+                        <Link to="/acervo" className="cursor-pointer">
+                          <BookMarked className="w-4 h-4 mr-2" />
+                          <span>Bibliotecas</span>
                         </Link>
                       </DropdownMenuItem>
                     )}
@@ -664,20 +688,24 @@ export default function Layout({ children }: LayoutProps) {
 
                 if (item.to === '/acervo' && isDiretoriaOrAdmin) {
                   return (
-                    <div key="mobile-group-livros" className="space-y-1">
+                    <div key="mobile-group-bibliotecas" className="space-y-1">
+                      <div className="px-3 pt-2 pb-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Icon className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Bibliotecas</span>
+                      </div>
                       <NavLink
                         to="/acervo"
                         onClick={() => setMobileMenuOpen(false)}
                         className={({ isActive }) =>
-                          `flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium ${
+                          `flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium ml-2 ${
                             isActive
                               ? 'bg-emerald-50 text-emerald-800 font-semibold'
                               : 'text-slate-600 hover:bg-slate-50'
                           }`
                         }
                       >
-                        <div className="flex items-center gap-3">
-                          <Icon className="w-4 h-4 text-emerald-600" />
+                        <div className="flex items-center gap-2.5">
+                          <BookMarked className="w-4 h-4 text-emerald-600" />
                           <span>Biblioteca Cecilia Braga</span>
                         </div>
                       </NavLink>
@@ -685,14 +713,14 @@ export default function Layout({ children }: LayoutProps) {
                         to="/acervo-diretoria"
                         onClick={() => setMobileMenuOpen(false)}
                         className={({ isActive }) =>
-                          `flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium ${
+                          `flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium ml-2 ${
                             isActive
                               ? 'bg-amber-100/70 text-amber-900 font-semibold'
                               : 'text-amber-800 bg-amber-50/50 hover:bg-amber-100/60'
                           }`
                         }
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2.5">
                           <Briefcase className="w-4 h-4 text-amber-600" />
                           <span>Biblioteca Rino Curti</span>
                         </div>

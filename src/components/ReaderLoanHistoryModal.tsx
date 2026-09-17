@@ -311,14 +311,29 @@ export function ReaderLoanHistoryModal({
                         <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
                           Exemplar: {loan.id_exemplar}
                         </span>
+                        {(() => {
+                          const isDiretoria =
+                            (titulo as any)?.colecao === 'diretoria' ||
+                            loan.id_exemplar?.toUpperCase().startsWith('DIR-')
+                          return isDiretoria ? (
+                            <Badge
+                              variant="outline"
+                              className="bg-amber-50 text-amber-900 border-amber-300 font-semibold text-[10px] py-0 px-1.5 shadow-none"
+                            >
+                              Biblioteca Rino Curti
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="bg-emerald-50 text-emerald-800 border-emerald-300 font-medium text-[10px] py-0 px-1.5 shadow-none"
+                            >
+                              Biblioteca Cecilia Braga
+                            </Badge>
+                          )
+                        })()}
                         {titulo?.categoria && (
                           <span className="text-[10px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
                             {titulo.categoria}
-                          </span>
-                        )}
-                        {(titulo as any)?.colecao === 'diretoria' && (
-                          <span className="text-[9px] font-semibold text-amber-900 bg-amber-100 border border-amber-300 px-1 rounded">
-                            Acervo Diretoria
                           </span>
                         )}
                       </div>

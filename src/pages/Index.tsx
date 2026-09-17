@@ -29,6 +29,8 @@ import {
   BookMarked,
   CheckCircle2,
   Wrench,
+  Briefcase,
+  Lock,
 } from 'lucide-react'
 import { BookFormModal } from '@/components/BookFormModal'
 import { LoanModal } from '@/components/LoanModal'
@@ -152,6 +154,111 @@ export default function Index() {
         <div className="absolute right-0 bottom-0 translate-x-12 translate-y-12 w-80 h-80 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
         <div className="absolute right-8 top-1/2 -translate-y-1/2 hidden lg:flex items-center justify-center opacity-15 pointer-events-none">
           <Library className="w-64 h-64 text-white" />
+        </div>
+      </div>
+
+      {/* Seção de Destaque das Duas Bibliotecas / Coleções */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              <Library className="w-5 h-5 text-emerald-600" />
+              Nossas Bibliotecas & Coleções
+            </h2>
+            <p className="text-xs text-slate-500">
+              Acesse os acervos disponíveis na Biblioteca da CEP
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Card Biblioteca Cecilia Braga (Acervo Geral) */}
+          <Card className="border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all flex flex-col justify-between">
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 shadow-2xs">
+                  <BookOpen className="w-6 h-6" />
+                </div>
+                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-semibold text-xs py-0.5 px-2">
+                  Acervo Geral
+                </Badge>
+              </div>
+              <CardTitle className="text-base sm:text-lg font-bold text-slate-900 mt-2">
+                Biblioteca Cecilia Braga
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-600 leading-relaxed">
+                Acervo geral da Biblioteca da CEP. Catálogo amplo e aberto a todos os leitores
+                cadastrados para pesquisa e empréstimos.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="flex items-center justify-between border-t border-emerald-100/80 pt-3 text-xs">
+                {colecoesStats ? (
+                  <span className="text-[11px] font-medium text-emerald-800">
+                    {colecoesStats.geral.totalTitulos} títulos •{' '}
+                    {colecoesStats.geral.totalDisponiveis} disponíveis
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-slate-500">Acesso público aos leitores</span>
+                )}
+                <Button
+                  asChild
+                  size="sm"
+                  className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-2xs"
+                >
+                  <Link to="/acervo">
+                    <span>Acessar Acervo</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card Biblioteca Rino Curti (Acervo da Diretoria) */}
+          {isDiretoriaOrAdmin ? (
+            <Card className="border-amber-200/90 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/40 shadow-xs hover:shadow-md hover:border-amber-300 transition-all flex flex-col justify-between">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 shadow-2xs">
+                    <Briefcase className="w-6 h-6 text-amber-700" />
+                  </div>
+                  <Badge className="bg-amber-100 text-amber-900 border-amber-300 font-bold text-xs py-0.5 px-2">
+                    Coleção da Diretoria • Restrito
+                  </Badge>
+                </div>
+                <CardTitle className="text-base sm:text-lg font-bold text-slate-900 mt-2 flex items-center gap-2">
+                  Biblioteca Rino Curti
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-600 leading-relaxed">
+                  Coleção da Diretoria. Obras institucionais, especiais e de consulta reservada aos
+                  membros autorizados da diretoria.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="flex items-center justify-between border-t border-amber-100/80 pt-3 text-xs">
+                  {colecoesStats ? (
+                    <span className="text-[11px] font-medium text-amber-900">
+                      {colecoesStats.diretoria.totalTitulos} títulos •{' '}
+                      {colecoesStats.diretoria.totalDisponiveis} disponíveis
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-amber-800 font-medium">Acesso liberado</span>
+                  )}
+                  <Button
+                    asChild
+                    size="sm"
+                    className="h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white gap-1.5 shadow-2xs"
+                  >
+                    <Link to="/acervo-diretoria">
+                      <span>Acessar Acervo</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
       </div>
 

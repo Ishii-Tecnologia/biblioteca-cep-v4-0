@@ -874,8 +874,8 @@ export default function Historico() {
         ).toLowerCase()
         const acervoBadgeHtml =
           col === 'diretoria'
-            ? '<span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a;">Diretoria</span>'
-            : '<span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">Geral</span>'
+            ? '<span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a;">Rino Curti</span>'
+            : '<span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">Cecilia Braga</span>'
 
         if (colsLogs.data_hora) {
           tds.push(
@@ -1018,8 +1018,8 @@ export default function Historico() {
         ).toLowerCase()
         const acervoBadgeHtml =
           col === 'diretoria'
-            ? '<span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a;">Diretoria</span>'
-            : '<span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">Geral</span>'
+            ? '<span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a;">Rino Curti</span>'
+            : '<span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">Cecilia Braga</span>'
 
         const tds: string[] = []
         if (colsTitulos.codigo) {
@@ -1302,7 +1302,7 @@ export default function Historico() {
       const col = (
         l.colecao || (l.id_exemplar?.toUpperCase().startsWith('DIR-') ? 'diretoria' : 'geral')
       ).toLowerCase()
-      const acervoText = col === 'diretoria' ? 'Diretoria' : 'Geral'
+      const acervoText = col === 'diretoria' ? 'Biblioteca Rino Curti' : 'Biblioteca Cecilia Braga'
       return {
         Data_Hora: formatDateTime(l.data_hora),
         Operação: l.tipo_operacao,
@@ -1326,7 +1326,7 @@ export default function Historico() {
       const col = (
         t.colecao || (t.id_titulo?.toUpperCase().startsWith('DIR-') ? 'diretoria' : 'geral')
       ).toLowerCase()
-      const acervoText = col === 'diretoria' ? 'Diretoria' : 'Geral'
+      const acervoText = col === 'diretoria' ? 'Biblioteca Rino Curti' : 'Biblioteca Cecilia Braga'
       exportData.push({
         Codigo_Titulo: t.id_titulo,
         Titulo: t.titulo_de_livro,
@@ -1370,7 +1370,7 @@ export default function Historico() {
       const col = (
         m.colecao || (m.id_exemplar?.toUpperCase().startsWith('DIR-') ? 'diretoria' : 'geral')
       ).toLowerCase()
-      const acervoText = col === 'diretoria' ? 'Diretoria' : 'Geral'
+      const acervoText = col === 'diretoria' ? 'Biblioteca Rino Curti' : 'Biblioteca Cecilia Braga'
       return {
         Tipo: m.tipo_registro,
         Data_Evento: formatDate(m.data_evento),
@@ -1427,8 +1427,8 @@ export default function Historico() {
         ).toLowerCase()
         const acervoBadgeHtml =
           col === 'diretoria'
-            ? '<span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a;">Diretoria</span>'
-            : '<span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">Geral</span>'
+            ? '<span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a;">Rino Curti</span>'
+            : '<span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">Cecilia Braga</span>'
 
         if (colsMovimentacoes.tipo) {
           tds.push(
