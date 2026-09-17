@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -19,9 +19,21 @@ import {
 } from '@/components/ui/select'
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
-import { UserPlus, Loader2, Eye, EyeOff, Upload, Camera, X, ClipboardPaste } from 'lucide-react'
+import {
+  UserPlus,
+  Loader2,
+  Eye,
+  EyeOff,
+  Upload,
+  Camera,
+  X,
+  ClipboardPaste,
+  ShieldAlert,
+  CheckCircle2,
+} from 'lucide-react'
 import { uploadImageToStorage, extractImageFileFromClipboard, urlToFile } from '@/lib/image-upload'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { validateEmailBasic, validateEmailDomainOnline } from '@/lib/email-validation'
 
 interface UserModalProps {
   open: boolean
@@ -35,6 +47,12 @@ export function UserModal({ open, onOpenChange, onSuccess }: UserModalProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [emailValidating, setEmailValidating] = useState(false)
+  const [emailValidSuccess, setEmailValidSuccess] = useState(false)
+
+  const emailDebounceTimerRef = useRef<any>(null)
+  const emailCallIdRef = useRef<number>(0)
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -56,8 +74,77 @@ export function UserModal({ open, onOpenChange, onSuccess }: UserModalProps) {
       setPhotoFile(null)
       setPhotoPreview(null)
       setShowPassword(false)
+      setEmailError(null)
+      setEmailValidating(false)
+      setEmailValidSuccess(false)
+      if (emailDebounceTimerRef.current) {
+        clearTimeout(emailDebounceTimerRef.current)
+      }
     }
   }, [open])
+
+  const triggerEmailValidation = (rawEmail: string) => {
+    const clean = rawEmail.trim().toLowerCase()
+    setEmailValidSuccess(false)
+
+    if (emailDebounceTimerRef.current) {
+      clearTimeout(emailDebounceTimerRef.current)
+    }
+
+    if (!clean) {
+      setEmailError(null)
+      setEmailValidating(false)
+      return
+    }
+
+    const basic = validateEmailBasic(clean)
+    if (!clean.includes('@') || !clean.includes('.')) {
+      setEmailError(null)
+      setEmailValidating(false)
+      return
+    }
+
+    if (!basic.isFormatValid) {
+      setEmailError(basic.message || 'Formato de e-mail inválido')
+      setEmailValidating(false)
+      return
+    }
+
+    if (basic.isDisposable) {
+      setEmailError(
+        basic.message ||
+          'Este e-mail parece ser temporário/descartável. Use um e-mail permanente (ex.: Gmail, Outlook).',
+      )
+      setEmailValidating(false)
+      return
+    }
+
+    setEmailError(null)
+    setEmailValidating(true)
+
+    const currentCallId = ++emailCallIdRef.current
+    emailDebounceTimerRef.current = setTimeout(async () => {
+      try {
+        const fullResult = await validateEmailDomainOnline(clean)
+        if (currentCallId !== emailCallIdRef.current) return
+
+        if (!fullResult.valid) {
+          setEmailError(fullResult.message || 'Domínio de e-mail inválido ou sem recebimento.')
+          setEmailValidSuccess(false)
+        } else {
+          setEmailError(null)
+          setEmailValidSuccess(true)
+        }
+      } catch {
+        if (currentCallId !== emailCallIdRef.current) return
+        setEmailError(null)
+      } finally {
+        if (currentCallId === emailCallIdRef.current) {
+          setEmailValidating(false)
+        }
+      }
+    }, 600)
+  }
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -226,12 +313,27 @@ export function UserModal({ open, onOpenChange, onSuccess }: UserModalProps) {
       return
     }
 
-    // Basic email validation regex
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
+    // Validação de formato e bloqueio de e-mails descartáveis
+    const basicValidation = validateEmailBasic(email)
+    if (!basicValidation.isFormatValid) {
+      const msg = basicValidation.message || 'Por favor, insira um formato de e-mail válido.'
+      setEmailError(msg)
       toast({
         title: 'E-mail inválido',
-        description: 'Por favor, insira um formato de e-mail válido.',
+        description: msg,
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (basicValidation.isDisposable) {
+      const msg =
+        basicValidation.message ||
+        'Este e-mail parece ser temporário/descartável. Use um e-mail permanente (ex.: Gmail, Outlook).'
+      setEmailError(msg)
+      toast({
+        title: 'E-mail temporário não permitido',
+        description: msg,
         variant: 'destructive',
       })
       return
@@ -244,6 +346,24 @@ export function UserModal({ open, onOpenChange, onSuccess }: UserModalProps) {
         variant: 'destructive',
       })
       return
+    }
+
+    // Validação online do domínio DNS/MX
+    try {
+      const domainResult = await validateEmailDomainOnline(email)
+      if (!domainResult.valid) {
+        const msg =
+          domainResult.message || 'O domínio deste e-mail é inválido ou não pode receber mensagens.'
+        setEmailError(msg)
+        toast({
+          title: 'Domínio de e-mail inválido',
+          description: msg,
+          variant: 'destructive',
+        })
+        return
+      }
+    } catch (dnsErr) {
+      console.warn('Aviso ao checar domínio no submit do usuário:', dnsErr)
     }
 
     setLoading(true)
@@ -620,19 +740,69 @@ export function UserModal({ open, onOpenChange, onSuccess }: UserModalProps) {
 
             {/* Email */}
             <div>
-              <Label htmlFor="user-email" className="text-xs font-semibold text-slate-700">
-                Endereço de E-mail *
-              </Label>
-              <Input
-                id="user-email"
-                type="email"
-                required
-                placeholder="Ex: joao.silva@exemplo.com"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="mt-1"
-                disabled={loading}
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="user-email" className="text-xs font-semibold text-slate-700">
+                  Endereço de E-mail *
+                </Label>
+                {emailValidating ? (
+                  <span className="text-[11px] font-medium text-slate-500 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin text-emerald-600" />
+                    Validando domínio...
+                  </span>
+                ) : emailValidSuccess && !emailError ? (
+                  <span className="text-[11px] font-medium text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Domínio válido
+                  </span>
+                ) : null}
+              </div>
+              <div className="relative mt-1">
+                <Input
+                  id="user-email"
+                  type="email"
+                  required
+                  placeholder="Ex: joao.silva@exemplo.com"
+                  value={formData.email}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setFormData({ ...formData, email: val })
+                    triggerEmailValidation(val)
+                  }}
+                  onBlur={() => {
+                    if (formData.email) {
+                      triggerEmailValidation(formData.email)
+                    }
+                  }}
+                  className={`${
+                    emailError
+                      ? 'border-rose-500 focus-visible:ring-rose-500 pr-8'
+                      : emailValidSuccess
+                        ? 'border-emerald-500 focus-visible:ring-emerald-500 pr-8'
+                        : ''
+                  }`}
+                  disabled={loading}
+                />
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                  {emailValidating ? (
+                    <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />
+                  ) : emailError ? (
+                    <ShieldAlert className="w-3.5 h-3.5 text-rose-500" />
+                  ) : emailValidSuccess ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  ) : null}
+                </div>
+              </div>
+              {emailError ? (
+                <div className="mt-1.5 flex items-start gap-1.5 p-2 rounded bg-rose-50 border border-rose-200 text-[11px] text-rose-800 leading-snug">
+                  <ShieldAlert className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
+                  <span>{emailError}</span>
+                </div>
+              ) : emailValidSuccess ? (
+                <p className="text-[11px] text-emerald-700 mt-1 flex items-center gap-1 font-medium">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  E-mail permanente com domínio e recebimento verificados.
+                </p>
+              ) : null}
             </div>
 
             {/* Senha */}

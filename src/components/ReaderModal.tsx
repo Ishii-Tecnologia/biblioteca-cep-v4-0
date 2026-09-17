@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -21,6 +21,7 @@ import {
   formatLandlinePhone,
   validateLandlinePhone,
 } from '@/lib/utils'
+import { validateEmailBasic, validateEmailDomainOnline } from '@/lib/email-validation'
 import {
   UserPlus,
   Loader2,
@@ -41,6 +42,7 @@ import {
   Phone,
   Smartphone,
   History,
+  CheckCircle2,
 } from 'lucide-react'
 import { uploadImageToStorage, extractImageFileFromClipboard, urlToFile } from '@/lib/image-upload'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -80,6 +82,8 @@ export function ReaderModal({
 
   // Erros de validação
   const [emailError, setEmailError] = useState<string | null>(null)
+  const [emailValidating, setEmailValidating] = useState(false)
+  const [emailValidSuccess, setEmailValidSuccess] = useState(false)
   const [celularError, setCelularError] = useState<string | null>(null)
   const [telefoneFixoError, setTelefoneFixoError] = useState<string | null>(null)
   const [senhaError, setSenhaError] = useState<string | null>(null)
@@ -94,6 +98,10 @@ export function ReaderModal({
     bloqueado: false,
     acesso_diretoria: false,
   })
+
+  // Ref para debounce da validação em tempo real de e-mail
+  const emailDebounceTimerRef = useRef<any>(null)
+  const emailCallIdRef = useRef<number>(0)
 
   // Senha para primeiro acesso (novo leitor)
   const [firstAccessPassword, setFirstAccessPassword] = useState('')
@@ -120,6 +128,8 @@ export function ReaderModal({
 
   useEffect(() => {
     setEmailError(null)
+    setEmailValidating(false)
+    setEmailValidSuccess(false)
     setCelularError(null)
     setTelefoneFixoError(null)
     setSenhaError(null)
@@ -127,6 +137,9 @@ export function ReaderModal({
     setFirstAccessPassword('')
     setConfirmPassword('')
     setShowPassword(false)
+    if (emailDebounceTimerRef.current) {
+      clearTimeout(emailDebounceTimerRef.current)
+    }
     setSendPasswordReset(false)
 
     if (readerToEdit) {
@@ -301,6 +314,75 @@ export function ReaderModal({
     setFormData((prev) => ({ ...prev, foto: '' }))
   }
 
+  // Validador em tempo real do e-mail com debounce
+  const triggerEmailValidation = (rawEmail: string) => {
+    const clean = rawEmail.trim().toLowerCase()
+    setEmailValidSuccess(false)
+
+    if (emailDebounceTimerRef.current) {
+      clearTimeout(emailDebounceTimerRef.current)
+    }
+
+    if (!clean) {
+      setEmailError(null)
+      setEmailValidating(false)
+      return
+    }
+
+    // 1. Validação síncrona preliminar (formato e descarte)
+    const basic = validateEmailBasic(clean)
+    if (!clean.includes('@') || !clean.includes('.')) {
+      // Usuário ainda está digitando o domínio
+      setEmailError(null)
+      setEmailValidating(false)
+      return
+    }
+
+    if (!basic.isFormatValid) {
+      setEmailError(basic.message || 'Formato de e-mail inválido')
+      setEmailValidating(false)
+      return
+    }
+
+    if (basic.isDisposable) {
+      setEmailError(
+        basic.message ||
+          'Este e-mail parece ser temporário/descartável. Use um e-mail permanente (ex.: Gmail, Outlook).',
+      )
+      setEmailValidating(false)
+      return
+    }
+
+    // Passou formato e não é descartável conhecido: agendar checagem DNS online via Edge Function
+    setEmailError(null)
+    setEmailValidating(true)
+
+    const currentCallId = ++emailCallIdRef.current
+    emailDebounceTimerRef.current = setTimeout(async () => {
+      try {
+        const fullResult = await validateEmailDomainOnline(clean)
+        if (currentCallId !== emailCallIdRef.current) return
+
+        if (!fullResult.valid) {
+          setEmailError(
+            fullResult.message || 'Domínio de e-mail inválido ou sem recebimento de mensagens.',
+          )
+          setEmailValidSuccess(false)
+        } else {
+          setEmailError(null)
+          setEmailValidSuccess(true)
+        }
+      } catch (err) {
+        if (currentCallId !== emailCallIdRef.current) return
+        setEmailError(null)
+      } finally {
+        if (currentCallId === emailCallIdRef.current) {
+          setEmailValidating(false)
+        }
+      }
+    }, 600)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setEmailError(null)
@@ -330,18 +412,51 @@ export function ReaderModal({
       return
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(cleanEmail)) {
-      setEmailError('Formato de e-mail inválido')
+    // 1. Validação de formato e bloqueio de descartáveis (obrigatório para novos e edits)
+    const basicValidation = validateEmailBasic(cleanEmail)
+    if (!basicValidation.isFormatValid) {
+      const msg = basicValidation.message || 'Formato de e-mail inválido'
+      setEmailError(msg)
       toast({
         title: 'E-mail inválido',
-        description: 'Por favor, informe um endereço de e-mail válido.',
+        description: msg,
         variant: 'destructive',
       })
       return
     }
 
-    // 1. Validação de existência/duplicidade de e-mail (login)
+    if (basicValidation.isDisposable) {
+      const msg =
+        basicValidation.message ||
+        'Este e-mail parece ser temporário/descartável. Use um e-mail permanente (ex.: Gmail, Outlook).'
+      setEmailError(msg)
+      toast({
+        title: 'E-mail temporário não permitido',
+        description: msg,
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // 2. Validação online de domínio DNS/MX caso não seja modo de edição com e-mail idêntico
+    try {
+      const domainResult = await validateEmailDomainOnline(cleanEmail)
+      if (!domainResult.valid) {
+        const msg =
+          domainResult.message || 'O domínio deste e-mail é inválido ou não pode receber mensagens.'
+        setEmailError(msg)
+        toast({
+          title: 'Domínio de e-mail inválido',
+          description: msg,
+          variant: 'destructive',
+        })
+        return
+      }
+    } catch (dnsErr) {
+      console.warn('Aviso ao checar domínio no submit:', dnsErr)
+    }
+
+    // 3. Validação de existência/duplicidade de e-mail (login)
     try {
       const emailExists = await LeitoresService.checkEmailExists(
         cleanEmail,
@@ -767,30 +882,61 @@ export function ReaderModal({
                   <span className="text-[11px] font-medium text-amber-700 flex items-center gap-1">
                     <Info className="w-3 h-3" /> Login Bloqueado
                   </span>
-                ) : emailError ? (
-                  <span className="text-[11px] font-medium text-rose-600">{emailError}</span>
+                ) : emailValidating ? (
+                  <span className="text-[11px] font-medium text-slate-500 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin text-emerald-600" />
+                    Validando domínio...
+                  </span>
+                ) : emailValidSuccess && !emailError ? (
+                  <span className="text-[11px] font-medium text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Domínio de e-mail válido
+                  </span>
                 ) : null}
               </div>
-              <Input
-                id="email"
-                type="email"
-                required={!readerToEdit}
-                readOnly={!!readerToEdit}
-                disabled={!!readerToEdit}
-                placeholder="Ex: maria.santos@exemplo.com"
-                value={formData.email}
-                onChange={(e) => {
-                  setFormData({ ...formData, email: e.target.value })
-                  setEmailError(null)
-                }}
-                className={`mt-1 text-xs ${
-                  readerToEdit
-                    ? 'bg-slate-100 text-slate-500 cursor-not-allowed border-slate-200 select-none'
-                    : emailError
-                      ? 'border-rose-500 focus-visible:ring-rose-500'
-                      : ''
-                }`}
-              />
+              <div className="relative mt-1">
+                <Input
+                  id="email"
+                  type="email"
+                  required={!readerToEdit}
+                  readOnly={!!readerToEdit}
+                  disabled={!!readerToEdit}
+                  placeholder="Ex: maria.santos@exemplo.com"
+                  value={formData.email}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setFormData({ ...formData, email: val })
+                    if (!readerToEdit) {
+                      triggerEmailValidation(val)
+                    }
+                  }}
+                  onBlur={() => {
+                    if (!readerToEdit && formData.email) {
+                      triggerEmailValidation(formData.email)
+                    }
+                  }}
+                  className={`text-xs ${
+                    readerToEdit
+                      ? 'bg-slate-100 text-slate-500 cursor-not-allowed border-slate-200 select-none'
+                      : emailError
+                        ? 'border-rose-500 focus-visible:ring-rose-500 pr-8'
+                        : emailValidSuccess
+                          ? 'border-emerald-500 focus-visible:ring-emerald-500 pr-8'
+                          : ''
+                  }`}
+                />
+                {!readerToEdit && (
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                    {emailValidating ? (
+                      <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />
+                    ) : emailError ? (
+                      <ShieldAlert className="w-3.5 h-3.5 text-rose-500" />
+                    ) : emailValidSuccess ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    ) : null}
+                  </div>
+                )}
+              </div>
               {readerToEdit ? (
                 <div className="mt-1.5 flex items-start gap-1.5 p-2 rounded bg-amber-50/80 border border-amber-200/60 text-[11px] text-amber-900 leading-snug">
                   <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
@@ -799,6 +945,16 @@ export function ReaderModal({
                     e recadastre o leitor com o novo e-mail.
                   </span>
                 </div>
+              ) : emailError ? (
+                <div className="mt-1.5 flex items-start gap-1.5 p-2 rounded bg-rose-50 border border-rose-200 text-[11px] text-rose-800 leading-snug">
+                  <ShieldAlert className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
+                  <span>{emailError}</span>
+                </div>
+              ) : emailValidSuccess ? (
+                <p className="text-[11px] text-emerald-700 mt-1 flex items-center gap-1 font-medium">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  E-mail permanente com domínio e recebimento verificados.
+                </p>
               ) : (
                 <p className="text-[11px] text-slate-500 mt-1">
                   Este e-mail será o identificador de login exclusivo do leitor na biblioteca.
