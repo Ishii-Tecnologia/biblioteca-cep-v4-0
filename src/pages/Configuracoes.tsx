@@ -56,6 +56,9 @@ import {
 import { downloadBookTemplateCsv, downloadBookFullExportCsv } from '@/lib/csv'
 import { TitulosService } from '@/services/titulos'
 import { AuditoriaJobService, AuditoriaJobConfig } from '@/services/auditoria-job'
+import { ConfiguracoesParametrosSpecTab } from '@/components/ConfiguracoesParametrosSpecTab'
+import { FeriadosSpecTab } from '@/components/FeriadosSpecTab'
+import { AuditoriaTransicoesSpecTab } from '@/components/AuditoriaTransicoesSpecTab'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -1090,1200 +1093,1449 @@ export default function Configuracoes() {
         </div>
       </div>
 
-      {loading ? (
-        <div className="py-20 text-center flex flex-col items-center justify-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
-          <p className="text-xs text-slate-500 font-medium">Carregando configurações...</p>
-        </div>
-      ) : (
-        <form onSubmit={handleSave} className="space-y-6">
-          {/* Card 1: Identificação Institucional */}
-          <Card className="border-slate-200 bg-white shadow-xs">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-emerald-600" />
-                Identificação da Unidade
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Informações visíveis aos usuários e nas emissões do sistema.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="nome_biblioteca" className="text-xs font-semibold text-slate-700">
-                    {DEFAULT_PARAMS.nome_biblioteca.label}
-                  </Label>
-                  <span className="text-[11px] text-slate-400 font-mono">
-                    chave: nome_biblioteca
-                  </span>
-                </div>
-                <Input
-                  id="nome_biblioteca"
-                  type="text"
-                  value={nomeBiblioteca}
-                  onChange={(e) => setNomeBiblioteca(e.target.value)}
-                  disabled={!isAdmin || saving}
-                  placeholder="Biblioteca CEP"
-                  className="text-sm font-medium"
-                />
-                <p className="text-[11px] text-slate-500">
-                  {DEFAULT_PARAMS.nome_biblioteca.description}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+      <Tabs defaultValue="geral" className="w-full">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-4 bg-muted p-1 w-full mb-6">
+          <TabsTrigger value="geral" className="text-xs">
+            Parâmetros Gerais
+          </TabsTrigger>
+          <TabsTrigger value="regras_spec" className="text-xs font-semibold text-primary">
+            Regras Rígidas (Seção 7)
+          </TabsTrigger>
+          <TabsTrigger value="feriados" className="text-xs">
+            Feriados & Dias Úteis
+          </TabsTrigger>
+          <TabsTrigger value="auditoria" className="text-xs">
+            Auditoria de Transições
+          </TabsTrigger>
+        </TabsList>
 
-          {/* Card: Rótulos e Estrutura de Autoria */}
-          <Card className="border-slate-200 bg-white shadow-xs">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Users2 className="w-5 h-5 text-emerald-600" />
-                Estruturas & Rótulos de Autoria
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Personalize os títulos e rótulos exibidos nos formulários de cadastro de livros e
-                seletores de autoria.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="label_espirito_medium"
-                      className="text-xs font-semibold text-slate-700"
-                    >
-                      {DEFAULT_PARAMS.label_estrutura_espirito_medium.label}
-                    </Label>
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      chave: label_estrutura_espirito_medium
-                    </span>
-                  </div>
-                  <Input
-                    id="label_espirito_medium"
-                    type="text"
-                    value={labelEspiritoMedium}
-                    onChange={(e) => setLabelEspiritoMedium(e.target.value)}
-                    disabled={!isAdmin || saving}
-                    placeholder="Espírito + Médium"
-                    className="text-sm font-medium"
-                  />
-                  <p className="text-[11px] text-slate-500">
-                    {DEFAULT_PARAMS.label_estrutura_espirito_medium.description}
-                  </p>
-                </div>
+        <TabsContent value="regras_spec">
+          <ConfiguracoesParametrosSpecTab />
+        </TabsContent>
 
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="label_convencional"
-                      className="text-xs font-semibold text-slate-700"
-                    >
-                      {DEFAULT_PARAMS.label_estrutura_convencional.label}
-                    </Label>
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      chave: label_estrutura_convencional
-                    </span>
-                  </div>
-                  <Input
-                    id="label_convencional"
-                    type="text"
-                    value={labelConvencional}
-                    onChange={(e) => setLabelConvencional(e.target.value)}
-                    disabled={!isAdmin || saving}
-                    placeholder="Autor Convencional"
-                    className="text-sm font-medium"
-                  />
-                  <p className="text-[11px] text-slate-500">
-                    {DEFAULT_PARAMS.label_estrutura_convencional.description}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="feriados">
+          <FeriadosSpecTab />
+        </TabsContent>
 
-          {/* Card: Configuração do Formato CSV e Template de Importação */}
-          <Card className="border-slate-200 bg-white shadow-xs">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
-                Arquivos CSV & Modelo de Importação
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Configure o delimitador padrão das exportações/importações e baixe o modelo oficial
-                formatado para importação em lote de livros.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Seletor de Separador CSV */}
-              <div className="space-y-2 p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor="csv_separador"
-                    className="text-xs font-semibold text-slate-700 flex items-center gap-1.5"
-                  >
-                    <Split className="w-3.5 h-3.5 text-emerald-600" />
-                    Separador de Campos CSV (Exportação e Importação)
-                  </Label>
-                  <span className="text-[11px] text-slate-400 font-mono">chave: csv_separador</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                  <Select
-                    value={csvSeparador}
-                    onValueChange={(val: ';' | ',') => setCsvSeparador(val)}
-                    disabled={!isAdmin || saving}
-                  >
-                    <SelectTrigger id="csv_separador" className="text-xs bg-white h-9 font-medium">
-                      <SelectValue placeholder="Selecione o separador" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value=";" className="text-xs">
-                        <span className="font-semibold">Ponto e vírgula (;)</span> — Padrão Excel
-                        pt-BR / Brasil
-                      </SelectItem>
-                      <SelectItem value="," className="text-xs">
-                        <span className="font-semibold">Vírgula (,)</span> — Padrão Internacional /
-                        RFC 4180
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <div className="flex items-center text-[11px] text-slate-500 leading-tight">
-                    {csvSeparador === ';' ? (
-                      <span>
-                        Ponto e vírgula (<strong>;</strong>) é recomendado para computadores
-                        configurados no Brasil, evitando que números decimais se dividam em colunas
-                        no Excel.
-                      </span>
-                    ) : (
-                      <span>
-                        Vírgula (<strong>,</strong>) é o padrão internacional de CSV (valores que
-                        contenham vírgula são automaticamente envolvidos em aspas).
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
+        <TabsContent value="auditoria">
+          <AuditoriaTransicoesSpecTab />
+        </TabsContent>
 
-              {/* Downloads: Arquivo Modelo e Base Completa de Livros */}
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3.5">
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-slate-900">
-                    Arquivos CSV de Importação e Exportação do Acervo
-                  </p>
-                  <p className="text-[11px] text-slate-500 leading-relaxed max-w-2xl">
-                    Utilizam o separador configurado ({' '}
-                    <code className="bg-slate-200/80 px-1 py-0.5 rounded text-[10px] font-mono">
-                      {csvSeparador === ';' ? 'ponto e vírgula (;)' : 'vírgula (,)'}
-                    </code>{' '}
-                    ) e codificação UTF-8 com BOM (\uFEFF) para compatibilidade nativa com Excel e
-                    LibreOffice pt-BR. Ambos possuem exatamente a mesma estrutura de colunas aceita
-                    pelo importador do sistema.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                  {/* Opção 1: Arquivo Modelo de Importação */}
-                  <div className="p-3 rounded-lg bg-white border border-slate-200 flex flex-col justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
-                        <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span>Arquivo Modelo de Importação</span>
-                      </div>
-                      <p className="text-[11px] text-slate-500 font-mono">
-                        template_importacao_acervo_cep.csv
-                      </p>
-                      <p className="text-[11px] text-slate-500 leading-snug">
-                        Planilha modelo com exemplos ilustrativos para preenchimento de novas obras.
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={handleDownloadTemplateCsv}
-                      variant="outline"
-                      size="sm"
-                      className="w-full bg-white hover:bg-emerald-50 border-emerald-600/40 text-emerald-700 hover:text-emerald-800 text-xs font-medium gap-2 shadow-2xs h-8"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      Baixar Modelo CSV ({csvSeparador === ';' ? ';' : ','})
-                    </Button>
-                  </div>
-
-                  {/* Opção 2: Tabela com a base cadastrada separada por acervo */}
-                  <div className="p-3 rounded-lg bg-white border border-slate-200 flex flex-col justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
-                        <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span>Exportação da Base Cadastrada por Acervo</span>
-                      </div>
-                      <p className="text-[11px] text-slate-500 font-mono">
-                        cadastro_livros_acervo_geral.csv / cadastro_livros_acervo_diretoria.csv
-                      </p>
-                      <p className="text-[11px] text-slate-500 leading-snug">
-                        Baixe os dados do Acervo Geral ou do Acervo da Diretoria separadamente no
-                        formato oficial do modelo CSV.
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <Button
-                        type="button"
-                        onClick={() => handleDownloadExportCsv('geral')}
-                        disabled={exportingGeralCsv || exportingDiretoriaCsv}
-                        variant="outline"
-                        size="sm"
-                        className="w-full bg-white hover:bg-emerald-50 border-emerald-600/40 text-emerald-700 hover:text-emerald-800 text-xs font-medium gap-1.5 shadow-2xs h-8"
-                      >
-                        {exportingGeralCsv ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Download className="w-3.5 h-3.5" />
-                        )}
-                        {exportingGeralCsv ? 'Exportando...' : 'Acervo Geral'}
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={() => handleDownloadExportCsv('diretoria')}
-                        disabled={exportingGeralCsv || exportingDiretoriaCsv}
-                        variant="outline"
-                        size="sm"
-                        className="w-full bg-white hover:bg-emerald-50 border-emerald-600/40 text-emerald-700 hover:text-emerald-800 text-xs font-medium gap-1.5 shadow-2xs h-8"
-                      >
-                        {exportingDiretoriaCsv ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Download className="w-3.5 h-3.5" />
-                        )}
-                        {exportingDiretoriaCsv ? 'Exportando...' : 'Acervo da Diretoria'}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Card 2: Políticas de Empréstimos & Renovações */}
-          <Card className="border-slate-200 bg-white shadow-xs">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Clock className="w-5 h-5 text-emerald-600" />
-                Políticas de Circulação & Prazos
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Defina os prazos padrão para cálculo automático da data prevista e tolerâncias de
-                devolução.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                {/* Prazo de Empréstimo */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="prazo_emprestimo_dias"
-                      className="text-xs font-semibold text-slate-700"
-                    >
-                      {DEFAULT_PARAMS.prazo_emprestimo_dias.label}
-                    </Label>
-                  </div>
-                  <Input
-                    id="prazo_emprestimo_dias"
-                    type="number"
-                    min={DEFAULT_PARAMS.prazo_emprestimo_dias.min}
-                    max={DEFAULT_PARAMS.prazo_emprestimo_dias.max}
-                    value={prazoEmprestimoDias}
-                    onChange={(e) => setPrazoEmprestimoDias(e.target.value)}
-                    disabled={!isAdmin || saving}
-                    className="text-sm font-medium font-mono"
-                  />
-                  <p className="text-[11px] text-slate-500">
-                    Padrão: <span className="font-semibold text-slate-700">15 dias</span> corridos.
-                  </p>
-                </div>
-
-                {/* Prazo de Renovação */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="prazo_renovacao_dias"
-                      className="text-xs font-semibold text-slate-700"
-                    >
-                      {DEFAULT_PARAMS.prazo_renovacao_dias.label}
-                    </Label>
-                  </div>
-                  <Input
-                    id="prazo_renovacao_dias"
-                    type="number"
-                    min={DEFAULT_PARAMS.prazo_renovacao_dias.min}
-                    max={DEFAULT_PARAMS.prazo_renovacao_dias.max}
-                    value={prazoRenovacaoDias}
-                    onChange={(e) => setPrazoRenovacaoDias(e.target.value)}
-                    disabled={!isAdmin || saving}
-                    className="text-sm font-medium font-mono"
-                  />
-                  <p className="text-[11px] text-slate-500">
-                    {DEFAULT_PARAMS.prazo_renovacao_dias.description}
-                  </p>
-                </div>
-
-                {/* Limite Máximo de Renovações */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="max_renovacoes"
-                      className="text-xs font-semibold text-slate-700"
-                    >
-                      {DEFAULT_PARAMS.max_renovacoes.label}
-                    </Label>
-                  </div>
-                  <Input
-                    id="max_renovacoes"
-                    type="number"
-                    min={DEFAULT_PARAMS.max_renovacoes.min}
-                    max={DEFAULT_PARAMS.max_renovacoes.max}
-                    value={maxRenovacoes}
-                    onChange={(e) => setMaxRenovacoes(e.target.value)}
-                    disabled={!isAdmin || saving}
-                    className="text-sm font-medium font-mono"
-                  />
-                  <p className="text-[11px] text-slate-500">
-                    Padrão: <span className="font-semibold text-slate-700">1 renovação</span> por
-                    empréstimo.
-                  </p>
-                </div>
-
-                {/* Limite de Exemplares por Leitor */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="max_exemplares_por_leitor"
-                      className="text-xs font-semibold text-slate-700"
-                    >
-                      {DEFAULT_PARAMS.max_exemplares_por_leitor.label}
-                    </Label>
-                  </div>
-                  <Input
-                    id="max_exemplares_por_leitor"
-                    type="number"
-                    min={DEFAULT_PARAMS.max_exemplares_por_leitor.min}
-                    max={DEFAULT_PARAMS.max_exemplares_por_leitor.max}
-                    value={maxExemplaresPorLeitor}
-                    onChange={(e) => setMaxExemplaresPorLeitor(e.target.value)}
-                    disabled={!isAdmin || saving}
-                    className="text-sm font-medium font-mono"
-                  />
-                  <p className="text-[11px] text-slate-500">
-                    Padrão: <span className="font-semibold text-slate-700">3 exemplares</span>{' '}
-                    simultâneos.
-                  </p>
-                </div>
-
-                {/* Prazo de Reserva */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="prazo_reserva_dias"
-                      className="text-xs font-semibold text-slate-700"
-                    >
-                      {DEFAULT_PARAMS.prazo_reserva_dias.label}
-                    </Label>
-                  </div>
-                  <Input
-                    id="prazo_reserva_dias"
-                    type="number"
-                    min={DEFAULT_PARAMS.prazo_reserva_dias.min}
-                    max={DEFAULT_PARAMS.prazo_reserva_dias.max}
-                    value={prazoReservaDias}
-                    onChange={(e) => setPrazoReservaDias(e.target.value)}
-                    disabled={!isAdmin || saving}
-                    className="text-sm font-medium font-mono"
-                  />
-                  <p className="text-[11px] text-slate-500">
-                    Padrão: <span className="font-semibold text-slate-700">5 dias</span> de
-                    tolerância.
-                  </p>
-                </div>
-
-                {/* Tempo de Reserva Garantida (Horas) */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="tempo_reserva_garantida_horas"
-                      className="text-xs font-semibold text-slate-700"
-                    >
-                      {DEFAULT_PARAMS.tempo_reserva_garantida_horas.label}
-                    </Label>
-                  </div>
-                  <Input
-                    id="tempo_reserva_garantida_horas"
-                    type="number"
-                    min={DEFAULT_PARAMS.tempo_reserva_garantida_horas.min}
-                    max={DEFAULT_PARAMS.tempo_reserva_garantida_horas.max}
-                    value={tempoReservaGarantidaHoras}
-                    onChange={(e) => setTempoReservaGarantidaHoras(e.target.value)}
-                    disabled={!isAdmin || saving}
-                    className="text-sm font-medium font-mono"
-                  />
-                  <p className="text-[11px] text-slate-500">
-                    Padrão: <span className="font-semibold text-slate-700">24 horas</span>{' '}
-                    garantidas após notificação de disponibilidade para retirada na biblioteca.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Card Novo: Reservas & Fila de Espera */}
-          <Card className="border-slate-200 bg-white shadow-xs">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <BookmarkCheck className="w-5 h-5 text-emerald-600" />
-                Reservas & Fila de Espera
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Configure os parâmetros operacionais da fila de espera e personalize os templates de
-                e-mail disparados aos leitores.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {/* Parâmetros numéricos */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 p-4 rounded-xl bg-slate-50 border border-slate-200">
-                {/* Prazo de Retirada (Dias Úteis) */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="prazo_retirada_dias_uteis"
-                      className="text-xs font-semibold text-slate-700"
-                    >
-                      {DEFAULT_PARAMS.prazo_retirada_dias_uteis.label}
-                    </Label>
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      chave: prazo_retirada_dias_uteis
-                    </span>
-                  </div>
-                  <Input
-                    id="prazo_retirada_dias_uteis"
-                    type="number"
-                    min={DEFAULT_PARAMS.prazo_retirada_dias_uteis.min}
-                    max={DEFAULT_PARAMS.prazo_retirada_dias_uteis.max}
-                    value={prazoRetiradaDiasUteis}
-                    onChange={(e) => setPrazoRetiradaDiasUteis(e.target.value)}
-                    disabled={!isAdmin || saving}
-                    className="text-sm font-medium font-mono bg-white"
-                  />
-                  <p className="text-[11px] text-slate-500">
-                    Padrão: <span className="font-semibold text-slate-700">7 dias úteis</span>{' '}
-                    (exclui sábados e domingos no cálculo da data limite).
-                  </p>
-                </div>
-
-                {/* Limite Máximo da Fila de Espera */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="limite_maximo_fila_espera"
-                      className="text-xs font-semibold text-slate-700"
-                    >
-                      {DEFAULT_PARAMS.limite_maximo_fila_espera.label}
-                    </Label>
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      chave: limite_maximo_fila_espera
-                    </span>
-                  </div>
-                  <Input
-                    id="limite_maximo_fila_espera"
-                    type="number"
-                    min={DEFAULT_PARAMS.limite_maximo_fila_espera.min}
-                    max={DEFAULT_PARAMS.limite_maximo_fila_espera.max}
-                    value={limiteMaximoFilaEspera}
-                    onChange={(e) => setLimiteMaximoFilaEspera(e.target.value)}
-                    disabled={!isAdmin || saving}
-                    className="text-sm font-medium font-mono bg-white"
-                  />
-                  <p className="text-[11px] text-slate-500">
-                    Padrão: <span className="font-semibold text-slate-700">3 leitores</span> na fila
-                    simultaneamente por obra.
-                  </p>
-                </div>
-              </div>
-
-              {/* Template de E-mail de Liberação da Reserva */}
-              <div className="space-y-4 pt-1">
-                <div className="space-y-1">
-                  <Label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-emerald-600" />
-                    Template do E-mail de Liberação da Reserva (Notificação para Retirada)
-                  </Label>
-                  <p className="text-[11px] text-slate-500">
-                    Disparado automaticamente ao leitor quando o livro reservado é devolvido ou
-                    disponibilizado pela equipe.
-                  </p>
-                </div>
-
-                {/* Assunto do E-mail */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="email_liberacao_titulo"
-                      className="text-xs font-semibold text-slate-700"
-                    >
-                      {DEFAULT_PARAMS.email_liberacao_titulo.label}
-                    </Label>
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      chave: email_liberacao_titulo
-                    </span>
-                  </div>
-                  <Input
-                    id="email_liberacao_titulo"
-                    type="text"
-                    value={emailLiberacaoTitulo}
-                    onChange={(e) => setEmailLiberacaoTitulo(e.target.value)}
-                    disabled={!isAdmin || saving}
-                    placeholder="Seu livro reservado já está disponível para retirada na Biblioteca CEP!"
-                    className="text-xs"
-                  />
-                  <p className="text-[11px] text-slate-500">
-                    Padrão: <code>Livro {'{titulo_do_livro}'} liberado para empréstimo.</code>{' '}
-                    (variáveis: <code>{'{titulo_do_livro}'}</code>,{' '}
-                    <code>{'{nome_do_leitor}'}</code>).
-                  </p>
-                </div>
-
-                {/* Mensagem / Corpo do E-mail */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="email_liberacao_mensagem"
-                      className="text-xs font-semibold text-slate-700"
-                    >
-                      {DEFAULT_PARAMS.email_liberacao_mensagem.label}
-                    </Label>
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      chave: email_liberacao_mensagem
-                    </span>
-                  </div>
-                  <Textarea
-                    id="email_liberacao_mensagem"
-                    rows={6}
-                    value={emailLiberacaoMensagem}
-                    onChange={(e) => setEmailLiberacaoMensagem(e.target.value)}
-                    disabled={!isAdmin || saving}
-                    className="text-xs font-sans leading-relaxed"
-                  />
-                  <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-lg text-[11px] text-emerald-900 space-y-2">
-                    <p className="font-semibold text-emerald-950">
-                      Variáveis disponíveis no template (assunto e mensagem):
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 font-mono text-[10px] text-emerald-800">
-                      <div className="bg-white px-2 py-1 rounded border border-emerald-200">
-                        <span className="font-bold">{'{titulo_do_livro}'}</span> — Título da obra
-                      </div>
-                      <div className="bg-white px-2 py-1 rounded border border-emerald-200">
-                        <span className="font-bold">{'{nome_do_leitor}'}</span> — Nome do leitor
-                      </div>
-                      <div className="bg-white px-2 py-1 rounded border border-emerald-200">
-                        <span className="font-bold">{'{prazo_retirada_dias_uteis}'}</span> — Prazo
-                        em dias úteis (ex: 7)
-                      </div>
-                      <div className="bg-white px-2 py-1 rounded border border-emerald-200">
-                        <span className="font-bold">{'{data_limite_retirada}'}</span> — Data limite
-                        formatada (DD/MM/AAAA)
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-600 font-sans">
-                      Texto padrão da mensagem:{' '}
-                      <em>
-                        "O livro {'{titulo_do_livro}'} está liberado para empréstimo. Você tem o
-                        prazo de {'{prazo_retirada_dias_uteis}'} dias para a retirada. Procure a
-                        Biblioteca para realizar o empréstimo. Obrigado! CEP"
-                      </em>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Card: Envio Automático do Relatório de Auditoria (Logs) & Expurgo */}
-          <Card className="border-slate-200 bg-white shadow-xs">
-            <CardHeader className="pb-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div>
+        <TabsContent value="geral">
+          {loading ? (
+            <div className="py-20 text-center flex flex-col items-center justify-center gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+              <p className="text-xs text-slate-500 font-medium">Carregando configurações...</p>
+            </div>
+          ) : (
+            <form onSubmit={handleSave} className="space-y-6">
+              {/* Card 1: Identificação Institucional */}
+              <Card className="border-slate-200 bg-white shadow-xs">
+                <CardHeader className="pb-4">
                   <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <Mail className="w-5 h-5 text-emerald-600" />
-                    Envio Automático do Relatório de Auditoria & Expurgo Mensal
+                    <Building2 className="w-5 h-5 text-emerald-600" />
+                    Identificação da Unidade
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Configure o agendamento mensal que gera o Histórico Geral em PDF, envia por
-                    e-mail e realiza a rotina de expurgo em lotes.
+                    Informações visíveis aos usuários e nas emissões do sistema.
                   </CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant="outline"
-                    className={`text-xs py-0.5 px-2.5 font-medium ${
-                      auditConfig.ativo
-                        ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
-                        : 'border-slate-200 bg-slate-50 text-slate-500'
-                    }`}
-                  >
-                    {auditConfig.ativo ? 'Agendamento Ativo' : 'Agendamento Inativo'}
-                  </Badge>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {/* Toggle de ativação */}
-              <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-lg">
-                <div className="space-y-0.5">
-                  <Label
-                    htmlFor="auditoria_ativo"
-                    className="text-xs font-bold text-slate-900 cursor-pointer"
-                  >
-                    Habilitar Envio Mensal Automático & Rotina de Expurgo
-                  </Label>
-                  <p className="text-[11px] text-slate-500">
-                    O job roda diariamente. Se o dia atual coincidir com o configurado, executa na
-                    ordem obrigatória: <strong>Gerar PDF → Enviar E-mail → Expurgar Base</strong>.
-                  </p>
-                </div>
-                <Switch
-                  id="auditoria_ativo"
-                  checked={auditConfig.ativo}
-                  onCheckedChange={(checked) =>
-                    setAuditConfig((prev) => ({ ...prev, ativo: checked }))
-                  }
-                  disabled={!isAdmin || saving}
-                />
-              </div>
-
-              {/* Grid de Destinatários e Remetente */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5 sm:col-span-2">
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="auditoria_destinatarios"
-                      className="text-xs font-semibold text-slate-700"
-                    >
-                      Destinatários (separados por vírgula) *
-                    </Label>
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      chave: auditoria_destinatarios
-                    </span>
-                  </div>
-                  <Input
-                    id="auditoria_destinatarios"
-                    type="text"
-                    value={auditConfig.destinatarios}
-                    onChange={(e) =>
-                      setAuditConfig((prev) => ({ ...prev, destinatarios: e.target.value }))
-                    }
-                    disabled={!isAdmin || saving}
-                    placeholder="auditoria@instituicao.org, diretoria@instituicao.org"
-                    className="text-xs font-mono"
-                  />
-                  <p className="text-[11px] text-slate-500">
-                    Ao menos 1 e-mail válido é obrigatório para ativar. E-mails inválidos serão
-                    ignorados e auditados.
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="auditoria_remetente"
-                    className="text-xs font-semibold text-slate-700"
-                  >
-                    Remetente Exibido
-                  </Label>
-                  <Input
-                    id="auditoria_remetente"
-                    type="text"
-                    value={auditConfig.remetente}
-                    onChange={(e) =>
-                      setAuditConfig((prev) => ({ ...prev, remetente: e.target.value }))
-                    }
-                    disabled={!isAdmin || saving}
-                    className="text-xs font-mono"
-                  />
-                  <p className="text-[11px] text-slate-500">Padrão institucional do sistema.</p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="auditoria_assunto"
-                    className="text-xs font-semibold text-slate-700"
-                  >
-                    Assunto do E-mail
-                  </Label>
-                  <Input
-                    id="auditoria_assunto"
-                    type="text"
-                    value={auditConfig.assunto}
-                    onChange={(e) =>
-                      setAuditConfig((prev) => ({ ...prev, assunto: e.target.value }))
-                    }
-                    disabled={!isAdmin || saving}
-                    className="text-xs"
-                  />
-                  <p className="text-[11px] text-slate-500">
-                    Variável disponível: <code>{'{data_referencia}'}</code>
-                  </p>
-                </div>
-              </div>
-
-              {/* Corpo do E-mail */}
-              <div className="space-y-1.5">
-                <Label htmlFor="auditoria_corpo" className="text-xs font-semibold text-slate-700">
-                  Corpo da Mensagem
-                </Label>
-                <Textarea
-                  id="auditoria_corpo"
-                  rows={4}
-                  value={auditConfig.corpo}
-                  onChange={(e) => setAuditConfig((prev) => ({ ...prev, corpo: e.target.value }))}
-                  disabled={!isAdmin || saving}
-                  className="text-xs font-sans leading-relaxed"
-                />
-                <p className="text-[11px] text-slate-500">
-                  Variáveis: <code>{'{data_inicio}'}</code>, <code>{'{data_fim}'}</code>,{' '}
-                  <code>{'{data_referencia}'}</code>, <code>{'{total_registros}'}</code>,{' '}
-                  <code>{'{link_sistema}'}</code>.
-                </p>
-              </div>
-
-              {/* Parâmetros de Filtro N, Agendamento e Expurgo */}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="space-y-1">
-                  <Label
-                    htmlFor="dias_retroativos"
-                    className="text-xs font-semibold text-slate-700 flex items-center gap-1"
-                  >
-                    <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                    Período do Relatório (N)
-                  </Label>
-                  <Input
-                    id="dias_retroativos"
-                    type="number"
-                    min={1}
-                    max={365}
-                    value={auditConfig.diasRetroativos}
-                    onChange={(e) =>
-                      setAuditConfig((prev) => ({
-                        ...prev,
-                        diasRetroativos: Math.max(1, Math.min(365, parseInt(e.target.value) || 1)),
-                      }))
-                    }
-                    disabled={!isAdmin || saving}
-                    className="text-xs bg-white font-mono h-9"
-                  />
-                  <p className="text-[10px] text-slate-500">Últimos N dias no PDF (1-365).</p>
-                </div>
-
-                <div className="space-y-1">
-                  <Label
-                    htmlFor="dia_envio"
-                    className="text-xs font-semibold text-slate-700 flex items-center gap-1"
-                  >
-                    <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                    Dia do Mês de Envio
-                  </Label>
-                  <Input
-                    id="dia_envio"
-                    type="number"
-                    min={1}
-                    max={31}
-                    value={auditConfig.diaEnvio}
-                    onChange={(e) =>
-                      setAuditConfig((prev) => ({
-                        ...prev,
-                        diaEnvio: Math.max(1, Math.min(31, parseInt(e.target.value) || 1)),
-                      }))
-                    }
-                    disabled={!isAdmin || saving}
-                    className="text-xs bg-white font-mono h-9"
-                  />
-                  <p className="text-[10px] text-slate-500">
-                    Dia 1 a 31 (último dia em meses curtos).
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <Label
-                    htmlFor="hora_envio"
-                    className="text-xs font-semibold text-slate-700 flex items-center gap-1"
-                  >
-                    <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                    Horário Referência
-                  </Label>
-                  <Input
-                    id="hora_envio"
-                    type="time"
-                    value={auditConfig.horaEnvio}
-                    onChange={(e) =>
-                      setAuditConfig((prev) => ({ ...prev, horaEnvio: e.target.value }))
-                    }
-                    disabled={!isAdmin || saving}
-                    className="text-xs bg-white font-mono h-9"
-                  />
-                  <p className="text-[10px] text-slate-500">Fuso: America/Sao_Paulo.</p>
-                </div>
-
-                <div className="space-y-1">
-                  <Label
-                    htmlFor="dias_retencao"
-                    className="text-xs font-semibold text-rose-800 flex items-center gap-1"
-                  >
-                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                    Retenção de Expurgo
-                  </Label>
-                  <Input
-                    id="dias_retencao"
-                    type="number"
-                    min={1}
-                    max={3650}
-                    value={auditConfig.diasRetencao}
-                    onChange={(e) =>
-                      setAuditConfig((prev) => ({
-                        ...prev,
-                        diasRetencao: Math.max(1, parseInt(e.target.value) || 1),
-                      }))
-                    }
-                    disabled={!isAdmin || saving}
-                    className="text-xs bg-white font-mono h-9 border-rose-200"
-                  />
-                  <p className="text-[10px] text-rose-600">Apaga registros com mais de N dias.</p>
-                </div>
-              </div>
-
-              {/* Status da última execução */}
-              {latestJobInfo && (
-                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-2">
-                    <History className="w-4 h-4 text-slate-500 shrink-0" />
-                    <div>
-                      <span className="font-semibold text-slate-800">
-                        Última Execução Registrada:{' '}
-                      </span>
-                      <span className="font-mono text-[11px] text-slate-600">
-                        {latestJobInfo.ano_mes}
-                      </span>
-                      <Badge
-                        variant="outline"
-                        className={`ml-2 text-[10px] py-0 px-1.5 ${
-                          latestJobInfo.status === 'sucesso'
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                            : 'border-rose-200 bg-rose-50 text-rose-700'
-                        }`}
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label
+                        htmlFor="nome_biblioteca"
+                        className="text-xs font-semibold text-slate-700"
                       >
-                        {latestJobInfo.status.toUpperCase()}
-                      </Badge>
-                      <p className="text-[11px] text-slate-500 mt-0.5">{latestJobInfo.mensagem}</p>
+                        {DEFAULT_PARAMS.nome_biblioteca.label}
+                      </Label>
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        chave: nome_biblioteca
+                      </span>
                     </div>
+                    <Input
+                      id="nome_biblioteca"
+                      type="text"
+                      value={nomeBiblioteca}
+                      onChange={(e) => setNomeBiblioteca(e.target.value)}
+                      disabled={!isAdmin || saving}
+                      placeholder="Biblioteca CEP"
+                      className="text-sm font-medium"
+                    />
+                    <p className="text-[11px] text-slate-500">
+                      {DEFAULT_PARAMS.nome_biblioteca.description}
+                    </p>
                   </div>
-                  <span className="text-[11px] text-slate-400 font-mono shrink-0">
-                    {new Date(latestJobInfo.data_execucao).toLocaleString('pt-BR')}
-                  </span>
-                </div>
-              )}
+                </CardContent>
+              </Card>
 
-              {/* Ações de Teste e Disparo Imediato */}
-              {isAdmin && (
-                <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSendTestAuditEmail}
-                    disabled={sendingTestEmail || runningAuditJobNow}
-                    className="w-full sm:w-auto text-xs font-medium gap-2 border-slate-300 hover:bg-slate-50"
-                  >
-                    {sendingTestEmail ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Send className="w-3.5 h-3.5 text-emerald-600" />
-                    )}
-                    Enviar Relatório Agora (PDF completo)
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRunAuditJobNow}
-                    disabled={sendingTestEmail || runningAuditJobNow}
-                    className="w-full sm:w-auto text-xs font-medium gap-2 border-emerald-300 text-emerald-800 hover:bg-emerald-50"
-                  >
-                    {runningAuditJobNow ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Zap className="w-3.5 h-3.5 text-amber-500" />
-                    )}
-                    Disparar Job Mensal Imediatamente (PDF + E-mail + Expurgo)
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Action Bar (Salvar / Restaurar) */}
-          {isAdmin && (
-            <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleRestoreDefaults}
-                disabled={saving}
-                className="w-full sm:w-auto text-xs font-medium gap-1.5 text-slate-600 hover:text-slate-900"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                Restaurar Padrões
-              </Button>
-
-              <Button
-                type="submit"
-                disabled={saving}
-                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold gap-1.5 shadow-sm px-5"
-              >
-                {saving ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Save className="w-3.5 h-3.5" />
-                )}
-                Salvar Configurações
-              </Button>
-            </div>
-          )}
-
-          {/* Seção 3. Manutenção de Autores/Médiuns e Autor Espiritual */}
-          <Card className="border-slate-200 bg-white shadow-xs">
-            <CardHeader className="pb-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div>
+              {/* Card: Rótulos e Estrutura de Autoria */}
+              <Card className="border-slate-200 bg-white shadow-xs">
+                <CardHeader className="pb-4">
                   <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
                     <Users2 className="w-5 h-5 text-emerald-600" />
-                    Manutenção de Autores, Médiuns & Autores Espirituais
+                    Estruturas & Rótulos de Autoria
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Gerencie a lista oficial de Autores/Médiuns e Autores Espirituais utilizada nos
-                    formulários do acervo. A exclusão remove o nome da lista ativa sem apagar os
-                    dados dos livros já cadastrados.
+                    Personalize os títulos e rótulos exibidos nos formulários de cadastro de livros
+                    e seletores de autoria.
                   </CardDescription>
-                </div>
-                <Badge
-                  variant="outline"
-                  className="w-fit text-xs font-medium text-slate-600 bg-slate-50 border-slate-200"
-                >
-                  {authorsList.length} cadastrados
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Abas de visualização / filtro por tipo */}
-              <Tabs
-                value={selectedAuthorTab}
-                onValueChange={(val: any) => setSelectedAuthorTab(val)}
-                className="w-full"
-              >
-                <TabsList className="grid grid-cols-3 bg-slate-100 p-1 w-full sm:w-auto">
-                  <TabsTrigger value="ALL" className="text-xs">
-                    Todos ({authorsList.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="ESPIRITO" className="text-xs">
-                    <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-500" />
-                    Espíritos ({authorsList.filter((a) => a.type === 'ESPIRITO').length})
-                  </TabsTrigger>
-                  <TabsTrigger value="MEDIUM_ENCARNADO" className="text-xs">
-                    <UserCheck className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                    Autores & Médiuns (
-                    {
-                      authorsList.filter(
-                        (a) => a.type === 'MEDIUM' || a.type === 'ENCARNADO' || a.type === 'OUTRO',
-                      ).length
-                    }
-                    )
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label
+                          htmlFor="label_espirito_medium"
+                          className="text-xs font-semibold text-slate-700"
+                        >
+                          {DEFAULT_PARAMS.label_estrutura_espirito_medium.label}
+                        </Label>
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          chave: label_estrutura_espirito_medium
+                        </span>
+                      </div>
+                      <Input
+                        id="label_espirito_medium"
+                        type="text"
+                        value={labelEspiritoMedium}
+                        onChange={(e) => setLabelEspiritoMedium(e.target.value)}
+                        disabled={!isAdmin || saving}
+                        placeholder="Espírito + Médium"
+                        className="text-sm font-medium"
+                      />
+                      <p className="text-[11px] text-slate-500">
+                        {DEFAULT_PARAMS.label_estrutura_espirito_medium.description}
+                      </p>
+                    </div>
 
-              {/* Formulário de Adicionar Autor / Médium / Espírito */}
-              {isAdmin && (
-                <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-3">
-                  <div className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                    <Plus className="w-4 h-4 text-emerald-600" />
-                    Cadastrar Novo Nome na Lista
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label
+                          htmlFor="label_convencional"
+                          className="text-xs font-semibold text-slate-700"
+                        >
+                          {DEFAULT_PARAMS.label_estrutura_convencional.label}
+                        </Label>
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          chave: label_estrutura_convencional
+                        </span>
+                      </div>
+                      <Input
+                        id="label_convencional"
+                        type="text"
+                        value={labelConvencional}
+                        onChange={(e) => setLabelConvencional(e.target.value)}
+                        disabled={!isAdmin || saving}
+                        placeholder="Autor Convencional"
+                        className="text-sm font-medium"
+                      />
+                      <p className="text-[11px] text-slate-500">
+                        {DEFAULT_PARAMS.label_estrutura_convencional.description}
+                      </p>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-                    <div className="sm:col-span-4">
-                      <Select
-                        value={newAuthorType}
-                        onValueChange={(val: AuthorType) => setNewAuthorType(val)}
+                </CardContent>
+              </Card>
+
+              {/* Card: Configuração do Formato CSV e Template de Importação */}
+              <Card className="border-slate-200 bg-white shadow-xs">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+                    Arquivos CSV & Modelo de Importação
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Configure o delimitador padrão das exportações/importações e baixe o modelo
+                    oficial formatado para importação em lote de livros.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Seletor de Separador CSV */}
+                  <div className="space-y-2 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                    <div className="flex items-center justify-between">
+                      <Label
+                        htmlFor="csv_separador"
+                        className="text-xs font-semibold text-slate-700 flex items-center gap-1.5"
                       >
-                        <SelectTrigger className="text-xs bg-white h-9">
-                          <SelectValue placeholder="Tipo de Autoria" />
+                        <Split className="w-3.5 h-3.5 text-emerald-600" />
+                        Separador de Campos CSV (Exportação e Importação)
+                      </Label>
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        chave: csv_separador
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <Select
+                        value={csvSeparador}
+                        onValueChange={(val: ';' | ',') => setCsvSeparador(val)}
+                        disabled={!isAdmin || saving}
+                      >
+                        <SelectTrigger
+                          id="csv_separador"
+                          className="text-xs bg-white h-9 font-medium"
+                        >
+                          <SelectValue placeholder="Selecione o separador" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="ESPIRITO" className="text-xs">
-                            <span className="flex items-center gap-1.5 font-medium text-amber-700">
-                              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                              Autor Espiritual (Espírito)
-                            </span>
+                          <SelectItem value=";" className="text-xs">
+                            <span className="font-semibold">Ponto e vírgula (;)</span> — Padrão
+                            Excel pt-BR / Brasil
                           </SelectItem>
-                          <SelectItem value="MEDIUM" className="text-xs">
-                            <span className="flex items-center gap-1.5 font-medium text-emerald-700">
-                              <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                              Médium / Psicografia
-                            </span>
-                          </SelectItem>
-                          <SelectItem value="ENCARNADO" className="text-xs">
-                            <span className="flex items-center gap-1.5 font-medium text-slate-700">
-                              <Users2 className="w-3.5 h-3.5 text-slate-500" />
-                              Autor Convencional
-                            </span>
+                          <SelectItem value="," className="text-xs">
+                            <span className="font-semibold">Vírgula (,)</span> — Padrão
+                            Internacional / RFC 4180
                           </SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
-
-                    <div className="sm:col-span-6">
-                      <Input
-                        type="text"
-                        placeholder={
-                          newAuthorType === 'ESPIRITO'
-                            ? 'Ex: Emmanuel, André Luiz, Joanna de Ângelis...'
-                            : newAuthorType === 'MEDIUM'
-                              ? 'Ex: Chico Xavier, Divaldo Franco...'
-                              : 'Ex: Allan Kardec, Léon Denis...'
-                        }
-                        value={newAuthorName}
-                        onChange={(e) => setNewAuthorName(e.target.value)}
-                        disabled={addingAuthor}
-                        className="text-xs bg-white h-9"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault()
-                            handleAddAuthor(e)
-                          }
-                        }}
-                      />
-                    </div>
-
-                    <div className="sm:col-span-2">
-                      <Button
-                        type="button"
-                        onClick={handleAddAuthor}
-                        disabled={addingAuthor || !newAuthorName.trim()}
-                        size="sm"
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium gap-1 h-9"
-                      >
-                        {addingAuthor ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <div className="flex items-center text-[11px] text-slate-500 leading-tight">
+                        {csvSeparador === ';' ? (
+                          <span>
+                            Ponto e vírgula (<strong>;</strong>) é recomendado para computadores
+                            configurados no Brasil, evitando que números decimais se dividam em
+                            colunas no Excel.
+                          </span>
                         ) : (
-                          <Plus className="w-3.5 h-3.5" />
+                          <span>
+                            Vírgula (<strong>,</strong>) é o padrão internacional de CSV (valores
+                            que contenham vírgula são automaticamente envolvidos em aspas).
+                          </span>
                         )}
-                        Adicionar
-                      </Button>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Downloads: Arquivo Modelo e Base Completa de Livros */}
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3.5">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-slate-900">
+                        Arquivos CSV de Importação e Exportação do Acervo
+                      </p>
+                      <p className="text-[11px] text-slate-500 leading-relaxed max-w-2xl">
+                        Utilizam o separador configurado ({' '}
+                        <code className="bg-slate-200/80 px-1 py-0.5 rounded text-[10px] font-mono">
+                          {csvSeparador === ';' ? 'ponto e vírgula (;)' : 'vírgula (,)'}
+                        </code>{' '}
+                        ) e codificação UTF-8 com BOM (\uFEFF) para compatibilidade nativa com Excel
+                        e LibreOffice pt-BR. Ambos possuem exatamente a mesma estrutura de colunas
+                        aceita pelo importador do sistema.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                      {/* Opção 1: Arquivo Modelo de Importação */}
+                      <div className="p-3 rounded-lg bg-white border border-slate-200 flex flex-col justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
+                            <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>Arquivo Modelo de Importação</span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-mono">
+                            template_importacao_acervo_cep.csv
+                          </p>
+                          <p className="text-[11px] text-slate-500 leading-snug">
+                            Planilha modelo com exemplos ilustrativos para preenchimento de novas
+                            obras.
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={handleDownloadTemplateCsv}
+                          variant="outline"
+                          size="sm"
+                          className="w-full bg-white hover:bg-emerald-50 border-emerald-600/40 text-emerald-700 hover:text-emerald-800 text-xs font-medium gap-2 shadow-2xs h-8"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Baixar Modelo CSV ({csvSeparador === ';' ? ';' : ','})
+                        </Button>
+                      </div>
+
+                      {/* Opção 2: Tabela com a base cadastrada separada por acervo */}
+                      <div className="p-3 rounded-lg bg-white border border-slate-200 flex flex-col justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
+                            <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>Exportação da Base Cadastrada por Acervo</span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-mono">
+                            cadastro_livros_acervo_geral.csv / cadastro_livros_acervo_diretoria.csv
+                          </p>
+                          <p className="text-[11px] text-slate-500 leading-snug">
+                            Baixe os dados do Acervo Geral ou do Acervo da Diretoria separadamente
+                            no formato oficial do modelo CSV.
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <Button
+                            type="button"
+                            onClick={() => handleDownloadExportCsv('geral')}
+                            disabled={exportingGeralCsv || exportingDiretoriaCsv}
+                            variant="outline"
+                            size="sm"
+                            className="w-full bg-white hover:bg-emerald-50 border-emerald-600/40 text-emerald-700 hover:text-emerald-800 text-xs font-medium gap-1.5 shadow-2xs h-8"
+                          >
+                            {exportingGeralCsv ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Download className="w-3.5 h-3.5" />
+                            )}
+                            {exportingGeralCsv ? 'Exportando...' : 'Acervo Geral'}
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={() => handleDownloadExportCsv('diretoria')}
+                            disabled={exportingGeralCsv || exportingDiretoriaCsv}
+                            variant="outline"
+                            size="sm"
+                            className="w-full bg-white hover:bg-emerald-50 border-emerald-600/40 text-emerald-700 hover:text-emerald-800 text-xs font-medium gap-1.5 shadow-2xs h-8"
+                          >
+                            {exportingDiretoriaCsv ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Download className="w-3.5 h-3.5" />
+                            )}
+                            {exportingDiretoriaCsv ? 'Exportando...' : 'Acervo da Diretoria'}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Card 2: Políticas de Empréstimos & Renovações */}
+              <Card className="border-slate-200 bg-white shadow-xs">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-emerald-600" />
+                    Políticas de Circulação & Prazos
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Defina os prazos padrão para cálculo automático da data prevista e tolerâncias
+                    de devolução.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    {/* Prazo de Empréstimo */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label
+                          htmlFor="prazo_emprestimo_dias"
+                          className="text-xs font-semibold text-slate-700"
+                        >
+                          {DEFAULT_PARAMS.prazo_emprestimo_dias.label}
+                        </Label>
+                      </div>
+                      <Input
+                        id="prazo_emprestimo_dias"
+                        type="number"
+                        min={DEFAULT_PARAMS.prazo_emprestimo_dias.min}
+                        max={DEFAULT_PARAMS.prazo_emprestimo_dias.max}
+                        value={prazoEmprestimoDias}
+                        onChange={(e) => setPrazoEmprestimoDias(e.target.value)}
+                        disabled={!isAdmin || saving}
+                        className="text-sm font-medium font-mono"
+                      />
+                      <p className="text-[11px] text-slate-500">
+                        Padrão: <span className="font-semibold text-slate-700">15 dias</span>{' '}
+                        corridos.
+                      </p>
+                    </div>
+
+                    {/* Prazo de Renovação */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label
+                          htmlFor="prazo_renovacao_dias"
+                          className="text-xs font-semibold text-slate-700"
+                        >
+                          {DEFAULT_PARAMS.prazo_renovacao_dias.label}
+                        </Label>
+                      </div>
+                      <Input
+                        id="prazo_renovacao_dias"
+                        type="number"
+                        min={DEFAULT_PARAMS.prazo_renovacao_dias.min}
+                        max={DEFAULT_PARAMS.prazo_renovacao_dias.max}
+                        value={prazoRenovacaoDias}
+                        onChange={(e) => setPrazoRenovacaoDias(e.target.value)}
+                        disabled={!isAdmin || saving}
+                        className="text-sm font-medium font-mono"
+                      />
+                      <p className="text-[11px] text-slate-500">
+                        {DEFAULT_PARAMS.prazo_renovacao_dias.description}
+                      </p>
+                    </div>
+
+                    {/* Limite Máximo de Renovações */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label
+                          htmlFor="max_renovacoes"
+                          className="text-xs font-semibold text-slate-700"
+                        >
+                          {DEFAULT_PARAMS.max_renovacoes.label}
+                        </Label>
+                      </div>
+                      <Input
+                        id="max_renovacoes"
+                        type="number"
+                        min={DEFAULT_PARAMS.max_renovacoes.min}
+                        max={DEFAULT_PARAMS.max_renovacoes.max}
+                        value={maxRenovacoes}
+                        onChange={(e) => setMaxRenovacoes(e.target.value)}
+                        disabled={!isAdmin || saving}
+                        className="text-sm font-medium font-mono"
+                      />
+                      <p className="text-[11px] text-slate-500">
+                        Padrão: <span className="font-semibold text-slate-700">1 renovação</span>{' '}
+                        por empréstimo.
+                      </p>
+                    </div>
+
+                    {/* Limite de Exemplares por Leitor */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label
+                          htmlFor="max_exemplares_por_leitor"
+                          className="text-xs font-semibold text-slate-700"
+                        >
+                          {DEFAULT_PARAMS.max_exemplares_por_leitor.label}
+                        </Label>
+                      </div>
+                      <Input
+                        id="max_exemplares_por_leitor"
+                        type="number"
+                        min={DEFAULT_PARAMS.max_exemplares_por_leitor.min}
+                        max={DEFAULT_PARAMS.max_exemplares_por_leitor.max}
+                        value={maxExemplaresPorLeitor}
+                        onChange={(e) => setMaxExemplaresPorLeitor(e.target.value)}
+                        disabled={!isAdmin || saving}
+                        className="text-sm font-medium font-mono"
+                      />
+                      <p className="text-[11px] text-slate-500">
+                        Padrão: <span className="font-semibold text-slate-700">3 exemplares</span>{' '}
+                        simultâneos.
+                      </p>
+                    </div>
+
+                    {/* Prazo de Reserva */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label
+                          htmlFor="prazo_reserva_dias"
+                          className="text-xs font-semibold text-slate-700"
+                        >
+                          {DEFAULT_PARAMS.prazo_reserva_dias.label}
+                        </Label>
+                      </div>
+                      <Input
+                        id="prazo_reserva_dias"
+                        type="number"
+                        min={DEFAULT_PARAMS.prazo_reserva_dias.min}
+                        max={DEFAULT_PARAMS.prazo_reserva_dias.max}
+                        value={prazoReservaDias}
+                        onChange={(e) => setPrazoReservaDias(e.target.value)}
+                        disabled={!isAdmin || saving}
+                        className="text-sm font-medium font-mono"
+                      />
+                      <p className="text-[11px] text-slate-500">
+                        Padrão: <span className="font-semibold text-slate-700">5 dias</span> de
+                        tolerância.
+                      </p>
+                    </div>
+
+                    {/* Tempo de Reserva Garantida (Horas) */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label
+                          htmlFor="tempo_reserva_garantida_horas"
+                          className="text-xs font-semibold text-slate-700"
+                        >
+                          {DEFAULT_PARAMS.tempo_reserva_garantida_horas.label}
+                        </Label>
+                      </div>
+                      <Input
+                        id="tempo_reserva_garantida_horas"
+                        type="number"
+                        min={DEFAULT_PARAMS.tempo_reserva_garantida_horas.min}
+                        max={DEFAULT_PARAMS.tempo_reserva_garantida_horas.max}
+                        value={tempoReservaGarantidaHoras}
+                        onChange={(e) => setTempoReservaGarantidaHoras(e.target.value)}
+                        disabled={!isAdmin || saving}
+                        className="text-sm font-medium font-mono"
+                      />
+                      <p className="text-[11px] text-slate-500">
+                        Padrão: <span className="font-semibold text-slate-700">24 horas</span>{' '}
+                        garantidas após notificação de disponibilidade para retirada na biblioteca.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Card Novo: Reservas & Fila de Espera */}
+              <Card className="border-slate-200 bg-white shadow-xs">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <BookmarkCheck className="w-5 h-5 text-emerald-600" />
+                    Reservas & Fila de Espera
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Configure os parâmetros operacionais da fila de espera e personalize os
+                    templates de e-mail disparados aos leitores.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  {/* Parâmetros numéricos */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                    {/* Prazo de Retirada (Dias Úteis) */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label
+                          htmlFor="prazo_retirada_dias_uteis"
+                          className="text-xs font-semibold text-slate-700"
+                        >
+                          {DEFAULT_PARAMS.prazo_retirada_dias_uteis.label}
+                        </Label>
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          chave: prazo_retirada_dias_uteis
+                        </span>
+                      </div>
+                      <Input
+                        id="prazo_retirada_dias_uteis"
+                        type="number"
+                        min={DEFAULT_PARAMS.prazo_retirada_dias_uteis.min}
+                        max={DEFAULT_PARAMS.prazo_retirada_dias_uteis.max}
+                        value={prazoRetiradaDiasUteis}
+                        onChange={(e) => setPrazoRetiradaDiasUteis(e.target.value)}
+                        disabled={!isAdmin || saving}
+                        className="text-sm font-medium font-mono bg-white"
+                      />
+                      <p className="text-[11px] text-slate-500">
+                        Padrão: <span className="font-semibold text-slate-700">7 dias úteis</span>{' '}
+                        (exclui sábados e domingos no cálculo da data limite).
+                      </p>
+                    </div>
+
+                    {/* Limite Máximo da Fila de Espera */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label
+                          htmlFor="limite_maximo_fila_espera"
+                          className="text-xs font-semibold text-slate-700"
+                        >
+                          {DEFAULT_PARAMS.limite_maximo_fila_espera.label}
+                        </Label>
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          chave: limite_maximo_fila_espera
+                        </span>
+                      </div>
+                      <Input
+                        id="limite_maximo_fila_espera"
+                        type="number"
+                        min={DEFAULT_PARAMS.limite_maximo_fila_espera.min}
+                        max={DEFAULT_PARAMS.limite_maximo_fila_espera.max}
+                        value={limiteMaximoFilaEspera}
+                        onChange={(e) => setLimiteMaximoFilaEspera(e.target.value)}
+                        disabled={!isAdmin || saving}
+                        className="text-sm font-medium font-mono bg-white"
+                      />
+                      <p className="text-[11px] text-slate-500">
+                        Padrão: <span className="font-semibold text-slate-700">3 leitores</span> na
+                        fila simultaneamente por obra.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Template de E-mail de Liberação da Reserva */}
+                  <div className="space-y-4 pt-1">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <Mail className="w-3.5 h-3.5 text-emerald-600" />
+                        Template do E-mail de Liberação da Reserva (Notificação para Retirada)
+                      </Label>
+                      <p className="text-[11px] text-slate-500">
+                        Disparado automaticamente ao leitor quando o livro reservado é devolvido ou
+                        disponibilizado pela equipe.
+                      </p>
+                    </div>
+
+                    {/* Assunto do E-mail */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label
+                          htmlFor="email_liberacao_titulo"
+                          className="text-xs font-semibold text-slate-700"
+                        >
+                          {DEFAULT_PARAMS.email_liberacao_titulo.label}
+                        </Label>
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          chave: email_liberacao_titulo
+                        </span>
+                      </div>
+                      <Input
+                        id="email_liberacao_titulo"
+                        type="text"
+                        value={emailLiberacaoTitulo}
+                        onChange={(e) => setEmailLiberacaoTitulo(e.target.value)}
+                        disabled={!isAdmin || saving}
+                        placeholder="Seu livro reservado já está disponível para retirada na Biblioteca CEP!"
+                        className="text-xs"
+                      />
+                      <p className="text-[11px] text-slate-500">
+                        Padrão: <code>Livro {'{titulo_do_livro}'} liberado para empréstimo.</code>{' '}
+                        (variáveis: <code>{'{titulo_do_livro}'}</code>,{' '}
+                        <code>{'{nome_do_leitor}'}</code>).
+                      </p>
+                    </div>
+
+                    {/* Mensagem / Corpo do E-mail */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label
+                          htmlFor="email_liberacao_mensagem"
+                          className="text-xs font-semibold text-slate-700"
+                        >
+                          {DEFAULT_PARAMS.email_liberacao_mensagem.label}
+                        </Label>
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          chave: email_liberacao_mensagem
+                        </span>
+                      </div>
+                      <Textarea
+                        id="email_liberacao_mensagem"
+                        rows={6}
+                        value={emailLiberacaoMensagem}
+                        onChange={(e) => setEmailLiberacaoMensagem(e.target.value)}
+                        disabled={!isAdmin || saving}
+                        className="text-xs font-sans leading-relaxed"
+                      />
+                      <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-lg text-[11px] text-emerald-900 space-y-2">
+                        <p className="font-semibold text-emerald-950">
+                          Variáveis disponíveis no template (assunto e mensagem):
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 font-mono text-[10px] text-emerald-800">
+                          <div className="bg-white px-2 py-1 rounded border border-emerald-200">
+                            <span className="font-bold">{'{titulo_do_livro}'}</span> — Título da
+                            obra
+                          </div>
+                          <div className="bg-white px-2 py-1 rounded border border-emerald-200">
+                            <span className="font-bold">{'{nome_do_leitor}'}</span> — Nome do leitor
+                          </div>
+                          <div className="bg-white px-2 py-1 rounded border border-emerald-200">
+                            <span className="font-bold">{'{prazo_retirada_dias_uteis}'}</span> —
+                            Prazo em dias úteis (ex: 7)
+                          </div>
+                          <div className="bg-white px-2 py-1 rounded border border-emerald-200">
+                            <span className="font-bold">{'{data_limite_retirada}'}</span> — Data
+                            limite formatada (DD/MM/AAAA)
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-slate-600 font-sans">
+                          Texto padrão da mensagem:{' '}
+                          <em>
+                            "O livro {'{titulo_do_livro}'} está liberado para empréstimo. Você tem o
+                            prazo de {'{prazo_retirada_dias_uteis}'} dias para a retirada. Procure a
+                            Biblioteca para realizar o empréstimo. Obrigado! CEP"
+                          </em>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Card: Envio Automático do Relatório de Auditoria (Logs) & Expurgo */}
+              <Card className="border-slate-200 bg-white shadow-xs">
+                <CardHeader className="pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                      <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <Mail className="w-5 h-5 text-emerald-600" />
+                        Envio Automático do Relatório de Auditoria & Expurgo Mensal
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Configure o agendamento mensal que gera o Histórico Geral em PDF, envia por
+                        e-mail e realiza a rotina de expurgo em lotes.
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant="outline"
+                        className={`text-xs py-0.5 px-2.5 font-medium ${
+                          auditConfig.ativo
+                            ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
+                            : 'border-slate-200 bg-slate-50 text-slate-500'
+                        }`}
+                      >
+                        {auditConfig.ativo ? 'Agendamento Ativo' : 'Agendamento Inativo'}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  {/* Toggle de ativação */}
+                  <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-lg">
+                    <div className="space-y-0.5">
+                      <Label
+                        htmlFor="auditoria_ativo"
+                        className="text-xs font-bold text-slate-900 cursor-pointer"
+                      >
+                        Habilitar Envio Mensal Automático & Rotina de Expurgo
+                      </Label>
+                      <p className="text-[11px] text-slate-500">
+                        O job roda diariamente. Se o dia atual coincidir com o configurado, executa
+                        na ordem obrigatória:{' '}
+                        <strong>Gerar PDF → Enviar E-mail → Expurgar Base</strong>.
+                      </p>
+                    </div>
+                    <Switch
+                      id="auditoria_ativo"
+                      checked={auditConfig.ativo}
+                      onCheckedChange={(checked) =>
+                        setAuditConfig((prev) => ({ ...prev, ativo: checked }))
+                      }
+                      disabled={!isAdmin || saving}
+                    />
+                  </div>
+
+                  {/* Grid de Destinatários e Remetente */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <div className="flex items-center justify-between">
+                        <Label
+                          htmlFor="auditoria_destinatarios"
+                          className="text-xs font-semibold text-slate-700"
+                        >
+                          Destinatários (separados por vírgula) *
+                        </Label>
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          chave: auditoria_destinatarios
+                        </span>
+                      </div>
+                      <Input
+                        id="auditoria_destinatarios"
+                        type="text"
+                        value={auditConfig.destinatarios}
+                        onChange={(e) =>
+                          setAuditConfig((prev) => ({ ...prev, destinatarios: e.target.value }))
+                        }
+                        disabled={!isAdmin || saving}
+                        placeholder="auditoria@instituicao.org, diretoria@instituicao.org"
+                        className="text-xs font-mono"
+                      />
+                      <p className="text-[11px] text-slate-500">
+                        Ao menos 1 e-mail válido é obrigatório para ativar. E-mails inválidos serão
+                        ignorados e auditados.
+                      </p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label
+                        htmlFor="auditoria_remetente"
+                        className="text-xs font-semibold text-slate-700"
+                      >
+                        Remetente Exibido
+                      </Label>
+                      <Input
+                        id="auditoria_remetente"
+                        type="text"
+                        value={auditConfig.remetente}
+                        onChange={(e) =>
+                          setAuditConfig((prev) => ({ ...prev, remetente: e.target.value }))
+                        }
+                        disabled={!isAdmin || saving}
+                        className="text-xs font-mono"
+                      />
+                      <p className="text-[11px] text-slate-500">Padrão institucional do sistema.</p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label
+                        htmlFor="auditoria_assunto"
+                        className="text-xs font-semibold text-slate-700"
+                      >
+                        Assunto do E-mail
+                      </Label>
+                      <Input
+                        id="auditoria_assunto"
+                        type="text"
+                        value={auditConfig.assunto}
+                        onChange={(e) =>
+                          setAuditConfig((prev) => ({ ...prev, assunto: e.target.value }))
+                        }
+                        disabled={!isAdmin || saving}
+                        className="text-xs"
+                      />
+                      <p className="text-[11px] text-slate-500">
+                        Variável disponível: <code>{'{data_referencia}'}</code>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Corpo do E-mail */}
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="auditoria_corpo"
+                      className="text-xs font-semibold text-slate-700"
+                    >
+                      Corpo da Mensagem
+                    </Label>
+                    <Textarea
+                      id="auditoria_corpo"
+                      rows={4}
+                      value={auditConfig.corpo}
+                      onChange={(e) =>
+                        setAuditConfig((prev) => ({ ...prev, corpo: e.target.value }))
+                      }
+                      disabled={!isAdmin || saving}
+                      className="text-xs font-sans leading-relaxed"
+                    />
+                    <p className="text-[11px] text-slate-500">
+                      Variáveis: <code>{'{data_inicio}'}</code>, <code>{'{data_fim}'}</code>,{' '}
+                      <code>{'{data_referencia}'}</code>, <code>{'{total_registros}'}</code>,{' '}
+                      <code>{'{link_sistema}'}</code>.
+                    </p>
+                  </div>
+
+                  {/* Parâmetros de Filtro N, Agendamento e Expurgo */}
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                    <div className="space-y-1">
+                      <Label
+                        htmlFor="dias_retroativos"
+                        className="text-xs font-semibold text-slate-700 flex items-center gap-1"
+                      >
+                        <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                        Período do Relatório (N)
+                      </Label>
+                      <Input
+                        id="dias_retroativos"
+                        type="number"
+                        min={1}
+                        max={365}
+                        value={auditConfig.diasRetroativos}
+                        onChange={(e) =>
+                          setAuditConfig((prev) => ({
+                            ...prev,
+                            diasRetroativos: Math.max(
+                              1,
+                              Math.min(365, parseInt(e.target.value) || 1),
+                            ),
+                          }))
+                        }
+                        disabled={!isAdmin || saving}
+                        className="text-xs bg-white font-mono h-9"
+                      />
+                      <p className="text-[10px] text-slate-500">Últimos N dias no PDF (1-365).</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label
+                        htmlFor="dia_envio"
+                        className="text-xs font-semibold text-slate-700 flex items-center gap-1"
+                      >
+                        <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                        Dia do Mês de Envio
+                      </Label>
+                      <Input
+                        id="dia_envio"
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={auditConfig.diaEnvio}
+                        onChange={(e) =>
+                          setAuditConfig((prev) => ({
+                            ...prev,
+                            diaEnvio: Math.max(1, Math.min(31, parseInt(e.target.value) || 1)),
+                          }))
+                        }
+                        disabled={!isAdmin || saving}
+                        className="text-xs bg-white font-mono h-9"
+                      />
+                      <p className="text-[10px] text-slate-500">
+                        Dia 1 a 31 (último dia em meses curtos).
+                      </p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label
+                        htmlFor="hora_envio"
+                        className="text-xs font-semibold text-slate-700 flex items-center gap-1"
+                      >
+                        <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                        Horário Referência
+                      </Label>
+                      <Input
+                        id="hora_envio"
+                        type="time"
+                        value={auditConfig.horaEnvio}
+                        onChange={(e) =>
+                          setAuditConfig((prev) => ({ ...prev, horaEnvio: e.target.value }))
+                        }
+                        disabled={!isAdmin || saving}
+                        className="text-xs bg-white font-mono h-9"
+                      />
+                      <p className="text-[10px] text-slate-500">Fuso: America/Sao_Paulo.</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label
+                        htmlFor="dias_retencao"
+                        className="text-xs font-semibold text-rose-800 flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                        Retenção de Expurgo
+                      </Label>
+                      <Input
+                        id="dias_retencao"
+                        type="number"
+                        min={1}
+                        max={3650}
+                        value={auditConfig.diasRetencao}
+                        onChange={(e) =>
+                          setAuditConfig((prev) => ({
+                            ...prev,
+                            diasRetencao: Math.max(1, parseInt(e.target.value) || 1),
+                          }))
+                        }
+                        disabled={!isAdmin || saving}
+                        className="text-xs bg-white font-mono h-9 border-rose-200"
+                      />
+                      <p className="text-[10px] text-rose-600">
+                        Apaga registros com mais de N dias.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Status da última execução */}
+                  {latestJobInfo && (
+                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <History className="w-4 h-4 text-slate-500 shrink-0" />
+                        <div>
+                          <span className="font-semibold text-slate-800">
+                            Última Execução Registrada:{' '}
+                          </span>
+                          <span className="font-mono text-[11px] text-slate-600">
+                            {latestJobInfo.ano_mes}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={`ml-2 text-[10px] py-0 px-1.5 ${
+                              latestJobInfo.status === 'sucesso'
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                : 'border-rose-200 bg-rose-50 text-rose-700'
+                            }`}
+                          >
+                            {latestJobInfo.status.toUpperCase()}
+                          </Badge>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            {latestJobInfo.mensagem}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[11px] text-slate-400 font-mono shrink-0">
+                        {new Date(latestJobInfo.data_execucao).toLocaleString('pt-BR')}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Ações de Teste e Disparo Imediato */}
+                  {isAdmin && (
+                    <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSendTestAuditEmail}
+                        disabled={sendingTestEmail || runningAuditJobNow}
+                        className="w-full sm:w-auto text-xs font-medium gap-2 border-slate-300 hover:bg-slate-50"
+                      >
+                        {sendingTestEmail ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Send className="w-3.5 h-3.5 text-emerald-600" />
+                        )}
+                        Enviar Relatório Agora (PDF completo)
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRunAuditJobNow}
+                        disabled={sendingTestEmail || runningAuditJobNow}
+                        className="w-full sm:w-auto text-xs font-medium gap-2 border-emerald-300 text-emerald-800 hover:bg-emerald-50"
+                      >
+                        {runningAuditJobNow ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Zap className="w-3.5 h-3.5 text-amber-500" />
+                        )}
+                        Disparar Job Mensal Imediatamente (PDF + E-mail + Expurgo)
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Action Bar (Salvar / Restaurar) */}
+              {isAdmin && (
+                <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRestoreDefaults}
+                    disabled={saving}
+                    className="w-full sm:w-auto text-xs font-medium gap-1.5 text-slate-600 hover:text-slate-900"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    Restaurar Padrões
+                  </Button>
+
+                  <Button
+                    type="submit"
+                    disabled={saving}
+                    className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold gap-1.5 shadow-sm px-5"
+                  >
+                    {saving ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Save className="w-3.5 h-3.5" />
+                    )}
+                    Salvar Configurações
+                  </Button>
                 </div>
               )}
 
-              {/* Busca Rápida na Lista */}
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <Input
-                  type="text"
-                  placeholder="Pesquisar autor, médium ou espírito por nome..."
-                  value={authorSearchTerm}
-                  onChange={(e) => setAuthorSearchTerm(e.target.value)}
-                  className="pl-9 text-xs bg-white h-8"
-                />
-                {authorSearchTerm && (
-                  <button
-                    type="button"
-                    onClick={() => setAuthorSearchTerm('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs p-0.5"
+              {/* Seção 3. Manutenção de Autores/Médiuns e Autor Espiritual */}
+              <Card className="border-slate-200 bg-white shadow-xs">
+                <CardHeader className="pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                      <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <Users2 className="w-5 h-5 text-emerald-600" />
+                        Manutenção de Autores, Médiuns & Autores Espirituais
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Gerencie a lista oficial de Autores/Médiuns e Autores Espirituais utilizada
+                        nos formulários do acervo. A exclusão remove o nome da lista ativa sem
+                        apagar os dados dos livros já cadastrados.
+                      </CardDescription>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="w-fit text-xs font-medium text-slate-600 bg-slate-50 border-slate-200"
+                    >
+                      {authorsList.length} cadastrados
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Abas de visualização / filtro por tipo */}
+                  <Tabs
+                    value={selectedAuthorTab}
+                    onValueChange={(val: any) => setSelectedAuthorTab(val)}
+                    className="w-full"
                   >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
+                    <TabsList className="grid grid-cols-3 bg-slate-100 p-1 w-full sm:w-auto">
+                      <TabsTrigger value="ALL" className="text-xs">
+                        Todos ({authorsList.length})
+                      </TabsTrigger>
+                      <TabsTrigger value="ESPIRITO" className="text-xs">
+                        <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-500" />
+                        Espíritos ({authorsList.filter((a) => a.type === 'ESPIRITO').length})
+                      </TabsTrigger>
+                      <TabsTrigger value="MEDIUM_ENCARNADO" className="text-xs">
+                        <UserCheck className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                        Autores & Médiuns (
+                        {
+                          authorsList.filter(
+                            (a) =>
+                              a.type === 'MEDIUM' || a.type === 'ENCARNADO' || a.type === 'OUTRO',
+                          ).length
+                        }
+                        )
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
 
-              {/* Lista Filtrada de Autores */}
-              {loadingAuthors ? (
-                <div className="py-8 text-center flex items-center justify-center gap-2 text-xs text-slate-500">
-                  <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
-                  Carregando lista de autores e espíritos...
-                </div>
-              ) : (
-                (() => {
-                  const filtered = authorsList.filter((a) => {
-                    // Filtro de aba
-                    if (selectedAuthorTab === 'ESPIRITO' && a.type !== 'ESPIRITO') return false
-                    if (
-                      selectedAuthorTab === 'MEDIUM_ENCARNADO' &&
-                      a.type !== 'MEDIUM' &&
-                      a.type !== 'ENCARNADO' &&
-                      a.type !== 'OUTRO'
-                    ) {
-                      return false
-                    }
-                    // Filtro de busca
-                    if (authorSearchTerm.trim()) {
-                      return a.name.toLowerCase().includes(authorSearchTerm.trim().toLowerCase())
-                    }
-                    return true
-                  })
-
-                  if (filtered.length === 0) {
-                    return (
-                      <div className="py-8 text-center text-xs text-slate-400 border border-dashed rounded-lg">
-                        {authorSearchTerm
-                          ? 'Nenhum resultado encontrado para a pesquisa.'
-                          : 'Nenhum autor/espírito cadastrado nesta categoria.'}
+                  {/* Formulário de Adicionar Autor / Médium / Espírito */}
+                  {isAdmin && (
+                    <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-3">
+                      <div className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+                        <Plus className="w-4 h-4 text-emerald-600" />
+                        Cadastrar Novo Nome na Lista
                       </div>
-                    )
-                  }
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                        <div className="sm:col-span-4">
+                          <Select
+                            value={newAuthorType}
+                            onValueChange={(val: AuthorType) => setNewAuthorType(val)}
+                          >
+                            <SelectTrigger className="text-xs bg-white h-9">
+                              <SelectValue placeholder="Tipo de Autoria" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ESPIRITO" className="text-xs">
+                                <span className="flex items-center gap-1.5 font-medium text-amber-700">
+                                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                  Autor Espiritual (Espírito)
+                                </span>
+                              </SelectItem>
+                              <SelectItem value="MEDIUM" className="text-xs">
+                                <span className="flex items-center gap-1.5 font-medium text-emerald-700">
+                                  <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                                  Médium / Psicografia
+                                </span>
+                              </SelectItem>
+                              <SelectItem value="ENCARNADO" className="text-xs">
+                                <span className="flex items-center gap-1.5 font-medium text-slate-700">
+                                  <Users2 className="w-3.5 h-3.5 text-slate-500" />
+                                  Autor Convencional
+                                </span>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
 
-                  return (
-                    <div className="divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden bg-white max-h-96 overflow-y-auto">
-                      {filtered.map((author) => {
-                        const isEditing = editingAuthorId === author.id
-                        const isSpirit = author.type === 'ESPIRITO'
-                        const isMedium = author.type === 'MEDIUM'
+                        <div className="sm:col-span-6">
+                          <Input
+                            type="text"
+                            placeholder={
+                              newAuthorType === 'ESPIRITO'
+                                ? 'Ex: Emmanuel, André Luiz, Joanna de Ângelis...'
+                                : newAuthorType === 'MEDIUM'
+                                  ? 'Ex: Chico Xavier, Divaldo Franco...'
+                                  : 'Ex: Allan Kardec, Léon Denis...'
+                            }
+                            value={newAuthorName}
+                            onChange={(e) => setNewAuthorName(e.target.value)}
+                            disabled={addingAuthor}
+                            className="text-xs bg-white h-9"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                handleAddAuthor(e)
+                              }
+                            }}
+                          />
+                        </div>
 
+                        <div className="sm:col-span-2">
+                          <Button
+                            type="button"
+                            onClick={handleAddAuthor}
+                            disabled={addingAuthor || !newAuthorName.trim()}
+                            size="sm"
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium gap-1 h-9"
+                          >
+                            {addingAuthor ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Plus className="w-3.5 h-3.5" />
+                            )}
+                            Adicionar
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Busca Rápida na Lista */}
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      type="text"
+                      placeholder="Pesquisar autor, médium ou espírito por nome..."
+                      value={authorSearchTerm}
+                      onChange={(e) => setAuthorSearchTerm(e.target.value)}
+                      className="pl-9 text-xs bg-white h-8"
+                    />
+                    {authorSearchTerm && (
+                      <button
+                        type="button"
+                        onClick={() => setAuthorSearchTerm('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs p-0.5"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Lista Filtrada de Autores */}
+                  {loadingAuthors ? (
+                    <div className="py-8 text-center flex items-center justify-center gap-2 text-xs text-slate-500">
+                      <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                      Carregando lista de autores e espíritos...
+                    </div>
+                  ) : (
+                    (() => {
+                      const filtered = authorsList.filter((a) => {
+                        // Filtro de aba
+                        if (selectedAuthorTab === 'ESPIRITO' && a.type !== 'ESPIRITO') return false
+                        if (
+                          selectedAuthorTab === 'MEDIUM_ENCARNADO' &&
+                          a.type !== 'MEDIUM' &&
+                          a.type !== 'ENCARNADO' &&
+                          a.type !== 'OUTRO'
+                        ) {
+                          return false
+                        }
+                        // Filtro de busca
+                        if (authorSearchTerm.trim()) {
+                          return a.name
+                            .toLowerCase()
+                            .includes(authorSearchTerm.trim().toLowerCase())
+                        }
+                        return true
+                      })
+
+                      if (filtered.length === 0) {
+                        return (
+                          <div className="py-8 text-center text-xs text-slate-400 border border-dashed rounded-lg">
+                            {authorSearchTerm
+                              ? 'Nenhum resultado encontrado para a pesquisa.'
+                              : 'Nenhum autor/espírito cadastrado nesta categoria.'}
+                          </div>
+                        )
+                      }
+
+                      return (
+                        <div className="divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden bg-white max-h-96 overflow-y-auto">
+                          {filtered.map((author) => {
+                            const isEditing = editingAuthorId === author.id
+                            const isSpirit = author.type === 'ESPIRITO'
+                            const isMedium = author.type === 'MEDIUM'
+
+                            return (
+                              <div
+                                key={author.id}
+                                className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50/70 transition-colors"
+                              >
+                                {isEditing ? (
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <Input
+                                      type="text"
+                                      value={editingAuthorName}
+                                      onChange={(e) => setEditingAuthorName(e.target.value)}
+                                      disabled={savingAuthorEdit}
+                                      className="text-xs h-8 bg-white"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault()
+                                          handleSaveEditAuthor(author)
+                                        } else if (e.key === 'Escape') {
+                                          handleCancelEditAuthor()
+                                        }
+                                      }}
+                                    />
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      onClick={() => handleSaveEditAuthor(author)}
+                                      disabled={savingAuthorEdit || !editingAuthorName.trim()}
+                                      className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2.5"
+                                      title="Salvar alterações"
+                                    >
+                                      {savingAuthorEdit ? (
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      ) : (
+                                        <Check className="w-3.5 h-3.5" />
+                                      )}
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={handleCancelEditAuthor}
+                                      disabled={savingAuthorEdit}
+                                      className="h-8 text-xs text-slate-500 hover:text-slate-800 px-2"
+                                      title="Cancelar edição"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    {isSpirit ? (
+                                      <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                                    ) : isMedium ? (
+                                      <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                                    ) : (
+                                      <Users2 className="w-4 h-4 text-slate-400 shrink-0" />
+                                    )}
+                                    <span className="font-semibold text-xs text-slate-900 truncate">
+                                      {author.name}
+                                    </span>
+                                    <Badge
+                                      variant="outline"
+                                      className={`text-[10px] py-0 px-1.5 font-normal ${
+                                        isSpirit
+                                          ? 'border-amber-200 bg-amber-50 text-amber-800'
+                                          : isMedium
+                                            ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                                            : 'border-slate-200 bg-slate-50 text-slate-600'
+                                      }`}
+                                    >
+                                      {isSpirit
+                                        ? 'Espírito'
+                                        : isMedium
+                                          ? 'Médium'
+                                          : 'Autor Convencional'}
+                                    </Badge>
+                                  </div>
+                                )}
+
+                                {!isEditing && isAdmin && (
+                                  <div className="flex items-center gap-1 self-end sm:self-center shrink-0">
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleStartEditAuthor(author)}
+                                      className="h-7 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 gap-1 px-2"
+                                      title="Editar nome"
+                                    >
+                                      <Edit2 className="w-3 h-3 text-slate-500" />
+                                      Editar
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleOpenDeleteAuthor(author)}
+                                      className="h-7 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 gap-1 px-2"
+                                      title="Excluir da lista"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                      Excluir
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )
+                    })()
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Seção CRUD de Cursos da CEP */}
+              <Card className="border-slate-200 bg-white shadow-xs">
+                <CardHeader className="pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                      <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <GraduationCap className="w-5 h-5 text-emerald-600" />
+                        Cursos da CEP
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Gerencie a lista de cursos frequentados pelos leitores da Casa Espírita. A
+                        edição do nome do curso é refletida automaticamente nos leitores vinculados.
+                      </CardDescription>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="w-fit text-xs font-medium text-slate-600 bg-slate-50 border-slate-200"
+                    >
+                      {cursosList.length} {cursosList.length === 1 ? 'curso' : 'cursos'}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Formulário para Adicionar Novo Curso */}
+                  {isAdmin && (
+                    <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                      <div className="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
+                        <Plus className="w-4 h-4 text-emerald-600" />
+                        Novo Curso da CEP
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Input
+                          type="text"
+                          placeholder="Ex: ESDE I, O Que é o Espiritismo, Evangelho no Lar..."
+                          value={newCursoNome}
+                          onChange={(e) => setNewCursoNome(e.target.value)}
+                          disabled={addingCurso}
+                          className="text-xs bg-white flex-1"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              handleAddCurso(e)
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          onClick={handleAddCurso}
+                          disabled={addingCurso || !newCursoNome.trim()}
+                          size="sm"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium gap-1 shrink-0"
+                        >
+                          {addingCurso ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Plus className="w-3.5 h-3.5" />
+                          )}
+                          Adicionar Curso
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Lista de Cursos */}
+                  {loadingCursos ? (
+                    <div className="py-8 text-center flex items-center justify-center gap-2 text-xs text-slate-500">
+                      <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                      Carregando cursos da CEP...
+                    </div>
+                  ) : cursosList.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-slate-400 border border-dashed rounded-lg">
+                      Nenhum curso cadastrado no momento.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden bg-white">
+                      {cursosList.map((c) => {
+                        const isEditing = editingCursoId === c.id
                         return (
                           <div
-                            key={author.id}
+                            key={c.id}
                             className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50/70 transition-colors"
                           >
                             {isEditing ? (
                               <div className="flex items-center gap-2 flex-1">
                                 <Input
                                   type="text"
-                                  value={editingAuthorName}
-                                  onChange={(e) => setEditingAuthorName(e.target.value)}
-                                  disabled={savingAuthorEdit}
+                                  value={editingCursoNome}
+                                  onChange={(e) => setEditingCursoNome(e.target.value)}
+                                  disabled={savingCursoEdit}
                                   className="text-xs h-8 bg-white"
                                   autoFocus
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                       e.preventDefault()
-                                      handleSaveEditAuthor(author)
+                                      handleSaveEditCurso(c)
                                     } else if (e.key === 'Escape') {
-                                      handleCancelEditAuthor()
+                                      handleCancelEditCurso()
                                     }
                                   }}
                                 />
                                 <Button
                                   type="button"
                                   size="sm"
-                                  onClick={() => handleSaveEditAuthor(author)}
-                                  disabled={savingAuthorEdit || !editingAuthorName.trim()}
+                                  onClick={() => handleSaveEditCurso(c)}
+                                  disabled={savingCursoEdit || !editingCursoNome.trim()}
                                   className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2.5"
                                   title="Salvar alterações"
                                 >
-                                  {savingAuthorEdit ? (
+                                  {savingCursoEdit ? (
                                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                   ) : (
                                     <Check className="w-3.5 h-3.5" />
@@ -2293,8 +2545,8 @@ export default function Configuracoes() {
                                   type="button"
                                   size="sm"
                                   variant="ghost"
-                                  onClick={handleCancelEditAuthor}
-                                  disabled={savingAuthorEdit}
+                                  onClick={handleCancelEditCurso}
+                                  disabled={savingCursoEdit}
                                   className="h-8 text-xs text-slate-500 hover:text-slate-800 px-2"
                                   title="Cancelar edição"
                                 >
@@ -2303,32 +2555,10 @@ export default function Configuracoes() {
                               </div>
                             ) : (
                               <div className="flex items-center gap-2.5 min-w-0">
-                                {isSpirit ? (
-                                  <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
-                                ) : isMedium ? (
-                                  <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                                ) : (
-                                  <Users2 className="w-4 h-4 text-slate-400 shrink-0" />
-                                )}
-                                <span className="font-semibold text-xs text-slate-900 truncate">
-                                  {author.name}
+                                <GraduationCap className="w-4 h-4 text-emerald-600 shrink-0" />
+                                <span className="font-semibold text-xs text-slate-800 truncate">
+                                  {c.nome}
                                 </span>
-                                <Badge
-                                  variant="outline"
-                                  className={`text-[10px] py-0 px-1.5 font-normal ${
-                                    isSpirit
-                                      ? 'border-amber-200 bg-amber-50 text-amber-800'
-                                      : isMedium
-                                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                                        : 'border-slate-200 bg-slate-50 text-slate-600'
-                                  }`}
-                                >
-                                  {isSpirit
-                                    ? 'Espírito'
-                                    : isMedium
-                                      ? 'Médium'
-                                      : 'Autor Convencional'}
-                                </Badge>
                               </div>
                             )}
 
@@ -2338,9 +2568,9 @@ export default function Configuracoes() {
                                   type="button"
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => handleStartEditAuthor(author)}
+                                  onClick={() => handleStartEditCurso(c)}
                                   className="h-7 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 gap-1 px-2"
-                                  title="Editar nome"
+                                  title="Editar nome do curso"
                                 >
                                   <Edit2 className="w-3 h-3 text-slate-500" />
                                   Editar
@@ -2349,9 +2579,9 @@ export default function Configuracoes() {
                                   type="button"
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => handleOpenDeleteAuthor(author)}
+                                  onClick={() => handleOpenDeleteCurso(c)}
                                   className="h-7 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 gap-1 px-2"
-                                  title="Excluir da lista"
+                                  title="Excluir curso"
                                 >
                                   <Trash2 className="w-3 h-3" />
                                   Excluir
@@ -2362,409 +2592,242 @@ export default function Configuracoes() {
                         )
                       })}
                     </div>
-                  )
-                })()
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Seção CRUD de Cursos da CEP */}
-          <Card className="border-slate-200 bg-white shadow-xs">
-            <CardHeader className="pb-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div>
-                  <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <GraduationCap className="w-5 h-5 text-emerald-600" />
-                    Cursos da CEP
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Gerencie a lista de cursos frequentados pelos leitores da Casa Espírita. A
-                    edição do nome do curso é refletida automaticamente nos leitores vinculados.
-                  </CardDescription>
-                </div>
-                <Badge
-                  variant="outline"
-                  className="w-fit text-xs font-medium text-slate-600 bg-slate-50 border-slate-200"
-                >
-                  {cursosList.length} {cursosList.length === 1 ? 'curso' : 'cursos'}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Formulário para Adicionar Novo Curso */}
-              {isAdmin && (
-                <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
-                  <div className="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
-                    <Plus className="w-4 h-4 text-emerald-600" />
-                    Novo Curso da CEP
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Input
-                      type="text"
-                      placeholder="Ex: ESDE I, O Que é o Espiritismo, Evangelho no Lar..."
-                      value={newCursoNome}
-                      onChange={(e) => setNewCursoNome(e.target.value)}
-                      disabled={addingCurso}
-                      className="text-xs bg-white flex-1"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          handleAddCurso(e)
-                        }
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      onClick={handleAddCurso}
-                      disabled={addingCurso || !newCursoNome.trim()}
-                      size="sm"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium gap-1 shrink-0"
-                    >
-                      {addingCurso ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Plus className="w-3.5 h-3.5" />
-                      )}
-                      Adicionar Curso
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Lista de Cursos */}
-              {loadingCursos ? (
-                <div className="py-8 text-center flex items-center justify-center gap-2 text-xs text-slate-500">
-                  <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
-                  Carregando cursos da CEP...
-                </div>
-              ) : cursosList.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-400 border border-dashed rounded-lg">
-                  Nenhum curso cadastrado no momento.
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden bg-white">
-                  {cursosList.map((c) => {
-                    const isEditing = editingCursoId === c.id
-                    return (
-                      <div
-                        key={c.id}
-                        className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50/70 transition-colors"
-                      >
-                        {isEditing ? (
-                          <div className="flex items-center gap-2 flex-1">
-                            <Input
-                              type="text"
-                              value={editingCursoNome}
-                              onChange={(e) => setEditingCursoNome(e.target.value)}
-                              disabled={savingCursoEdit}
-                              className="text-xs h-8 bg-white"
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault()
-                                  handleSaveEditCurso(c)
-                                } else if (e.key === 'Escape') {
-                                  handleCancelEditCurso()
-                                }
-                              }}
-                            />
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() => handleSaveEditCurso(c)}
-                              disabled={savingCursoEdit || !editingCursoNome.trim()}
-                              className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2.5"
-                              title="Salvar alterações"
-                            >
-                              {savingCursoEdit ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <Check className="w-3.5 h-3.5" />
-                              )}
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              onClick={handleCancelEditCurso}
-                              disabled={savingCursoEdit}
-                              className="h-8 text-xs text-slate-500 hover:text-slate-800 px-2"
-                              title="Cancelar edição"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <GraduationCap className="w-4 h-4 text-emerald-600 shrink-0" />
-                            <span className="font-semibold text-xs text-slate-800 truncate">
-                              {c.nome}
-                            </span>
-                          </div>
-                        )}
-
-                        {!isEditing && isAdmin && (
-                          <div className="flex items-center gap-1 self-end sm:self-center shrink-0">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleStartEditCurso(c)}
-                              className="h-7 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 gap-1 px-2"
-                              title="Editar nome do curso"
-                            >
-                              <Edit2 className="w-3 h-3 text-slate-500" />
-                              Editar
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleOpenDeleteCurso(c)}
-                              className="h-7 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 gap-1 px-2"
-                              title="Excluir curso"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              Excluir
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Seção CRUD de Categorias */}
-          <Card className="border-slate-200 bg-white shadow-xs">
-            {' '}
-            <CardHeader className="pb-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div>
-                  <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <Tag className="w-5 h-5 text-emerald-600" />
-                    Categorias & Gêneros Literários
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Gerencie a lista oficial de categorias do acervo. A edição atualiza todos os
-                    livros vinculados em cascata, e a exclusão desvincula a categoria dos livros sem
-                    excluí-los.
-                  </CardDescription>
-                </div>
-                <Badge
-                  variant="outline"
-                  className="w-fit text-xs font-medium text-slate-600 bg-slate-50 border-slate-200"
-                >
-                  {categories.length} {categories.length === 1 ? 'categoria' : 'categorias'}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Formulário de Adicionar Categoria */}
-              {isAdmin && (
-                <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
-                  <div className="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
-                    <Plus className="w-4 h-4 text-emerald-600" />
-                    Nova Categoria
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Input
-                      type="text"
-                      placeholder="Ex: Romance Espírita, Filosofia, Estudo..."
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                      disabled={addingCategory}
-                      className="text-xs bg-white flex-1"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          handleAddCategory(e)
-                        }
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      onClick={handleAddCategory}
-                      disabled={addingCategory || !newCategoryName.trim()}
-                      size="sm"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium gap-1 shrink-0"
-                    >
-                      {addingCategory ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Plus className="w-3.5 h-3.5" />
-                      )}
-                      Adicionar Categoria
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Lista de Categorias */}
-              {loadingCategories ? (
-                <div className="py-8 text-center flex items-center justify-center gap-2 text-xs text-slate-500">
-                  <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
-                  Carregando categorias...
-                </div>
-              ) : categories.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-400 border border-dashed rounded-lg">
-                  Nenhuma categoria cadastrada no momento.
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden bg-white">
-                  {categories.map((cat) => {
-                    const isEditing = editingCategoryId === cat.id
-                    return (
-                      <div
-                        key={cat.id}
-                        className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50/70 transition-colors"
-                      >
-                        {isEditing ? (
-                          <div className="flex items-center gap-2 flex-1">
-                            <Input
-                              type="text"
-                              value={editingCategoryName}
-                              onChange={(e) => setEditingCategoryName(e.target.value)}
-                              disabled={savingCategoryEdit}
-                              className="text-xs h-8 bg-white"
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault()
-                                  handleSaveEditCategory(cat)
-                                } else if (e.key === 'Escape') {
-                                  handleCancelEditCategory()
-                                }
-                              }}
-                            />
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() => handleSaveEditCategory(cat)}
-                              disabled={savingCategoryEdit || !editingCategoryName.trim()}
-                              className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2.5"
-                              title="Salvar alterações"
-                            >
-                              {savingCategoryEdit ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <Check className="w-3.5 h-3.5" />
-                              )}
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              onClick={handleCancelEditCategory}
-                              disabled={savingCategoryEdit}
-                              className="h-8 text-xs text-slate-500 hover:text-slate-800 px-2"
-                              title="Cancelar edição"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            <span className="font-semibold text-xs text-slate-800 truncate">
-                              {cat.nome}
-                            </span>
-                          </div>
-                        )}
-
-                        {!isEditing && isAdmin && (
-                          <div className="flex items-center gap-1 self-end sm:self-center shrink-0">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleStartEditCategory(cat)}
-                              className="h-7 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 gap-1 px-2"
-                              title="Editar nome da categoria"
-                            >
-                              <Edit2 className="w-3 h-3 text-slate-500" />
-                              Editar
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleOpenDeleteCategory(cat)}
-                              className="h-7 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 gap-1 px-2"
-                              title="Excluir categoria"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              Excluir
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Maintenance & Integrity Routine */}
-          <Card className="border-slate-200 bg-white shadow-xs">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Zap className="w-5 h-5 text-amber-500" />
-                Rotinas de Integridade & Verificação de Atrasos
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Dispare rotinas no banco de dados para recalcular atrasos e sincronizar o status dos
-                empréstimos.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <span className="font-semibold text-slate-800 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                    Recalcular Atrasos Imediatamente
-                  </span>
-                  <p className="text-[11px] text-slate-500">
-                    Executa a função{' '}
-                    <code className="bg-slate-200 px-1 rounded font-mono text-[10px]">
-                      verificar_atrasos_geral()
-                    </code>{' '}
-                    no Supabase.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleRunOverdueCheck}
-                  disabled={runningRoutine || !isAdmin}
-                  className="bg-gray-500 hover:bg-gray-600 text-white text-xs font-medium shrink-0"
-                >
-                  {runningRoutine ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
-                  ) : (
-                    <RotateCw className="w-3.5 h-3.5 mr-1" />
                   )}
-                  Executar Verificação
-                </Button>
-              </div>
+                </CardContent>
+              </Card>
 
-              <div className="bg-emerald-50/60 p-3.5 rounded-lg border border-emerald-200 text-xs text-emerald-900 flex items-start gap-2.5">
-                <Info className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div className="space-y-1 text-[11px] leading-relaxed">
-                  <p className="font-semibold text-emerald-950">Operação Institucional Gratuita</p>
-                  <p>
-                    A Biblioteca CEP não aplica multas financeiras. As configurações aqui
-                    cadastradas regulam a rotatividade justa e o controle de devoluções.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </form>
-      )}
+              {/* Seção CRUD de Categorias */}
+              <Card className="border-slate-200 bg-white shadow-xs">
+                {' '}
+                <CardHeader className="pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                      <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <Tag className="w-5 h-5 text-emerald-600" />
+                        Categorias & Gêneros Literários
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Gerencie a lista oficial de categorias do acervo. A edição atualiza todos os
+                        livros vinculados em cascata, e a exclusão desvincula a categoria dos livros
+                        sem excluí-los.
+                      </CardDescription>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="w-fit text-xs font-medium text-slate-600 bg-slate-50 border-slate-200"
+                    >
+                      {categories.length} {categories.length === 1 ? 'categoria' : 'categorias'}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Formulário de Adicionar Categoria */}
+                  {isAdmin && (
+                    <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                      <div className="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
+                        <Plus className="w-4 h-4 text-emerald-600" />
+                        Nova Categoria
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Input
+                          type="text"
+                          placeholder="Ex: Romance Espírita, Filosofia, Estudo..."
+                          value={newCategoryName}
+                          onChange={(e) => setNewCategoryName(e.target.value)}
+                          disabled={addingCategory}
+                          className="text-xs bg-white flex-1"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              handleAddCategory(e)
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          onClick={handleAddCategory}
+                          disabled={addingCategory || !newCategoryName.trim()}
+                          size="sm"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium gap-1 shrink-0"
+                        >
+                          {addingCategory ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Plus className="w-3.5 h-3.5" />
+                          )}
+                          Adicionar Categoria
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Lista de Categorias */}
+                  {loadingCategories ? (
+                    <div className="py-8 text-center flex items-center justify-center gap-2 text-xs text-slate-500">
+                      <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                      Carregando categorias...
+                    </div>
+                  ) : categories.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-slate-400 border border-dashed rounded-lg">
+                      Nenhuma categoria cadastrada no momento.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden bg-white">
+                      {categories.map((cat) => {
+                        const isEditing = editingCategoryId === cat.id
+                        return (
+                          <div
+                            key={cat.id}
+                            className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50/70 transition-colors"
+                          >
+                            {isEditing ? (
+                              <div className="flex items-center gap-2 flex-1">
+                                <Input
+                                  type="text"
+                                  value={editingCategoryName}
+                                  onChange={(e) => setEditingCategoryName(e.target.value)}
+                                  disabled={savingCategoryEdit}
+                                  className="text-xs h-8 bg-white"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault()
+                                      handleSaveEditCategory(cat)
+                                    } else if (e.key === 'Escape') {
+                                      handleCancelEditCategory()
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={() => handleSaveEditCategory(cat)}
+                                  disabled={savingCategoryEdit || !editingCategoryName.trim()}
+                                  className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2.5"
+                                  title="Salvar alterações"
+                                >
+                                  {savingCategoryEdit ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <Check className="w-3.5 h-3.5" />
+                                  )}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={handleCancelEditCategory}
+                                  disabled={savingCategoryEdit}
+                                  className="h-8 text-xs text-slate-500 hover:text-slate-800 px-2"
+                                  title="Cancelar edição"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span className="font-semibold text-xs text-slate-800 truncate">
+                                  {cat.nome}
+                                </span>
+                              </div>
+                            )}
+
+                            {!isEditing && isAdmin && (
+                              <div className="flex items-center gap-1 self-end sm:self-center shrink-0">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleStartEditCategory(cat)}
+                                  className="h-7 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 gap-1 px-2"
+                                  title="Editar nome da categoria"
+                                >
+                                  <Edit2 className="w-3 h-3 text-slate-500" />
+                                  Editar
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleOpenDeleteCategory(cat)}
+                                  className="h-7 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 gap-1 px-2"
+                                  title="Excluir categoria"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  Excluir
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Maintenance & Integrity Routine */}
+              <Card className="border-slate-200 bg-white shadow-xs">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-amber-500" />
+                    Rotinas de Integridade & Verificação de Atrasos
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Dispare rotinas no banco de dados para recalcular atrasos e sincronizar o status
+                    dos empréstimos.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                        Recalcular Atrasos Imediatamente
+                      </span>
+                      <p className="text-[11px] text-slate-500">
+                        Executa a função{' '}
+                        <code className="bg-slate-200 px-1 rounded font-mono text-[10px]">
+                          verificar_atrasos_geral()
+                        </code>{' '}
+                        no Supabase.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleRunOverdueCheck}
+                      disabled={runningRoutine || !isAdmin}
+                      className="bg-gray-500 hover:bg-gray-600 text-white text-xs font-medium shrink-0"
+                    >
+                      {runningRoutine ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
+                      ) : (
+                        <RotateCw className="w-3.5 h-3.5 mr-1" />
+                      )}
+                      Executar Verificação
+                    </Button>
+                  </div>
+
+                  <div className="bg-emerald-50/60 p-3.5 rounded-lg border border-emerald-200 text-xs text-emerald-900 flex items-start gap-2.5">
+                    <Info className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1 text-[11px] leading-relaxed">
+                      <p className="font-semibold text-emerald-950">
+                        Operação Institucional Gratuita
+                      </p>
+                      <p>
+                        A Biblioteca CEP não aplica multas financeiras. As configurações aqui
+                        cadastradas regulam a rotatividade justa e o controle de devoluções.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </form>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Modal de Confirmação de Exclusão de Curso */}
       <ConfirmModal

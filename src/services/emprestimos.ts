@@ -9,6 +9,9 @@ export type EmprestimoInsert = TablesInsert<'emprestimo'>
 export type EmprestimoUpdate = TablesUpdate<'emprestimo'>
 
 export interface EmprestimoDetailed extends Emprestimo {
+  status?: string
+  data_limite_retirada?: string | null
+  data_retirada_real?: string | null
   exemplar?: {
     id_exemplar: string
     seq: number
@@ -404,6 +407,19 @@ export const EmprestimosService = {
     }
 
     return res
+  },
+
+  /**
+   * Confirma a retirada física do exemplar (PENDENTE_RETIRADA -> ATIVO)
+   */
+  async confirmPickup(id_emprestimo: number, operatorName = 'Operador') {
+    const { data, error } = await supabase.rpc('confirmar_retirada_emprestimo', {
+      p_emprestimo_id: id_emprestimo,
+      p_operador_nome: operatorName,
+    })
+
+    if (error) throw error
+    return data
   },
 
   async returnLoan(id_exemplar: string, operatorName = 'Sistema') {

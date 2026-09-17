@@ -7,7 +7,8 @@ export interface ReservaDetailed {
   id_titulo: string
   id_leitor: number
   data_reserva: string
-  status_reserva: 'Ativa' | 'Pronta para Retirada' | 'Atendida' | 'Cancelada' | 'Expirada'
+  status_reserva: 'Ativa' | 'Pronta para Retirada' | 'Atendida' | 'Cancelada' | 'Expirada' | string
+  status?: string
   data_atendimento: string | null
   ordem_fila?: number
   data_limite_desejada?: string | null
@@ -30,6 +31,7 @@ export interface ReservaDetailed {
     autor: string
     categoria?: string
     capa_url?: string
+    colecao?: string
   }
   leitor?: {
     nome_do_leitor: string
