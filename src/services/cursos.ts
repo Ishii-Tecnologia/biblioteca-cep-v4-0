@@ -136,6 +136,7 @@ export const CursosService = {
    * Retorna os cursos vinculados a um leitor específico.
    */
   async getCursosByLeitor(id_leitor: number): Promise<Curso[]> {
+    // 1. Buscar vínculos na tabela relacional leitor_curso
     const { data, error } = await supabase
       .from('leitor_curso' as any)
       .select('id, id_curso, cursos:id_curso (id, nome, ativo)')
@@ -143,21 +144,65 @@ export const CursosService = {
 
     if (error) {
       console.warn('Erro ao carregar cursos do leitor:', error)
-      return []
     }
 
     const list: Curso[] = []
+    const seenIds = new Set<string>()
+
     if (data && Array.isArray(data)) {
       for (const item of data as any[]) {
         if (item.cursos && item.cursos.nome) {
-          list.push({
-            id: item.cursos.id,
-            nome: item.cursos.nome,
-            ativo: item.cursos.ativo ?? true,
-          })
+          const cId = item.cursos.id || item.id_curso
+          if (!seenIds.has(cId)) {
+            seenIds.add(cId)
+            list.push({
+              id: cId,
+              nome: item.cursos.nome,
+              ativo: item.cursos.ativo ?? true,
+            })
+          }
         }
       }
     }
+
+    // 2. Fallback resiliente: se a tabela relacional não trouxe cursos, checar a coluna direta 'curso' no leitor
+    if (list.length === 0) {
+      try {
+        const { data: leitorData } = await supabase
+          .from('leitor')
+          .select('curso')
+          .eq('id_leitor', id_leitor)
+          .maybeSingle()
+
+        if (leitorData && (leitorData as any).curso) {
+          const cursoNome = (leitorData as any).curso.trim()
+          if (cursoNome) {
+            const { data: cursoMatch } = await supabase
+              .from('cursos' as any)
+              .select('id, nome, ativo')
+              .ilike('nome', cursoNome)
+              .maybeSingle()
+
+            if (cursoMatch) {
+              list.push({
+                id: (cursoMatch as any).id,
+                nome: (cursoMatch as any).nome,
+                ativo: (cursoMatch as any).ativo ?? true,
+              })
+              // Sincroniza em segundo plano na tabela relacional para consultas futuras
+              Promise.resolve(
+                supabase
+                  .from('leitor_curso' as any)
+                  .insert({ id_leitor, id_curso: (cursoMatch as any).id }),
+              ).catch(() => {})
+            }
+          }
+        }
+      } catch (fallbackErr) {
+        console.warn('Fallback curso leitor:', fallbackErr)
+      }
+    }
+
     return list
   },
 

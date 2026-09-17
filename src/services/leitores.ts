@@ -203,6 +203,7 @@ export const LeitoresService = {
     telefone_fixo?: string | null
     foto?: string | null
     curso?: string | null
+    cursos_ids?: string[]
   }) {
     const insertPayload: any = {
       nome_do_leitor: leitorData.nome_do_leitor.trim(),
@@ -220,6 +221,22 @@ export const LeitoresService = {
     const { data, error } = await supabase.from('leitor').insert(insertPayload).select().single()
 
     if (error) throw error
+
+    // Se foram informados cursos_ids no auto-cadastro, vincular na tabela leitor_curso
+    if (
+      data &&
+      data.id_leitor &&
+      Array.isArray(leitorData.cursos_ids) &&
+      leitorData.cursos_ids.length > 0
+    ) {
+      try {
+        const { CursosService } = await import('@/services/cursos')
+        await CursosService.setCursosForLeitor(data.id_leitor, leitorData.cursos_ids)
+      } catch (err) {
+        console.warn('Aviso ao vincular cursos no autoRegister:', err)
+      }
+    }
+
     return data
   },
 
@@ -307,15 +324,31 @@ export const LeitoresService = {
     }
   },
 
-  async update(id_leitor: number, updates: LeitorUpdate & { telefone_fixo?: string | null }) {
+  async update(
+    id_leitor: number,
+    updates: LeitorUpdate & { telefone_fixo?: string | null; cursos_ids?: string[] },
+  ) {
+    const { cursos_ids, ...rawUpdates } = updates as any
+
     const { data, error } = await supabase
       .from('leitor')
-      .update(updates as any)
+      .update(rawUpdates)
       .eq('id_leitor', id_leitor)
       .select()
       .single()
 
     if (error) throw error
+
+    // Sincronizar cursos na tabela leitor_curso se informados
+    if (Array.isArray(cursos_ids)) {
+      try {
+        const { CursosService } = await import('@/services/cursos')
+        await CursosService.setCursosForLeitor(id_leitor, cursos_ids)
+      } catch (cursoErr) {
+        console.error('Erro ao sincronizar cursos do leitor no update:', cursoErr)
+        throw cursoErr
+      }
+    }
 
     // Sincronizar dados em public.profiles e user_metadata caso exista id_auth ou email vinculado
     try {

@@ -58,7 +58,7 @@ import { supabase } from '@/lib/supabase/client'
 interface ReaderModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  readerToEdit?: (Leitor & { telefone_fixo?: string | null }) | null
+  readerToEdit?: (Leitor & { telefone_fixo?: string | null; cursos_ids?: string[] }) | null
   isSelfEdit?: boolean
   onSuccess: () => void
   onViewHistory?: () => void
@@ -142,15 +142,23 @@ export function ReaderModal({
       setPhotoPreview(readerToEdit.foto || null)
       setPhotoFile(null)
 
-      // Carregar cursos vinculados ao leitor
+      // Se o objeto readerToEdit já trouxer cursos_ids em cache, pré-popula imediatamente
+      if (Array.isArray(readerToEdit.cursos_ids) && readerToEdit.cursos_ids.length > 0) {
+        setSelectedCursoIds(readerToEdit.cursos_ids)
+      }
+
+      // Carregar cursos vinculados ao leitor via CursosService para ter a lista mais recente
       setLoadingCursos(true)
       CursosService.getCursosByLeitor(readerToEdit.id_leitor)
         .then((cursosDoLeitor) => {
-          setSelectedCursoIds(cursosDoLeitor.map((c) => c.id))
+          if (cursosDoLeitor.length > 0) {
+            setSelectedCursoIds(cursosDoLeitor.map((c) => c.id))
+          } else if (!readerToEdit.cursos_ids || readerToEdit.cursos_ids.length === 0) {
+            setSelectedCursoIds([])
+          }
         })
         .catch((err) => {
           console.warn('Erro ao carregar cursos do leitor:', err)
-          setSelectedCursoIds([])
         })
         .finally(() => setLoadingCursos(false))
     } else {
@@ -460,6 +468,7 @@ export function ReaderModal({
           telefone_fixo: formattedFixo,
           foto: finalFotoUrl,
           curso: primaryCursoNome,
+          cursos_ids: selectedCursoIds,
         }
 
         // Apenas operador/admin pode alterar status de bloqueio e acesso à diretoria
@@ -470,7 +479,7 @@ export function ReaderModal({
 
         await LeitoresService.update(readerToEdit.id_leitor, updatePayload)
 
-        // Salvar múltiplos cursos vinculados
+        // Salvar múltiplos cursos vinculados também explicitamente
         if (isOperadorOrAdmin || !isSelfEdit) {
           await CursosService.setCursosForLeitor(readerToEdit.id_leitor, selectedCursoIds)
         }

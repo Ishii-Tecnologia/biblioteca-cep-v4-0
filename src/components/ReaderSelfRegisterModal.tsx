@@ -313,7 +313,7 @@ export function ReaderSelfRegisterModal({
       const formattedCelular = cleanCelularDigits ? formatMobilePhone(cleanCelularDigits) : null
       const formattedFixo = cleanFixoDigits ? formatLandlinePhone(cleanFixoDigits) : null
 
-      // Inserir leitor com status 'pendente'
+      // Inserir leitor com status 'pendente' e já passar os cursos_ids
       const createdLeitor = await LeitoresService.autoRegister({
         nome_do_leitor: cleanNome,
         email: cleanEmail,
@@ -321,14 +321,15 @@ export function ReaderSelfRegisterModal({
         telefone_fixo: formattedFixo,
         foto: finalFotoUrl,
         curso: primaryCursoNome,
+        cursos_ids: selectedCursoIds,
       })
 
-      // Vincular cursos selecionados (se houver)
+      // Garantia adicional de vinculação de cursos selecionados
       if (createdLeitor && createdLeitor.id_leitor && selectedCursoIds.length > 0) {
         try {
           await CursosService.setCursosForLeitor(createdLeitor.id_leitor, selectedCursoIds)
         } catch (cursoErr) {
-          console.warn('Aviso ao vincular cursos:', cursoErr)
+          console.warn('Aviso ao vincular cursos via fallback:', cursoErr)
         }
       }
 

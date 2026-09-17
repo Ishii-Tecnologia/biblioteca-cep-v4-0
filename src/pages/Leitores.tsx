@@ -52,7 +52,9 @@ export default function Leitores() {
   )
 
   const [readerModalOpen, setReaderModalOpen] = useState(false)
-  const [readerToEdit, setReaderToEdit] = useState<Leitor | null>(null)
+  const [readerToEdit, setReaderToEdit] = useState<(Leitor & { cursos_ids?: string[] }) | null>(
+    null,
+  )
   const [isSelfEdit, setIsSelfEdit] = useState(false)
 
   // Modais de Aprovação e Rejeição de auto-cadastro pendente
