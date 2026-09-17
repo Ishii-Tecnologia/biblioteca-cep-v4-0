@@ -85,11 +85,27 @@ export const NotificacaoService = {
     let success = true
     let outcomeMessage = `Notificação de retirada enviada com sucesso para ${leitorNome} (${leitorEmail}).`
 
+    // Verificar se o leitor possui perfil vinculado com email_notificacoes prioritário
+    let targetEmail = leitorEmail?.trim().toLowerCase() || ''
+    if (id_reserva || leitorEmail) {
+      try {
+        const { data: profileWithNotif } = await (supabase.from('profiles') as any)
+          .select('email_notificacoes')
+          .ilike('email', targetEmail)
+          .maybeSingle()
+        if (profileWithNotif?.email_notificacoes && profileWithNotif.email_notificacoes.trim()) {
+          targetEmail = profileWithNotif.email_notificacoes.trim().toLowerCase()
+        }
+      } catch (checkProfErr) {
+        console.warn('Aviso ao consultar email_notificacoes em profiles:', checkProfErr)
+      }
+    }
+
     // Se houver e-mail válido, tentar disparar via Edge Function de auditoria ou registrar simulação
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!leitorEmail || !emailRegex.test(leitorEmail)) {
+    if (!targetEmail || !emailRegex.test(targetEmail)) {
       success = false
-      outcomeMessage = `Leitor ${leitorNome} não possui e-mail válido cadastrado (${leitorEmail || 'não informado'}).`
+      outcomeMessage = `Leitor ${leitorNome} não possui e-mail válido cadastrado (${targetEmail || leitorEmail || 'não informado'}).`
     } else {
       try {
         // Tentar invocar Edge Function para disparo real caso configurado
@@ -98,7 +114,7 @@ export const NotificacaoService = {
           {
             body: {
               action: 'enviar_notificacao_reserva',
-              to: [leitorEmail],
+              to: [targetEmail],
               subject,
               body,
             },
@@ -111,11 +127,11 @@ export const NotificacaoService = {
         } else {
           // Modo simulado transparente (provedor simulado conforme regras da biblioteca)
           provider = 'simulado'
-          outcomeMessage = `[Modo Simulado / Registro] E-mail de liberação preparado para ${leitorEmail}: "${subject}". Prazo de retirada: até ${dataLimiteStr} (${prazoUteis} dias úteis).`
+          outcomeMessage = `[Modo Simulado / Registro] E-mail de liberação preparado para ${targetEmail}: "${subject}". Prazo de retirada: até ${dataLimiteStr} (${prazoUteis} dias úteis).`
         }
       } catch (err: any) {
         provider = 'simulado'
-        outcomeMessage = `[Modo Simulado] E-mail de liberação registrado para ${leitorEmail}: "${subject}".`
+        outcomeMessage = `[Modo Simulado] E-mail de liberação registrado para ${targetEmail}: "${subject}".`
       }
     }
 
@@ -137,7 +153,7 @@ export const NotificacaoService = {
       success,
       message: outcomeMessage,
       provider,
-      destinatario: leitorEmail,
+      destinatario: targetEmail || leitorEmail,
       assunto: subject,
       corpo: body,
     }

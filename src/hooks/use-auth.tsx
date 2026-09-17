@@ -20,6 +20,7 @@ export interface UserProfile {
   id_leitor?: number
   senha_redefinida?: boolean
   primeiro_acesso_pendente?: boolean
+  email_notificacoes?: string | null
 }
 
 interface AuthContextType {
@@ -121,10 +122,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .or(`id_auth.eq.${currentUser.id},email.eq.${currentUser.email}`)
         .maybeSingle()
 
-      // Fetch public.profiles to get real-time avatar_url and latest name/papel
+      // Fetch public.profiles to get real-time avatar_url, email_notificacoes and latest name/papel
       const { data: rawProfileData } = await (supabase.from('profiles') as any)
         .select(
-          'nome, full_name, role, papel, avatar_url, telefone, senha_redefinida, primeiro_acesso_pendente',
+          'nome, full_name, role, papel, avatar_url, telefone, email_notificacoes, senha_redefinida, primeiro_acesso_pendente',
         )
         .eq('id', currentUser.id)
         .maybeSingle()
@@ -169,6 +170,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         id_leitor: leitorData?.id_leitor,
         senha_redefinida: senhaRedefinida,
         primeiro_acesso_pendente: primeiroAcessoPendente,
+        email_notificacoes: profileRow?.email_notificacoes || userMeta.email_notificacoes || null,
       })
     } catch (e) {
       console.error('Error loading profile:', e)

@@ -323,8 +323,21 @@ Deno.serve(async (req: Request) => {
       },
     })
 
-    // 1. Obter nome do leitor caso não tenha sido enviado
+    // 1. Obter perfil/leitor para verificar email_notificacoes e nome do usuário
     let leitorNome = nome || ''
+    let recipientEmail = email // Destinatário real de entrega do e-mail
+
+    // Verificar se existe profile cadastrado para o e-mail de login fornecido
+    const { data: profileRow } = await supabaseAdmin
+      .from('profiles')
+      .select('nome, full_name, email_notificacoes')
+      .ilike('email', email)
+      .maybeSingle()
+
+    if (profileRow?.email_notificacoes && profileRow.email_notificacoes.trim()) {
+      recipientEmail = profileRow.email_notificacoes.trim().toLowerCase()
+    }
+
     if (!leitorNome) {
       const { data: leitorRow } = await supabaseAdmin
         .from('leitor')
@@ -334,11 +347,6 @@ Deno.serve(async (req: Request) => {
       if (leitorRow?.nome_do_leitor) {
         leitorNome = leitorRow.nome_do_leitor
       } else {
-        const { data: profileRow } = await supabaseAdmin
-          .from('profiles')
-          .select('nome, full_name')
-          .ilike('email', email)
-          .maybeSingle()
         leitorNome = profileRow?.nome || profileRow?.full_name || email.split('@')[0]
       }
     }
@@ -494,7 +502,7 @@ Biblioteca da Coligação Espírita Progressista (CEP)`
         user: smtpUser,
         pass: smtpPass,
         from: fromHeader,
-        to: [email],
+        to: [recipientEmail],
         subject: assunto,
         html: htmlBody,
         text: textBody,
@@ -515,7 +523,7 @@ Biblioteca da Coligação Espírita Progressista (CEP)`
       console.warn('Credenciais SMTP não configuradas. Simulando envio de e-mail.')
       sendResult = {
         success: true,
-        message: `Envio simulado com sucesso para ${email}. Link: ${actionLink}`,
+        message: `Envio simulado com sucesso para ${recipientEmail}. Link: ${actionLink}`,
       }
     }
 
@@ -531,6 +539,7 @@ Biblioteca da Coligação Espírita Progressista (CEP)`
         success: true,
         message: 'E-mail de acesso enviado com sucesso.',
         email: email,
+        destinatario: recipientEmail,
         smtp_message: sendResult.message,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

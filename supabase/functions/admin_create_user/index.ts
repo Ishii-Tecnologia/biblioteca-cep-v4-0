@@ -8,6 +8,7 @@ interface CreateUserPayload {
   nome: string
   papel?: 'admin' | 'operador' | 'operador_diretoria' | 'leitor'
   avatar_url?: string | null
+  email_notificacoes?: string | null
 }
 
 Deno.serve(async (req: Request) => {
@@ -31,7 +32,15 @@ Deno.serve(async (req: Request) => {
     }
 
     const payload: CreateUserPayload = await req.json()
-    const { email, password, nome, papel = 'operador', avatar_url = null } = payload
+    const {
+      email,
+      password,
+      nome,
+      papel = 'operador',
+      avatar_url = null,
+      email_notificacoes = null,
+    } = payload
+    const cleanEmailNotificacoes = email_notificacoes?.trim().toLowerCase() || null
 
     if (!email || !password || !nome) {
       return new Response(JSON.stringify({ error: 'Email, senha e nome são obrigatórios.' }), {
@@ -97,6 +106,7 @@ Deno.serve(async (req: Request) => {
         app_role: papel,
         avatar_url: avatar_url || undefined,
         email_verified: true,
+        email_notificacoes: cleanEmailNotificacoes,
       },
     })
 
@@ -135,6 +145,7 @@ Deno.serve(async (req: Request) => {
                 app_role: papel,
                 avatar_url: avatar_url || undefined,
                 email_verified: true,
+                email_notificacoes: cleanEmailNotificacoes,
               },
             })
             createData = retryCreate.data
@@ -169,6 +180,7 @@ Deno.serve(async (req: Request) => {
         papel,
         role: papel,
         avatar_url: avatar_url || null,
+        email_notificacoes: cleanEmailNotificacoes,
         bloqueado: false,
       },
       { onConflict: 'id' },

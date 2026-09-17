@@ -19,11 +19,22 @@ import {
 } from '@/components/ui/select'
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
-import { UserCog, Loader2, Upload, Camera, X, ClipboardPaste } from 'lucide-react'
+import {
+  UserCog,
+  Loader2,
+  Upload,
+  Camera,
+  X,
+  ClipboardPaste,
+  Mail,
+  ShieldAlert,
+  CheckCircle2,
+} from 'lucide-react'
 import { uploadImageToStorage, extractImageFileFromClipboard, urlToFile } from '@/lib/image-upload'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ProfileRecord } from '@/pages/Usuarios'
 import { formatPhone } from '@/lib/utils'
+import { validateEmailBasic, validateEmailDomainOnline } from '@/lib/email-validation'
 
 interface EditUserModalProps {
   open: boolean
@@ -48,10 +59,17 @@ export function EditUserModal({
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
+    email_notificacoes: '',
     telefone: '',
     papel: 'operador' as 'admin' | 'operador' | 'operador_diretoria',
     avatar_url: '',
   })
+
+  const [notifEmailError, setNotifEmailError] = useState<string | null>(null)
+  const [notifEmailValidating, setNotifEmailValidating] = useState(false)
+  const [notifEmailValidSuccess, setNotifEmailValidSuccess] = useState(false)
+  const notifEmailDebounceTimerRef = React.useRef<any>(null)
+  const notifEmailCallIdRef = React.useRef<number>(0)
 
   useEffect(() => {
     if (open && user) {
@@ -71,14 +89,84 @@ export function EditUserModal({
       setFormData({
         nome: currentName,
         email: currentEmail,
+        email_notificacoes: user.email_notificacoes || '',
         telefone: currentTelefone,
         papel: currentRole,
         avatar_url: currentAvatar,
       })
       setPhotoFile(null)
       setPhotoPreview(currentAvatar || null)
+      setNotifEmailError(null)
+      setNotifEmailValidating(false)
+      setNotifEmailValidSuccess(Boolean(user.email_notificacoes))
+      if (notifEmailDebounceTimerRef.current) {
+        clearTimeout(notifEmailDebounceTimerRef.current)
+      }
     }
   }, [open, user])
+
+  const triggerNotifEmailValidation = (rawEmail: string) => {
+    const clean = rawEmail.trim().toLowerCase()
+    setNotifEmailValidSuccess(false)
+
+    if (notifEmailDebounceTimerRef.current) {
+      clearTimeout(notifEmailDebounceTimerRef.current)
+    }
+
+    if (!clean) {
+      setNotifEmailError(null)
+      setNotifEmailValidating(false)
+      return
+    }
+
+    const basic = validateEmailBasic(clean)
+    if (!clean.includes('@') || !clean.includes('.')) {
+      setNotifEmailError(null)
+      setNotifEmailValidating(false)
+      return
+    }
+
+    if (!basic.isFormatValid) {
+      setNotifEmailError(basic.message || 'Formato de e-mail inválido')
+      setNotifEmailValidating(false)
+      return
+    }
+
+    if (basic.isDisposable) {
+      setNotifEmailError(
+        basic.message ||
+          'Este e-mail parece ser temporário/descartável. Use um e-mail permanente (ex.: Gmail, Outlook).',
+      )
+      setNotifEmailValidating(false)
+      return
+    }
+
+    setNotifEmailError(null)
+    setNotifEmailValidating(true)
+
+    const currentCallId = ++notifEmailCallIdRef.current
+    notifEmailDebounceTimerRef.current = setTimeout(async () => {
+      try {
+        const fullResult = await validateEmailDomainOnline(clean)
+        if (currentCallId !== notifEmailCallIdRef.current) return
+
+        if (!fullResult.valid) {
+          setNotifEmailError(fullResult.message || 'Domínio de e-mail inválido ou sem recebimento.')
+          setNotifEmailValidSuccess(false)
+        } else {
+          setNotifEmailError(null)
+          setNotifEmailValidSuccess(true)
+        }
+      } catch {
+        if (currentCallId !== notifEmailCallIdRef.current) return
+        setNotifEmailError(null)
+      } finally {
+        if (currentCallId !== notifEmailCallIdRef.current) {
+          setNotifEmailValidating(false)
+        }
+      }
+    }, 600)
+  }
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -262,6 +350,46 @@ export function EditUserModal({
       return
     }
 
+    // Validação opcional de e-mail de notificações
+    const cleanEmailNotificacoes = formData.email_notificacoes.trim().toLowerCase()
+    if (cleanEmailNotificacoes) {
+      const basicNotif = validateEmailBasic(cleanEmailNotificacoes)
+      if (!basicNotif.isFormatValid) {
+        toast({
+          title: 'E-mail de notificações inválido',
+          description: basicNotif.message || 'Por favor, insira um formato de e-mail válido.',
+          variant: 'destructive',
+        })
+        return
+      }
+      if (basicNotif.isDisposable) {
+        toast({
+          title: 'E-mail temporário não permitido',
+          description:
+            basicNotif.message ||
+            'O e-mail de notificações deve ser um e-mail permanente (ex.: Gmail, Outlook).',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      try {
+        const domainResult = await validateEmailDomainOnline(cleanEmailNotificacoes)
+        if (!domainResult.valid) {
+          toast({
+            title: 'Domínio de e-mail inválido',
+            description:
+              domainResult.message ||
+              'O domínio do e-mail de notificações é inválido ou não pode receber mensagens.',
+            variant: 'destructive',
+          })
+          return
+        }
+      } catch (checkDomErr) {
+        console.warn('Aviso ao checar domínio de notificações:', checkDomErr)
+      }
+    }
+
     if (isCurrentUser && formData.papel !== 'admin') {
       toast({
         title: 'Ação não permitida',
@@ -342,6 +470,7 @@ export function EditUserModal({
           new_role: formData.papel,
           new_avatar_url: finalAvatarUrl,
           new_telefone: formData.telefone.trim() || null,
+          new_email_notificacoes: cleanEmailNotificacoes || null,
         })
 
         if (rpcError) {
@@ -368,6 +497,7 @@ export function EditUserModal({
         role: formData.papel,
         avatar_url: finalAvatarUrl,
         telefone: formData.telefone.trim() || null,
+        email_notificacoes: cleanEmailNotificacoes || null,
       }
 
       const { data: directProfileData, error: directProfileErr } = await (
@@ -406,6 +536,7 @@ export function EditUserModal({
               role: formData.papel,
               app_role: formData.papel,
               telefone: formData.telefone.trim() || null,
+              email_notificacoes: cleanEmailNotificacoes || null,
             },
           })
           console.log('[EditUserModal] Metadados de auth atualizados para o usuário logado.')
@@ -554,7 +685,7 @@ export function EditUserModal({
             {/* Email (Desabilitado / Somente Leitura) */}
             <div>
               <Label htmlFor="edit-user-email" className="text-xs font-semibold text-slate-700">
-                Endereço de E-mail (Somente leitura)
+                Endereço de E-mail de Login (Somente leitura)
               </Label>
               <Input
                 id="edit-user-email"
@@ -567,8 +698,83 @@ export function EditUserModal({
                 className="mt-1 bg-slate-100 text-slate-500 cursor-not-allowed border-slate-200"
               />
               <p className="text-[11px] text-slate-500 mt-1">
-                O endereço de e-mail não pode ser alterado diretamente por questões de segurança de
-                autenticação.
+                O e-mail de login de acesso ao sistema (que pode ser fictício) não pode ser alterado
+                diretamente.
+              </p>
+            </div>
+
+            {/* E-mail para Recebimento de Informações (Opcional) */}
+            <div>
+              <div className="flex items-center justify-between">
+                <Label
+                  htmlFor="edit-user-email-notificacoes"
+                  className="text-xs font-semibold text-slate-700 flex items-center gap-1.5"
+                >
+                  <Mail className="w-3.5 h-3.5 text-emerald-600" />
+                  E-mail para Recebimento de Informações
+                </Label>
+                {notifEmailValidating ? (
+                  <span className="text-[11px] font-medium text-slate-500 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin text-emerald-600" />
+                    Validando domínio...
+                  </span>
+                ) : notifEmailValidSuccess && !notifEmailError && formData.email_notificacoes ? (
+                  <span className="text-[11px] font-medium text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Domínio verificado
+                  </span>
+                ) : null}
+              </div>
+              <div className="relative mt-1">
+                <Input
+                  id="edit-user-email-notificacoes"
+                  type="email"
+                  placeholder="Ex: seuemail.real@gmail.com"
+                  value={formData.email_notificacoes}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setFormData({ ...formData, email_notificacoes: val })
+                    triggerNotifEmailValidation(val)
+                  }}
+                  onBlur={() => {
+                    if (formData.email_notificacoes) {
+                      triggerNotifEmailValidation(formData.email_notificacoes)
+                    }
+                  }}
+                  className={`${
+                    notifEmailError
+                      ? 'border-rose-500 focus-visible:ring-rose-500 pr-8'
+                      : notifEmailValidSuccess && formData.email_notificacoes
+                        ? 'border-emerald-500 focus-visible:ring-emerald-500 pr-8'
+                        : ''
+                  }`}
+                  disabled={loading}
+                />
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                  {notifEmailValidating ? (
+                    <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />
+                  ) : notifEmailError ? (
+                    <ShieldAlert className="w-3.5 h-3.5 text-rose-500" />
+                  ) : notifEmailValidSuccess && formData.email_notificacoes ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  ) : null}
+                </div>
+              </div>
+              {notifEmailError ? (
+                <div className="mt-1.5 flex items-start gap-1.5 p-2 rounded bg-rose-50 border border-rose-200 text-[11px] text-rose-800 leading-snug">
+                  <ShieldAlert className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
+                  <span>{notifEmailError}</span>
+                </div>
+              ) : notifEmailValidSuccess && formData.email_notificacoes ? (
+                <p className="text-[11px] text-emerald-700 mt-1 flex items-center gap-1 font-medium">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  E-mail válido e pronto para receber notificações.
+                </p>
+              ) : null}
+              <p className="text-[11px] text-slate-500 mt-1">
+                Opcional. Quando preenchido, o sistema enviará avisos, notificações e informações
+                para este endereço. O login de acesso continuará sendo o e-mail cadastrado acima
+                (que pode ser fictício).
               </p>
             </div>
 

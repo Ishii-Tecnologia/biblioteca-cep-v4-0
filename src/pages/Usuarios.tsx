@@ -56,6 +56,7 @@ export interface ProfileRecord {
   role?: string | null
   avatar_url?: string | null
   telefone?: string | null
+  email_notificacoes?: string | null
 }
 
 // Auxiliar para quebrar cache de imagem de avatar recém-atualizada
@@ -114,7 +115,8 @@ export default function Usuarios() {
     return profiles.filter((p) => {
       const name = (p.nome || p.full_name || '').toLowerCase()
       const email = (p.email || '').toLowerCase()
-      return name.includes(term) || email.includes(term)
+      const notifEmail = (p.email_notificacoes || '').toLowerCase()
+      return name.includes(term) || email.includes(term) || notifEmail.includes(term)
     })
   }, [profiles, searchTerm])
 
@@ -473,8 +475,21 @@ export default function Usuarios() {
                         </TableCell>
 
                         {/* Email */}
-                        <TableCell className="text-xs text-slate-700 font-mono">
-                          {p.email}
+                        <TableCell className="text-xs text-slate-700">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-mono text-slate-900">{p.email}</span>
+                            {p.email_notificacoes && p.email_notificacoes.trim() && (
+                              <span
+                                className="inline-flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-50/80 px-1.5 py-0.5 rounded border border-emerald-200/50 w-fit"
+                                title={`E-mail para notificações e avisos: ${p.email_notificacoes}`}
+                              >
+                                <span className="font-sans font-medium text-emerald-800">
+                                  Avisos:
+                                </span>{' '}
+                                <span className="font-mono">{p.email_notificacoes}</span>
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
 
                         {/* Papel */}
