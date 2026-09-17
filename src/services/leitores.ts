@@ -88,6 +88,7 @@ export const LeitoresService = {
         telefone: l.telefone,
         telefone_fixo: l.telefone_fixo || null,
         status_cadastro: l.status_cadastro || 'ativo',
+        status: l.status || (l.bloqueado ? 'BLOQUEADO' : 'ATIVO'),
         primeiro_acesso_pendente: Boolean(l.primeiro_acesso_pendente),
         senha_redefinida: Boolean(l.senha_redefinida),
         ultimo_envio_email_em: l.ultimo_envio_email_em || null,

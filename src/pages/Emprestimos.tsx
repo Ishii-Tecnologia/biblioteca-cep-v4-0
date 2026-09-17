@@ -34,9 +34,9 @@ export default function Emprestimos() {
 
   const [loans, setLoans] = useState<EmprestimoDetailed[]>([])
   const [loading, setLoading] = useState(true)
-  const [statusTab, setStatusTab] = useState<'todos' | 'ativos' | 'atrasados' | 'devolvidos'>(
-    'ativos',
-  )
+  const [statusTab, setStatusTab] = useState<
+    'todos' | 'ativos' | 'atrasados' | 'devolvidos' | 'pendente_retirada'
+  >('ativos')
   const [searchQuery, setSearchQuery] = useState('')
   const [prazoRenovacaoDias, setPrazoRenovacaoDias] = useState<number>(15)
 
@@ -49,6 +49,9 @@ export default function Emprestimos() {
 
   const [renewConfirmOpen, setRenewConfirmOpen] = useState(false)
   const [loanToRenew, setLoanToRenew] = useState<EmprestimoDetailed | null>(null)
+
+  const [pickupConfirmOpen, setPickupConfirmOpen] = useState(false)
+  const [loanToPickup, setLoanToPickup] = useState<EmprestimoDetailed | null>(null)
 
   const loadLoans = async () => {
     setLoading(true)
@@ -80,6 +83,42 @@ export default function Emprestimos() {
     loadLoans()
   }
 
+  const handlePickup = (loan: EmprestimoDetailed) => {
+    setLoanToPickup(loan)
+    setPickupConfirmOpen(true)
+  }
+
+  const executePickup = async () => {
+    if (!loanToPickup) return
+    setActionLoadingId(loanToPickup.id_emprestimo)
+    try {
+      const operatorName = profile?.nome || profile?.full_name || 'Operador'
+      const res = (await EmprestimosService.confirmPickup(
+        loanToPickup.id_emprestimo,
+        operatorName,
+      )) as any
+      toast({
+        title: 'Retirada confirmada!',
+        description:
+          res?.mensagem ||
+          (typeof res === 'object' && res?.mensagem) ||
+          `Exemplar ${loanToPickup.id_exemplar} retirado pelo leitor. Empréstimo agora está ATIVO.`,
+      })
+      setPickupConfirmOpen(false)
+      setLoanToPickup(null)
+      await loadLoans()
+      refreshCounters()
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao confirmar retirada',
+        description: err.message || 'Não foi possível confirmar a retirada.',
+        variant: 'destructive',
+      })
+    } finally {
+      setActionLoadingId(null)
+    }
+  }
+
   const handleReturn = (loan: EmprestimoDetailed) => {
     setLoanToReturn(loan)
     setReturnConfirmOpen(true)
@@ -89,12 +128,25 @@ export default function Emprestimos() {
     if (!loanToReturn) return
     setActionLoadingId(loanToReturn.id_emprestimo)
     try {
-      const operatorName = profile?.full_name || 'Operador'
-      await EmprestimosService.returnLoan(loanToReturn.id_exemplar, operatorName)
-      toast({
-        title: 'Devolução registrada',
-        description: `Exemplar ${loanToReturn.id_exemplar} devolvido com sucesso!`,
-      })
+      const operatorName = profile?.nome || profile?.full_name || 'Operador'
+      const res = await EmprestimosService.returnLoan(loanToReturn.id_exemplar, operatorName)
+
+      // Se o 1º da fila foi contemplado, destacar com toast específico
+      if (res?.fila_contemplada || res?.primeiro_da_fila_notificado) {
+        const leitorNome =
+          res.leitor_nome || res.primeiro_da_fila_notificado?.leitor || 'Primeiro da fila'
+        toast({
+          title: 'Exemplar devolvido & 1º da Fila Contemplado!',
+          description: `Livro devolvido. O leitor ${leitorNome} foi contemplado e notificado com prazo de 4 dias úteis para retirada.`,
+        })
+      } else {
+        toast({
+          title: 'Devolução registrada',
+          description:
+            res?.mensagem || `Exemplar ${loanToReturn.id_exemplar} devolvido com sucesso!`,
+        })
+      }
+
       setReturnConfirmOpen(false)
       setLoanToReturn(null)
       await loadLoans()
@@ -179,11 +231,17 @@ export default function Emprestimos() {
         <Tabs
           value={statusTab}
           onValueChange={(val) => setStatusTab(val as any)}
-          className="w-full md:w-auto"
+          className="w-full md:w-auto overflow-x-auto"
         >
-          <TabsList className="grid grid-cols-4 w-full md:w-auto bg-slate-100 p-1">
+          <TabsList className="grid grid-cols-5 min-w-[500px] md:w-auto bg-slate-100 p-1">
             <TabsTrigger value="ativos" className="text-xs font-semibold">
               Emprestados
+            </TabsTrigger>
+            <TabsTrigger
+              value="pendente_retirada"
+              className="text-xs font-semibold text-blue-700 data-[state=active]:text-blue-700"
+            >
+              Aguardando Retirada
             </TabsTrigger>
             <TabsTrigger
               value="atrasados"
@@ -239,18 +297,25 @@ export default function Emprestimos() {
         <div className="space-y-3">
           {loans.map((loan) => {
             const isReturned = !!loan.data_devolucao_real
-            const isOverdue = !isReturned && loan.atraso
+            const isPendenteRetirada =
+              !isReturned &&
+              (loan.status === 'PENDENTE_RETIRADA' ||
+                loan.status === 'AGENDADO' ||
+                (loan.data_limite_retirada && !loan.data_retirada_real))
+            const isOverdue = !isReturned && !isPendenteRetirada && loan.atraso
             const isLoadingThis = actionLoadingId === loan.id_emprestimo
 
             return (
               <Card
                 key={loan.id_emprestimo}
                 className={`overflow-hidden border transition-all ${
-                  isOverdue
-                    ? 'border-rose-300 bg-rose-50/20'
-                    : isReturned
-                      ? 'border-slate-200 bg-white opacity-80'
-                      : 'border-slate-200 bg-white hover:border-emerald-300 shadow-sm'
+                  isPendenteRetirada
+                    ? 'border-blue-300 bg-blue-50/20'
+                    : isOverdue
+                      ? 'border-rose-300 bg-rose-50/20'
+                      : isReturned
+                        ? 'border-slate-200 bg-white opacity-80'
+                        : 'border-slate-200 bg-white hover:border-emerald-300 shadow-sm'
                 }`}
               >
                 <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -286,6 +351,16 @@ export default function Emprestimos() {
                         <Badge className="bg-slate-100 text-slate-700 border-slate-300 gap-1 text-[11px] shadow-none select-none">
                           <CheckCircle2 className="w-3 h-3 text-slate-500" />
                           Devolvido em {formatDate(loan.data_devolucao_real)}
+                        </Badge>
+                      ) : isPendenteRetirada ? (
+                        <Badge className="bg-blue-100 text-blue-900 border-blue-300 gap-1 text-[11px] font-bold shadow-none select-none">
+                          <Clock className="w-3 h-3 text-blue-700" />
+                          Aguardando Retirada
+                          {loan.data_limite_retirada && (
+                            <span className="font-normal ml-1">
+                              (Limite: {formatDate(loan.data_limite_retirada)})
+                            </span>
+                          )}
                         </Badge>
                       ) : isOverdue ? (
                         <Badge className="bg-rose-100 text-rose-800 border-rose-300 gap-1 text-[11px] shadow-none select-none">
@@ -352,10 +427,23 @@ export default function Emprestimos() {
 
                     <div className="space-y-0.5">
                       <span className="text-[10px] text-slate-400 uppercase font-semibold flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> Prazo Previsto
+                        <Clock className="w-3 h-3" />{' '}
+                        {isPendenteRetirada ? 'Limite Retirada' : 'Prazo Previsto'}
                       </span>
-                      <p className={`font-bold ${isOverdue ? 'text-rose-600' : 'text-slate-800'}`}>
-                        {formatDate(loan.data_prevista_devolucao)}
+                      <p
+                        className={`font-bold ${
+                          isPendenteRetirada
+                            ? 'text-blue-700'
+                            : isOverdue
+                              ? 'text-rose-600'
+                              : 'text-slate-800'
+                        }`}
+                      >
+                        {formatDate(
+                          isPendenteRetirada && loan.data_limite_retirada
+                            ? loan.data_limite_retirada
+                            : loan.data_prevista_devolucao,
+                        )}
                       </p>
                     </div>
                   </div>
@@ -363,22 +451,39 @@ export default function Emprestimos() {
                   {/* Right Actions */}
                   {!isReturned && isOperadorOrAdmin && (
                     <div className="flex items-center gap-2 self-end lg:self-center shrink-0">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={
-                          isLoadingThis ||
-                          !!loan.data_devolucao_real ||
-                          loan.numero_renovacoes >= 1 ||
-                          (loan.dias_atraso ?? 0) > 0 ||
-                          !!loan.atraso
-                        }
-                        onClick={() => handleRenew(loan)}
-                        className="h-8 text-xs border-teal-300 text-teal-800 hover:bg-teal-50 gap-1.5"
-                      >
-                        <RotateCw className="w-3.5 h-3.5" />
-                        Renovar (+{prazoRenovacaoDias}d)
-                      </Button>
+                      {isPendenteRetirada ? (
+                        <Button
+                          size="sm"
+                          disabled={isLoadingThis}
+                          onClick={() => handlePickup(loan)}
+                          className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium gap-1.5 shadow-sm"
+                          title="Confirmar retirada física na biblioteca (PENDENTE_RETIRADA -> ATIVO)"
+                        >
+                          {isLoadingThis ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          )}
+                          Confirmar Retirada
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={
+                            isLoadingThis ||
+                            !!loan.data_devolucao_real ||
+                            loan.numero_renovacoes >= 1 ||
+                            (loan.dias_atraso ?? 0) > 0 ||
+                            !!loan.atraso
+                          }
+                          onClick={() => handleRenew(loan)}
+                          className="h-8 text-xs border-teal-300 text-teal-800 hover:bg-teal-50 gap-1.5"
+                        >
+                          <RotateCw className="w-3.5 h-3.5" />
+                          Renovar (+{prazoRenovacaoDias}d)
+                        </Button>
+                      )}
 
                       <Button
                         size="sm"
@@ -406,10 +511,41 @@ export default function Emprestimos() {
       <LoanModal open={loanModalOpen} onOpenChange={setLoanModalOpen} onSuccess={loadLoans} />
 
       <ConfirmModal
+        open={pickupConfirmOpen}
+        onOpenChange={setPickupConfirmOpen}
+        title="Confirmar Retirada do Livro"
+        description={
+          loanToPickup ? (
+            <div className="space-y-2 text-xs sm:text-sm">
+              <p>Confirmar a entrega presencial do exemplar:</p>
+              <p className="font-semibold text-blue-900">
+                {loanToPickup.id_exemplar} — "
+                {loanToPickup.exemplar?.titulo?.titulo_de_livro || 'Livro'}"
+              </p>
+              <p className="text-slate-600">
+                Leitor: <strong>{loanToPickup.leitor?.nome_do_leitor}</strong>
+              </p>
+              <p className="text-slate-500">
+                O empréstimo passará de <strong>Aguardando Retirada</strong> para{' '}
+                <strong>ATIVO</strong> e o prazo de 15 dias para devolução começará a contar a
+                partir de agora.
+              </p>
+            </div>
+          ) : (
+            'Confirmar retirada física do exemplar?'
+          )
+        }
+        confirmLabel="Confirmar Retirada Física"
+        variant="primary"
+        loading={actionLoadingId === loanToPickup?.id_emprestimo}
+        onConfirm={executePickup}
+      />
+
+      <ConfirmModal
         open={returnConfirmOpen}
         onOpenChange={setReturnConfirmOpen}
         title="Registrar Devolução"
-        description={`Confirmar o recebimento e a devolução física do exemplar ${loanToReturn?.id_exemplar} ("${loanToReturn?.exemplar?.titulo?.titulo_de_livro}") emprestado para ${loanToReturn?.leitor?.nome_do_leitor}?`}
+        description={`Confirmar o recebimento e a devolução física do exemplar ${loanToReturn?.id_exemplar} ("${loanToReturn?.exemplar?.titulo?.titulo_de_livro}") emprestado para ${loanToReturn?.leitor?.nome_do_leitor}? Se houver leitores na fila de reservas, o primeiro será contemplado automaticamente.`}
         confirmLabel="Confirmar Devolução"
         variant="primary"
         loading={actionLoadingId === loanToReturn?.id_emprestimo}

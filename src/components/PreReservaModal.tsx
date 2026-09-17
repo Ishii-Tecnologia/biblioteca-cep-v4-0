@@ -93,19 +93,20 @@ export function PreReservaModal({ isOpen, onClose, book, onSuccess }: PreReserva
     try {
       setSubmitting(true)
       const solicitanteNome = profile?.nome || profile?.email || 'Leitor'
-      const res = await PreReservasService.solicitar(leitorId, book.id_titulo, solicitanteNome)
+      await PreReservasService.solicitar(leitorId, book.id_titulo, solicitanteNome)
 
       toast({
-        title: 'Solicitação Realizada!',
-        description: res.mensagem || 'Pré-reserva enviada para análise do operador.',
+        title: 'Solicitação enviada',
+        description: 'Solicitação enviada, aguardando validação do operador',
       })
 
       onClose()
       if (onSuccess) onSuccess()
     } catch (err: any) {
+      const errorMsg = err?.message || 'Erro ao criar solicitação.'
       toast({
         title: 'Não foi possível solicitar',
-        description: err.message || 'Erro ao criar solicitação.',
+        description: errorMsg,
         variant: 'destructive',
       })
     } finally {

@@ -100,9 +100,10 @@ export function PreReservasQueueTab() {
       setItemToApprove(null)
       loadItems()
     } catch (err: any) {
+      const msg = err?.message || 'Falha ao validar pré-reserva.'
       toast({
         title: 'Erro na aprovação',
-        description: err.message || 'Falha ao validar pré-reserva.',
+        description: msg,
         variant: 'destructive',
       })
     } finally {

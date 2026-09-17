@@ -8,8 +8,11 @@ export type Emprestimo = Tables<'emprestimo'>
 export type EmprestimoInsert = TablesInsert<'emprestimo'>
 export type EmprestimoUpdate = TablesUpdate<'emprestimo'>
 
-export interface EmprestimoDetailed extends Emprestimo {
-  status?: string
+export interface EmprestimoDetailed extends Omit<
+  Emprestimo,
+  'status' | 'data_limite_retirada' | 'data_retirada_real'
+> {
+  status?: string | null
   data_limite_retirada?: string | null
   data_retirada_real?: string | null
   exemplar?: {
@@ -89,7 +92,7 @@ export const EmprestimosService = {
   },
 
   async getAll(
-    statusFilter: 'todos' | 'ativos' | 'atrasados' | 'devolvidos' = 'todos',
+    statusFilter: 'todos' | 'ativos' | 'atrasados' | 'devolvidos' | 'pendente_retirada' = 'todos',
     searchQuery?: string,
   ) {
     let query = supabase
@@ -128,6 +131,8 @@ export const EmprestimosService = {
     } else if (statusFilter === 'atrasados') {
       const now = new Date().toISOString()
       query = query.is('data_devolucao_real', null).lt('data_prevista_devolucao', now)
+    } else if (statusFilter === 'pendente_retirada') {
+      query = query.is('data_devolucao_real', null).eq('status', 'PENDENTE_RETIRADA')
     }
 
     const { data, error } = await query
@@ -445,9 +450,9 @@ export const EmprestimosService = {
 
     let returnResult: any = null
 
-    const { data, error } = await supabase.rpc('devolver_exemplar', {
+    const { data, error } = await supabase.rpc('devolver_exemplar_v2', {
       p_id_exemplar: id_exemplar,
-      p_usuario_sistema: operatorName,
+      p_operador_nome: operatorName,
     })
 
     if (error) {

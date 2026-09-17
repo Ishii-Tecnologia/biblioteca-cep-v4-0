@@ -43,6 +43,7 @@ import { BookFormModal } from '@/components/BookFormModal'
 import { CopiesModal } from '@/components/CopiesModal'
 import { LoanModal } from '@/components/LoanModal'
 import { ReserveModal } from '@/components/ReserveModal'
+import { PreReservaModal } from '@/components/PreReservaModal'
 import { CsvImportModal } from '@/components/CsvImportModal'
 import { BookCoverLightboxModal } from '@/components/BookCoverLightboxModal'
 import { BarcodeScannerModal } from '@/components/BarcodeScannerModal'
@@ -156,6 +157,9 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
 
   const [reserveModalOpen, setReserveModalOpen] = useState(false)
   const [preSelectedTitulo, setPreSelectedTitulo] = useState<string>('')
+
+  const [preReservaModalOpen, setPreReservaModalOpen] = useState(false)
+  const [selectedBookForPreReserva, setSelectedBookForPreReserva] = useState<Titulo | null>(null)
 
   // Delete confirm modal state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -326,6 +330,11 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
   const handleDirectReserve = (id_titulo: string) => {
     setPreSelectedTitulo(id_titulo)
     setReserveModalOpen(true)
+  }
+
+  const handleOpenSolicitacao = (book: TituloWithStats) => {
+    setSelectedBookForPreReserva(book)
+    setPreReservaModalOpen(true)
   }
 
   return (
@@ -770,7 +779,19 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
                     </Button>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                    {/* Botão de Solicitação de Livro (Pré-reserva) */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs border-blue-400 bg-blue-50 text-blue-900 hover:bg-blue-100 font-medium gap-1 shadow-2xs"
+                      onClick={() => handleOpenSolicitacao(book)}
+                      title="Solicitar livro (pré-reserva) com validação pelo operador"
+                    >
+                      <BookmarkCheck className="w-3.5 h-3.5 text-blue-700" />
+                      Solicitar Livro
+                    </Button>
+
                     {hasAvailable ? (
                       canManage ? (
                         <Button
@@ -892,6 +913,16 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
         open={reserveModalOpen}
         onOpenChange={setReserveModalOpen}
         preSelectedTituloId={preSelectedTitulo}
+        onSuccess={loadBooks}
+      />
+
+      <PreReservaModal
+        isOpen={preReservaModalOpen}
+        onClose={() => {
+          setPreReservaModalOpen(false)
+          setSelectedBookForPreReserva(null)
+        }}
+        book={selectedBookForPreReserva}
         onSuccess={loadBooks}
       />
 
