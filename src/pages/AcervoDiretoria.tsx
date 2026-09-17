@@ -1,7 +1,7 @@
 import Acervo from '@/pages/Acervo'
 
 /**
- * Página do Catálogo & Acervo de Livros da Diretoria
+ * Página do Acervo Rino Curti (Biblioteca Rino Curti)
  * Rota: /acervo-diretoria
  *
  * Exibe todas as funcionalidades do Acervo (listagem, filtros,

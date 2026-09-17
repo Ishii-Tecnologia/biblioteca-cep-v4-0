@@ -249,10 +249,10 @@ export default function Layout({ children }: LayoutProps) {
                             <BookOpen className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                             <div>
                               <div className="font-semibold text-slate-900 text-xs sm:text-sm">
-                                Acervo Geral
+                                Biblioteca Cecilia Braga
                               </div>
                               <div className="text-[11px] text-slate-500 font-normal">
-                                Catálogo & Acervo de Livros geral
+                                Acervo Cecilia Braga
                               </div>
                             </div>
                           </Link>
@@ -266,13 +266,13 @@ export default function Layout({ children }: LayoutProps) {
                             <Briefcase className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                             <div>
                               <div className="font-semibold text-amber-900 text-xs sm:text-sm flex items-center gap-1.5">
-                                Acervo da Diretoria
+                                Biblioteca Rino Curti
                                 <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[10px] px-1 py-0">
                                   Restrito
                                 </Badge>
                               </div>
                               <div className="text-[11px] text-slate-500 font-normal">
-                                Catálogo & Acervo de Livros da Diretoria
+                                Acervo Rino Curti
                               </div>
                             </div>
                           </Link>
@@ -379,14 +379,14 @@ export default function Layout({ children }: LayoutProps) {
                     <DropdownMenuItem asChild>
                       <Link to="/acervo" className="cursor-pointer">
                         <BookMarked className="w-4 h-4 mr-2" />
-                        {isDiretoriaOrAdmin ? 'Acervo Geral' : 'Explorar Acervo'}
+                        {isDiretoriaOrAdmin ? 'Biblioteca Cecilia Braga' : 'Explorar Acervo'}
                       </Link>
                     </DropdownMenuItem>
                     {isDiretoriaOrAdmin && (
                       <DropdownMenuItem asChild>
                         <Link to="/acervo-diretoria" className="cursor-pointer text-amber-900">
                           <Briefcase className="w-4 h-4 mr-2 text-amber-600" />
-                          Acervo da Diretoria
+                          Biblioteca Rino Curti
                         </Link>
                       </DropdownMenuItem>
                     )}
@@ -678,7 +678,7 @@ export default function Layout({ children }: LayoutProps) {
                       >
                         <div className="flex items-center gap-3">
                           <Icon className="w-4 h-4 text-emerald-600" />
-                          <span>Acervo Geral de Livros</span>
+                          <span>Biblioteca Cecilia Braga</span>
                         </div>
                       </NavLink>
                       <NavLink
@@ -694,10 +694,10 @@ export default function Layout({ children }: LayoutProps) {
                       >
                         <div className="flex items-center gap-3">
                           <Briefcase className="w-4 h-4 text-amber-600" />
-                          <span>Acervo da Diretoria</span>
+                          <span>Biblioteca Rino Curti</span>
                         </div>
                         <Badge className="bg-amber-200 text-amber-950 border-amber-300 text-[9px] px-1.5 py-0">
-                          Diretoria
+                          Restrito
                         </Badge>
                       </NavLink>
                     </div>

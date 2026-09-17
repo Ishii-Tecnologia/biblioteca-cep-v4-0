@@ -338,13 +338,11 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
               <BookOpen
                 className={`w-6 h-6 ${isDiretoria ? 'text-amber-600' : 'text-emerald-600'}`}
               />
-              {isDiretoria
-                ? 'Catálogo & Acervo de Livros da Diretoria'
-                : 'Catálogo & Acervo de Livros'}
+              {isDiretoria ? 'Acervo Rino Curti' : 'Acervo Cecilia Braga'}
             </h1>
             {isDiretoria && (
               <Badge className="bg-amber-100 text-amber-900 border-amber-300 font-semibold text-xs">
-                Coleção Diretoria
+                Coleção Rino Curti
               </Badge>
             )}
           </div>
