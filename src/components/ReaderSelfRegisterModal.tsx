@@ -468,7 +468,11 @@ export function ReaderSelfRegisterModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[540px] max-h-[92vh] overflow-y-auto">
+      <DialogContent
+        className={`w-[96vw] max-w-[96vw] max-h-[92vh] overflow-y-auto p-4 sm:p-6 md:p-7 ${
+          submittedSuccess ? 'sm:max-w-xl' : 'sm:max-w-4xl md:max-w-5xl lg:max-w-6xl'
+        }`}
+      >
         {submittedSuccess ? (
           <div className="py-6 space-y-5 text-center">
             <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 mx-auto flex items-center justify-center shadow-inner">
@@ -479,7 +483,7 @@ export function ReaderSelfRegisterModal({
               <DialogTitle className="text-xl font-bold text-slate-900">
                 Cadastro Enviado com Sucesso!
               </DialogTitle>
-              <DialogDescription className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
+              <DialogDescription className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
                 Agradecemos pelo seu cadastro na <strong>Biblioteca da CEP</strong>.
               </DialogDescription>
             </div>
@@ -521,335 +525,366 @@ export function ReaderSelfRegisterModal({
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit}>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-slate-900">
-                <UserPlus className="w-5 h-5 text-emerald-600" />
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <DialogHeader className="pb-2 border-b border-slate-100">
+              <DialogTitle className="flex items-center gap-2 text-slate-900 text-lg sm:text-xl">
+                <UserPlus className="w-5 h-5 text-emerald-600 shrink-0" />
                 <span>Cadastro de Novo Leitor</span>
               </DialogTitle>
-              <DialogDescription className="text-xs">
+              <DialogDescription className="text-xs sm:text-sm text-slate-500">
                 Preencha seus dados para solicitar o cadastro na Biblioteca da CEP. Após a validação
                 pela equipe, você receberá por e-mail as orientações para o primeiro acesso.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="grid gap-3.5 py-3">
-              {/* Foto do Leitor (Opcional) */}
-              <div
-                onPaste={handlePaste}
-                tabIndex={0}
-                className="flex flex-col sm:flex-row items-center gap-3.5 p-3 bg-slate-50 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all cursor-default"
-                title="Clique aqui e pressione Ctrl+V para colar uma imagem"
-              >
-                <Avatar className="w-14 h-14 border-2 border-emerald-500 shadow-sm shrink-0">
-                  {photoPreview ? (
-                    <AvatarImage
-                      src={photoPreview}
-                      alt="Preview da foto"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <AvatarFallback className="bg-emerald-100 text-emerald-800 text-sm font-bold">
-                      <Camera className="w-5 h-5 text-emerald-600" />
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-
-                <div className="space-y-1 flex-1 text-center sm:text-left min-w-0">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold text-slate-800">
-                      Foto do Leitor (Opcional)
-                    </Label>
-                    <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-slate-400">
-                      <ClipboardPaste className="w-3 h-3" /> Ctrl+V aceito
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    Selecione uma imagem ou cole da área de transferência.
-                  </p>
-                  <div className="flex items-center justify-center sm:justify-start gap-2 pt-0.5">
-                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 shadow-xs">
-                      <Upload className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Selecionar</span>
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp,image/jpg"
-                        onChange={handlePhotoSelect}
-                        className="hidden"
-                        disabled={loading}
-                      />
-                    </label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handlePasteButtonClick}
-                      disabled={loading}
-                      className="h-7 text-xs px-2.5 bg-white border-slate-300 text-slate-700 hover:bg-slate-100"
-                    >
-                      <ClipboardPaste className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                      Colar
-                    </Button>
-                    {photoPreview && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleRemovePhoto}
-                        disabled={loading}
-                        className="h-7 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2"
-                      >
-                        <X className="w-3.5 h-3.5 mr-1" />
-                        Remover
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Nome Completo */}
-              <div>
-                <Label htmlFor="auto_nome" className="text-xs font-semibold text-slate-700">
-                  Nome Completo *
-                </Label>
-                <Input
-                  id="auto_nome"
-                  required
-                  placeholder="Ex: Maria dos Santos"
-                  value={formData.nome_do_leitor}
-                  onChange={(e) => setFormData({ ...formData, nome_do_leitor: e.target.value })}
-                  className="mt-1 text-xs"
-                />
-              </div>
-
-              {/* E-mail / Login */}
-              <div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="auto_email" className="text-xs font-semibold text-slate-700">
-                    E-mail (será seu login de acesso) *
-                  </Label>
-                  {emailValidating ? (
-                    <span className="text-[11px] font-medium text-slate-500 flex items-center gap-1">
-                      <Loader2 className="w-3 h-3 animate-spin text-emerald-600" />
-                      Validando domínio...
-                    </span>
-                  ) : emailValidSuccess && !emailError ? (
-                    <span className="text-[11px] font-medium text-emerald-600 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Domínio válido
-                    </span>
-                  ) : null}
-                </div>
-                <div className="relative mt-1">
-                  <Input
-                    id="auto_email"
-                    type="email"
-                    required
-                    placeholder="seu.email@exemplo.com"
-                    value={formData.email}
-                    onChange={(e) => {
-                      const val = e.target.value
-                      setFormData({ ...formData, email: val })
-                      triggerEmailValidation(val)
-                    }}
-                    onBlur={() => {
-                      if (formData.email) {
-                        triggerEmailValidation(formData.email)
-                      }
-                    }}
-                    className={`text-xs ${
-                      emailError
-                        ? 'border-rose-500 focus-visible:ring-rose-500 pr-8'
-                        : emailValidSuccess
-                          ? 'border-emerald-500 focus-visible:ring-emerald-500 pr-8'
-                          : ''
-                    }`}
-                  />
-                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                    {emailValidating ? (
-                      <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />
-                    ) : emailError ? (
-                      <ShieldAlert className="w-3.5 h-3.5 text-rose-500" />
-                    ) : emailValidSuccess ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    ) : null}
-                  </div>
-                </div>
-                {emailError ? (
-                  <div className="mt-1.5 flex items-start gap-1.5 p-2 rounded bg-rose-50 border border-rose-200 text-[11px] text-rose-800 leading-snug">
-                    <ShieldAlert className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
-                    <span>{emailError}</span>
-                  </div>
-                ) : emailValidSuccess ? (
-                  <p className="text-[11px] text-emerald-700 mt-1 flex items-center gap-1 font-medium">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                    E-mail permanente com domínio e recebimento verificados.
-                  </p>
-                ) : (
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    O link de primeiro acesso para cadastramento da senha será enviado para este
-                    e-mail.
-                  </p>
-                )}
-              </div>
-
-              {/* Telefones: Celular e Fixo */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Celular/WhatsApp */}
-                <div>
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="auto_celular"
-                      className="text-xs font-semibold text-slate-700 flex items-center gap-1"
-                    >
-                      <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
-                      Celular/WhatsApp
-                    </Label>
-                    {celularError && (
-                      <span className="text-[10px] font-medium text-rose-600">{celularError}</span>
-                    )}
-                  </div>
-                  <Input
-                    id="auto_celular"
-                    type="tel"
-                    placeholder="(XX) 9XXXX-XXXX"
-                    maxLength={15}
-                    value={formData.celular}
-                    onChange={(e) => {
-                      setFormData({ ...formData, celular: formatMobilePhone(e.target.value) })
-                      if (celularError) setCelularError(null)
-                    }}
-                    className={`mt-1 text-xs font-mono ${
-                      celularError ? 'border-rose-500 focus-visible:ring-rose-500' : ''
-                    }`}
-                  />
-                  <p className="text-[10px] text-slate-400 mt-0.5">
-                    2 dígitos DDD + 9 dígitos celular
-                  </p>
-                </div>
-
-                {/* Telefone Fixo */}
-                <div>
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="auto_fixo"
-                      className="text-xs font-semibold text-slate-700 flex items-center gap-1"
-                    >
-                      <Phone className="w-3.5 h-3.5 text-emerald-600" />
-                      Telefone Fixo (Opcional)
-                    </Label>
-                    {telefoneFixoError && (
-                      <span className="text-[10px] font-medium text-rose-600">
-                        {telefoneFixoError}
-                      </span>
-                    )}
-                  </div>
-                  <Input
-                    id="auto_fixo"
-                    type="tel"
-                    placeholder="(XX) XXXX-XXXX"
-                    maxLength={14}
-                    value={formData.telefone_fixo}
-                    onChange={(e) => {
-                      setFormData({
-                        ...formData,
-                        telefone_fixo: formatLandlinePhone(e.target.value),
-                      })
-                      if (telefoneFixoError) setTelefoneFixoError(null)
-                    }}
-                    className={`mt-1 text-xs font-mono ${
-                      telefoneFixoError ? 'border-rose-500 focus-visible:ring-rose-500' : ''
-                    }`}
-                  />
-                  <p className="text-[10px] text-slate-400 mt-0.5">
-                    2 dígitos DDD + 8 dígitos fixo
-                  </p>
-                </div>
-              </div>
-
-              {/* Cursos Frequentados na CEP */}
-              <div className="space-y-2 p-3 bg-slate-50/80 rounded-lg border border-slate-200">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                    <GraduationCap className="w-4 h-4 text-emerald-600" />
-                    Curso(s) que você frequenta na CEP (Opcional)
-                  </Label>
-                  <span className="text-[11px] text-slate-500">
-                    {selectedCursoIds.length === 0
-                      ? 'Nenhum curso selecionado'
-                      : `${selectedCursoIds.length} selecionado(s)`}
+            {/* Layout em 2 colunas no desktop */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+              {/* COLUNA ESQUERDA: Dados Cadastrais e Contatos */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pb-1 border-b border-slate-100">
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    1. Identificação e Contatos
                   </span>
                 </div>
 
-                <div className="flex flex-wrap gap-1.5 min-h-[26px] items-center">
-                  {selectedCursoIds.length === 0 ? (
-                    <span className="text-xs text-slate-400 italic">
-                      Se você frequenta algum curso na CEP, selecione abaixo e clique em Adicionar
-                      (+).
-                    </span>
-                  ) : (
-                    selectedCursoIds.map((cId) => {
-                      const cObj = allCursos.find((c) => c.id === cId)
-                      const cNome = cObj?.nome || cId
-                      return (
-                        <Badge
-                          key={cId}
-                          variant="secondary"
-                          className="bg-emerald-100 text-emerald-900 border-emerald-300 text-xs py-0.5 px-2 gap-1.5 font-medium flex items-center"
+                {/* Foto do Leitor (Opcional) */}
+                <div
+                  onPaste={handlePaste}
+                  tabIndex={0}
+                  className="flex flex-col sm:flex-row items-center gap-3.5 p-3 bg-slate-50 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all cursor-default"
+                  title="Clique aqui e pressione Ctrl+V para colar uma imagem"
+                >
+                  <Avatar className="w-16 h-16 border-2 border-emerald-500 shadow-sm shrink-0">
+                    {photoPreview ? (
+                      <AvatarImage
+                        src={photoPreview}
+                        alt="Preview da foto"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <AvatarFallback className="bg-emerald-100 text-emerald-800 text-sm font-bold">
+                        <Camera className="w-6 h-6 text-emerald-600" />
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+
+                  <div className="space-y-1 flex-1 text-center sm:text-left min-w-0">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold text-slate-800">
+                        Foto do Leitor (Opcional)
+                      </Label>
+                      <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-slate-400">
+                        <ClipboardPaste className="w-3 h-3" /> Ctrl+V aceito
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Selecione uma imagem ou cole da área de transferência.
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-0.5">
+                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 shadow-xs">
+                        <Upload className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Selecionar</span>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/jpg"
+                          onChange={handlePhotoSelect}
+                          className="hidden"
+                          disabled={loading}
+                        />
+                      </label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePasteButtonClick}
+                        disabled={loading}
+                        className="h-7 text-xs px-2.5 bg-white border-slate-300 text-slate-700 hover:bg-slate-100"
+                      >
+                        <ClipboardPaste className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                        Colar
+                      </Button>
+                      {photoPreview && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRemovePhoto}
+                          disabled={loading}
+                          className="h-7 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2"
                         >
-                          <span>{cNome}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveCurso(cId)}
-                            className="hover:bg-emerald-200 rounded-full p-0.5 text-emerald-700 hover:text-emerald-950 transition-colors"
-                            title="Remover curso"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </Badge>
-                      )
-                    })
+                          <X className="w-3.5 h-3.5 mr-1" />
+                          Remover
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Nome Completo */}
+                <div>
+                  <Label htmlFor="auto_nome" className="text-xs font-semibold text-slate-700">
+                    Nome Completo *
+                  </Label>
+                  <Input
+                    id="auto_nome"
+                    required
+                    placeholder="Ex: Maria dos Santos"
+                    value={formData.nome_do_leitor}
+                    onChange={(e) => setFormData({ ...formData, nome_do_leitor: e.target.value })}
+                    className="mt-1 text-xs"
+                  />
+                </div>
+
+                {/* E-mail / Login */}
+                <div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="auto_email" className="text-xs font-semibold text-slate-700">
+                      E-mail (será seu login de acesso) *
+                    </Label>
+                    {emailValidating ? (
+                      <span className="text-[11px] font-medium text-slate-500 flex items-center gap-1">
+                        <Loader2 className="w-3 h-3 animate-spin text-emerald-600" />
+                        Validando domínio...
+                      </span>
+                    ) : emailValidSuccess && !emailError ? (
+                      <span className="text-[11px] font-medium text-emerald-600 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Domínio válido
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="relative mt-1">
+                    <Input
+                      id="auto_email"
+                      type="email"
+                      required
+                      placeholder="seu.email@exemplo.com"
+                      value={formData.email}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setFormData({ ...formData, email: val })
+                        triggerEmailValidation(val)
+                      }}
+                      onBlur={() => {
+                        if (formData.email) {
+                          triggerEmailValidation(formData.email)
+                        }
+                      }}
+                      className={`text-xs ${
+                        emailError
+                          ? 'border-rose-500 focus-visible:ring-rose-500 pr-8'
+                          : emailValidSuccess
+                            ? 'border-emerald-500 focus-visible:ring-emerald-500 pr-8'
+                            : ''
+                      }`}
+                    />
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                      {emailValidating ? (
+                        <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />
+                      ) : emailError ? (
+                        <ShieldAlert className="w-3.5 h-3.5 text-rose-500" />
+                      ) : emailValidSuccess ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : null}
+                    </div>
+                  </div>
+                  {emailError ? (
+                    <div className="mt-1.5 flex items-start gap-1.5 p-2 rounded bg-rose-50 border border-rose-200 text-[11px] text-rose-800 leading-snug">
+                      <ShieldAlert className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
+                      <span>{emailError}</span>
+                    </div>
+                  ) : emailValidSuccess ? (
+                    <p className="text-[11px] text-emerald-700 mt-1 flex items-center gap-1 font-medium">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                      E-mail permanente com domínio e recebimento verificados.
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      O link de primeiro acesso para cadastramento da senha será enviado para este
+                      e-mail.
+                    </p>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 pt-1">
-                  <Select value={cursoToAdd} onValueChange={setCursoToAdd} disabled={loadingCursos}>
-                    <SelectTrigger className="text-xs h-8 bg-white flex-1">
-                      <SelectValue placeholder="Selecione um curso..." />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-56">
-                      {allCursos
-                        .filter((c) => !selectedCursoIds.includes(c.id))
-                        .map((c) => (
-                          <SelectItem key={c.id} value={c.id} className="text-xs">
-                            {c.nome}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={handleAddCurso}
-                    disabled={!cursoToAdd}
-                    className="h-8 px-3 text-xs bg-emerald-600 hover:bg-emerald-700 text-white hover:text-white border-none gap-1 font-semibold shrink-0 shadow-xs"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Adicionar (+)</span>
-                  </Button>
+                {/* Telefones: Celular e Fixo */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Celular/WhatsApp */}
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <Label
+                        htmlFor="auto_celular"
+                        className="text-xs font-semibold text-slate-700 flex items-center gap-1"
+                      >
+                        <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+                        Celular/WhatsApp
+                      </Label>
+                      {celularError && (
+                        <span className="text-[10px] font-medium text-rose-600">
+                          {celularError}
+                        </span>
+                      )}
+                    </div>
+                    <Input
+                      id="auto_celular"
+                      type="tel"
+                      placeholder="(XX) 9XXXX-XXXX"
+                      maxLength={15}
+                      value={formData.celular}
+                      onChange={(e) => {
+                        setFormData({ ...formData, celular: formatMobilePhone(e.target.value) })
+                        if (celularError) setCelularError(null)
+                      }}
+                      className={`mt-1 text-xs font-mono ${
+                        celularError ? 'border-rose-500 focus-visible:ring-rose-500' : ''
+                      }`}
+                    />
+                    <p className="text-[10px] text-slate-400 mt-0.5">
+                      2 dígitos DDD + 9 dígitos celular
+                    </p>
+                  </div>
+
+                  {/* Telefone Fixo */}
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <Label
+                        htmlFor="auto_fixo"
+                        className="text-xs font-semibold text-slate-700 flex items-center gap-1"
+                      >
+                        <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                        Telefone Fixo (Opcional)
+                      </Label>
+                      {telefoneFixoError && (
+                        <span className="text-[10px] font-medium text-rose-600">
+                          {telefoneFixoError}
+                        </span>
+                      )}
+                    </div>
+                    <Input
+                      id="auto_fixo"
+                      type="tel"
+                      placeholder="(XX) XXXX-XXXX"
+                      maxLength={14}
+                      value={formData.telefone_fixo}
+                      onChange={(e) => {
+                        setFormData({
+                          ...formData,
+                          telefone_fixo: formatLandlinePhone(e.target.value),
+                        })
+                        if (telefoneFixoError) setTelefoneFixoError(null)
+                      }}
+                      className={`mt-1 text-xs font-mono ${
+                        telefoneFixoError ? 'border-rose-500 focus-visible:ring-rose-500' : ''
+                      }`}
+                    />
+                    <p className="text-[10px] text-slate-400 mt-0.5">
+                      2 dígitos DDD + 8 dígitos fixo
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {/* Aviso explicativo sobre o fluxo */}
-              <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-lg p-2.5 text-[11px] text-emerald-900 leading-relaxed">
-                <strong>Atenção:</strong> Não é necessário definir senha neste momento. Seu cadastro
-                ficará pendente de validação pela Biblioteca da CEP. Após a aprovação, você receberá
-                por e-mail o link para criar sua senha de acesso.
+              {/* COLUNA DIREITA: Cursos e Informações de Acesso */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pb-1 border-b border-slate-100">
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    2. Cursos e Confirmação
+                  </span>
+                </div>
+
+                {/* Cursos Frequentados na CEP */}
+                <div className="space-y-2.5 p-3.5 bg-slate-50/80 rounded-lg border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+                      <GraduationCap className="w-4 h-4 text-emerald-600" />
+                      Curso(s) que você frequenta na CEP (Opcional)
+                    </Label>
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      {selectedCursoIds.length === 0
+                        ? 'Nenhum curso selecionado'
+                        : `${selectedCursoIds.length} selecionado(s)`}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 min-h-[32px] p-2 bg-white rounded-md border border-slate-200/80 items-center">
+                    {selectedCursoIds.length === 0 ? (
+                      <span className="text-xs text-slate-400 italic">
+                        Se você frequenta algum curso na CEP, selecione abaixo e clique em Adicionar
+                        (+).
+                      </span>
+                    ) : (
+                      selectedCursoIds.map((cId) => {
+                        const cObj = allCursos.find((c) => c.id === cId)
+                        const cNome = cObj?.nome || cId
+                        return (
+                          <Badge
+                            key={cId}
+                            variant="secondary"
+                            className="bg-emerald-100 text-emerald-900 border-emerald-300 text-xs py-1 px-2.5 gap-1.5 font-medium flex items-center"
+                          >
+                            <span>{cNome}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveCurso(cId)}
+                              className="hover:bg-emerald-200 rounded-full p-0.5 text-emerald-700 hover:text-emerald-950 transition-colors"
+                              title="Remover curso"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </Badge>
+                        )
+                      })
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <Select
+                      value={cursoToAdd}
+                      onValueChange={setCursoToAdd}
+                      disabled={loadingCursos}
+                    >
+                      <SelectTrigger className="text-xs h-8 bg-white flex-1 min-w-0">
+                        <SelectValue placeholder="Selecione um curso..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-56">
+                        {allCursos
+                          .filter((c) => !selectedCursoIds.includes(c.id))
+                          .map((c) => (
+                            <SelectItem key={c.id} value={c.id} className="text-xs">
+                              {c.nome}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={handleAddCurso}
+                      disabled={!cursoToAdd}
+                      className="h-8 px-3 text-xs bg-emerald-600 hover:bg-emerald-700 text-white hover:text-white border-none gap-1 font-semibold shrink-0 shadow-xs"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Adicionar (+)</span>
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Aviso explicativo sobre o fluxo */}
+                <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-lg p-3.5 text-xs text-emerald-900 leading-relaxed space-y-1.5">
+                  <div className="font-semibold flex items-center gap-1.5 text-emerald-950">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    Como funciona o primeiro acesso?
+                  </div>
+                  <p className="text-[11px] text-emerald-800 leading-relaxed">
+                    Não é necessário definir senha neste momento. Seu cadastro passará por validação
+                    pela equipe da Biblioteca da CEP. Assim que aprovado, você receberá um e-mail
+                    oficial com o link para cadastrar sua senha com total segurança.
+                  </p>
+                </div>
               </div>
             </div>
 
-            <DialogFooter className="gap-2 sm:justify-end pt-2">
+            <DialogFooter className="gap-2 sm:justify-end pt-3 border-t border-slate-100">
               <Button
                 type="button"
                 variant="outline"

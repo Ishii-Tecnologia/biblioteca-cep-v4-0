@@ -104,7 +104,7 @@ export function ReaderLoanHistoryModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[750px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+      <DialogContent className="w-[96vw] max-w-[96vw] sm:max-w-4xl md:max-w-5xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
         {/* Header */}
         <div className="p-6 pb-4 border-b border-slate-100 bg-slate-50/50">
           <DialogHeader>
