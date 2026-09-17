@@ -1,6 +1,6 @@
 # Biblioteca CEP v4.0
 
-Sistema de Gestão de Biblioteca CEP v4.0.
+Sistema de Gestão da Biblioteca da Coligação Espírita Progressista (CEP) v4.0.
 
 ## 🚀 Stack Tecnológica
 

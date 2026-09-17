@@ -456,7 +456,7 @@ export const LeitoresService = {
   },
 
   /**
-   * Envia e-mail de primeiro acesso / definição de senha para o leitor com identidade visual da Biblioteca da CEP.
+   * Envia e-mail de primeiro acesso / definição de senha para o leitor com identidade visual da Biblioteca da Coligação Espírita Progressista (CEP).
    * Utiliza a Edge Function send_access_email com SMTP próprio e action_link gerado via Admin API,
    * suprimindo e-mails padrão e prevenindo rate-limits desnecessários.
    * Possui fallback resiliente com resetPasswordForEmail caso a função esteja indisponível.

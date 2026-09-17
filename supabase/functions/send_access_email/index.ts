@@ -211,7 +211,9 @@ async function sendViaSmtp({
 
       // 8. Mensagem MIME multipart/alternative (texto e HTML)
       const boundary = '==_Part_BibliotecaCEP_' + Date.now().toString(36)
-      const fromHeader = from.includes('<') ? from : `Biblioteca da CEP <${from || user}>`
+      const fromHeader = from.includes('<')
+        ? from
+        : `Biblioteca da Coligação Espírita Progressista (CEP) <${from || user}>`
       const toHeader = to.join(', ')
 
       const mimeMessage = [
@@ -371,16 +373,16 @@ Deno.serve(async (req: Request) => {
 
     const actionLink = linkData.properties.action_link
 
-    // 4. Preparar conteúdo de e-mail institucional da Biblioteca da CEP
+    // 4. Preparar conteúdo de e-mail institucional da Biblioteca da Coligação Espírita Progressista (CEP)
     const saudacao = leitorNome ? `Olá, ${leitorNome}!` : 'Olá!'
     const assunto = isReset
-      ? 'Biblioteca da CEP — Redefinição de Senha de Acesso'
-      : 'Biblioteca da CEP — Bem-vindo! Defina sua Senha de Acesso'
+      ? 'Biblioteca da Coligação Espírita Progressista (CEP) — Redefinição de Senha de Acesso'
+      : 'Biblioteca da Coligação Espírita Progressista (CEP) — Bem-vindo! Defina sua Senha de Acesso'
 
     const tituloCard = isReset ? 'Redefinição de Senha' : 'Seu Primeiro Acesso'
     const textoExplicativo = isReset
-      ? 'Recebemos uma solicitação para redefinir sua senha de acesso ao sistema da <strong>Biblioteca da CEP</strong>. Clique no botão abaixo para cadastrar sua nova senha:'
-      : 'Seu cadastro de leitor na <strong>Biblioteca da CEP</strong> foi confirmado com sucesso! Para começar a utilizar o sistema, consultar o acervo e solicitar empréstimos, cadastre sua senha de acesso:'
+      ? 'Recebemos uma solicitação para redefinir sua senha de acesso ao sistema da <strong>Biblioteca da Coligação Espírita Progressista (CEP)</strong>. Clique no botão abaixo para cadastrar sua nova senha:'
+      : 'Seu cadastro de leitor na <strong>Biblioteca da Coligação Espírita Progressista (CEP)</strong> foi confirmado com sucesso! Para começar a utilizar o sistema, consultar o acervo e solicitar empréstimos, cadastre sua senha de acesso:'
 
     const htmlBody = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -402,7 +404,7 @@ Deno.serve(async (req: Request) => {
           <!-- Header -->
           <tr>
             <td style="padding: 32px 36px 20px 36px; text-align: center; border-bottom: 1px solid #f1f5f9;">
-              <h1 style="margin: 0 0 6px 0; font-size: 24px; font-weight: 800; color: #047857; letter-spacing: -0.5px;">Biblioteca da CEP</h1>
+              <h1 style="margin: 0 0 6px 0; font-size: 24px; font-weight: 800; color: #047857; letter-spacing: -0.5px;">Biblioteca da Coligação Espírita Progressista (CEP)</h1>
               <p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 500;">Sistema de Gestão de Acervo e Empréstimos</p>
             </td>
           </tr>
@@ -449,7 +451,7 @@ Deno.serve(async (req: Request) => {
           <!-- Footer -->
           <tr>
             <td style="padding: 24px 36px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center;">
-              <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 600; color: #475569;">Centro de Estudos Psíquicos (CEP) — Biblioteca</p>
+              <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 600; color: #475569;">Coligação Espírita Progressista (CEP) — Biblioteca</p>
               <p style="margin: 0; font-size: 11px; color: #94a3b8;">Mensagem automática gerada pelo sistema. Não responda a este e-mail.</p>
             </td>
           </tr>
@@ -462,7 +464,7 @@ Deno.serve(async (req: Request) => {
 
     const textBody = `${saudacao}
 
-${isReset ? 'Recebemos uma solicitação para redefinir sua senha na Biblioteca da CEP.' : 'Seu cadastro de leitor na Biblioteca da CEP foi confirmado com sucesso!'}
+${isReset ? 'Recebemos uma solicitação para redefinir sua senha na Biblioteca da Coligação Espírita Progressista (CEP).' : 'Seu cadastro de leitor na Biblioteca da Coligação Espírita Progressista (CEP) foi confirmado com sucesso!'}
 
 Para cadastrar sua senha, acesse o link seguro abaixo:
 ${actionLink}
@@ -472,7 +474,7 @@ Avisos importantes:
 - Se você não solicitou este cadastro ou redefinição, apenas ignore esta mensagem.
 
 Atenciosamente,
-Biblioteca da CEP — Centro de Estudos Psíquicos`
+Biblioteca da Coligação Espírita Progressista (CEP)`
 
     // 5. Configuração SMTP
     const smtpHost = Deno.env.get('SMTP_HOST')?.trim()
@@ -484,7 +486,7 @@ Biblioteca da CEP — Centro de Estudos Psíquicos`
 
     if (smtpHost && smtpPortStr && smtpUser && smtpPass) {
       const port = parseInt(smtpPortStr, 10) || 587
-      const fromHeader = `Biblioteca da CEP <${smtpUser}>`
+      const fromHeader = `Biblioteca da Coligação Espírita Progressista (CEP) <${smtpUser}>`
 
       sendResult = await sendViaSmtp({
         host: smtpHost,

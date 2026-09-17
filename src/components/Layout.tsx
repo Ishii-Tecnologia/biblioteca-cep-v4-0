@@ -89,7 +89,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const navItems = [
     { to: '/', label: 'Início', icon: LayoutDashboard, authRequired: false },
-    { to: '/acervo', label: 'Bibliotecas', icon: BookOpen, authRequired: false },
+    { to: '/acervo', label: 'Acervo', icon: BookOpen, authRequired: false },
     {
       to: '/emprestimos',
       label: 'Empréstimos',
@@ -232,17 +232,17 @@ export default function Layout({ children }: LayoutProps) {
                 if (item.operatorOnly && !isOperadorOrAdmin) return null
                 const Icon = item.icon
 
-                // Se for o item "Bibliotecas" e o usuário for Diretoria ou Admin, renderiza menu dropdown
+                // Se for o item "Acervo" e o usuário for Diretoria ou Admin, renderiza menu dropdown
                 if (item.to === '/acervo' && isDiretoriaOrAdmin) {
                   return (
-                    <DropdownMenu key="menu-bibliotecas">
+                    <DropdownMenu key="menu-acervo">
                       <DropdownMenuTrigger asChild>
                         <button
                           type="button"
                           className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus:bg-slate-100"
                         >
                           <Icon className="w-4 h-4" />
-                          <span>Bibliotecas</span>
+                          <span>Acervo</span>
                           <ChevronDown className="w-3.5 h-3.5 opacity-60 ml-0.5" />
                         </button>
                       </DropdownMenuTrigger>
@@ -383,7 +383,7 @@ export default function Layout({ children }: LayoutProps) {
                       <DropdownMenuSub>
                         <DropdownMenuSubTrigger className="cursor-pointer">
                           <BookOpen className="w-4 h-4 mr-2 text-emerald-600" />
-                          <span>Bibliotecas</span>
+                          <span>Acervo</span>
                         </DropdownMenuSubTrigger>
                         <DropdownMenuSubContent className="w-56">
                           <DropdownMenuItem asChild>
@@ -410,7 +410,7 @@ export default function Layout({ children }: LayoutProps) {
                       <DropdownMenuItem asChild>
                         <Link to="/acervo" className="cursor-pointer">
                           <BookMarked className="w-4 h-4 mr-2" />
-                          <span>Bibliotecas</span>
+                          <span>Acervo</span>
                         </Link>
                       </DropdownMenuItem>
                     )}
@@ -688,10 +688,10 @@ export default function Layout({ children }: LayoutProps) {
 
                 if (item.to === '/acervo' && isDiretoriaOrAdmin) {
                   return (
-                    <div key="mobile-group-bibliotecas" className="space-y-1">
+                    <div key="mobile-group-acervo" className="space-y-1">
                       <div className="px-3 pt-2 pb-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                         <Icon className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Bibliotecas</span>
+                        <span>Acervo</span>
                       </div>
                       <NavLink
                         to="/acervo"
