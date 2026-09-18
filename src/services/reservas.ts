@@ -1044,11 +1044,50 @@ export const ReservasService = {
   },
 
   async fulfill(id_reserva: number, operatorName = 'Sistema') {
+    // 1. Tenta executar via RPC transacional atômico atender_reserva
+    const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)('atender_reserva', {
+      p_id_reserva: id_reserva,
+      p_operador_nome: operatorName,
+    })
+
+    if (!rpcErr && rpcData) {
+      const res = typeof rpcData === 'string' ? JSON.parse(rpcData) : rpcData
+      if (res && res.success) {
+        try {
+          const bookTitle = res.livro_titulo || 'Livro'
+          const readerName = res.leitor_nome || `Leitor #${res.id_leitor}`
+          const copyId = res.id_exemplar
+
+          await HistoricoService.log(
+            copyId,
+            'Reserva Atendida',
+            res.id_leitor,
+            `Reserva #${id_reserva} atendida: exemplar ${copyId} ("${bookTitle}") liberado para o leitor ${readerName} (Aguardando Retirada)`,
+            operatorName,
+            'exemplar',
+          )
+        } catch (logError) {
+          console.warn('Erro ao registrar log da reserva atendida:', logError)
+        }
+        return res
+      }
+    }
+
+    // Se o RPC retornou erro explícito que não seja função inexistente, propaga
+    if (
+      rpcErr &&
+      !rpcErr.message?.includes('function public.atender_reserva') &&
+      !rpcErr.message?.includes('could not find function')
+    ) {
+      throw new Error(rpcErr.message || 'Erro ao atender reserva.')
+    }
+
+    // 2. Fallback resiliente com busca case-insensitive e suporte a BLOQUEADO/RESERVADO/DISPONIVEL
     const { data: reservaData, error: resErr } = await (supabase.from('reserva') as any)
       .select(`
         *,
-        titulo:id_titulo(titulo_de_livro),
-        leitor:id_leitor(nome_do_leitor)
+        titulo:id_titulo(titulo_de_livro, colecao),
+        leitor:id_leitor(nome_do_leitor, acesso_diretoria, id_auth)
       `)
       .eq('id_reserva', id_reserva)
       .single()
@@ -1060,16 +1099,29 @@ export const ReservasService = {
     let copyToUseId = (reservaData as any).exemplar_reservado_id
 
     if (!copyToUseId) {
+      // Buscar exemplares disponíveis ou já bloqueados/reservados do título
       const { data: exemplares, error: exErr } = await supabase
         .from('exemplar')
-        .select('id_exemplar, status')
+        .select('id_exemplar, status, seq')
         .eq('id_titulo', reservaData.id_titulo)
-        .in('status', ['Disponivel', 'Reservado'])
-        .limit(1)
 
       if (exErr) throw exErr
-      if (exemplares && exemplares.length > 0) {
-        copyToUseId = exemplares[0].id_exemplar
+
+      const list = exemplares || []
+      // Prioridade 1: Disponível (qualquer casing)
+      const disp = list.find((e) =>
+        ['disponivel', 'disponível'].includes((e.status || '').toLowerCase()),
+      )
+      if (disp) {
+        copyToUseId = disp.id_exemplar
+      } else {
+        // Prioridade 2: Bloqueado ou Reservado
+        const bloq = list.find((e) =>
+          ['bloqueado', 'reservado'].includes((e.status || '').toLowerCase()),
+        )
+        if (bloq) {
+          copyToUseId = bloq.id_exemplar
+        }
       }
     }
 
@@ -1078,17 +1130,9 @@ export const ReservasService = {
     }
 
     // Verificar se o título é da diretoria e se o leitor possui acesso
-    const { data: tituloObj } = await (supabase.from('titulo') as any)
-      .select('colecao')
-      .eq('id_titulo', reservaData.id_titulo)
-      .single()
-
+    const tituloObj = reservaData.titulo
     if (tituloObj?.colecao === 'diretoria') {
-      const { data: readerObj } = await (supabase.from('leitor') as any)
-        .select('acesso_diretoria, id_auth')
-        .eq('id_leitor', reservaData.id_leitor)
-        .single()
-
+      const readerObj = reservaData.leitor
       let hasAccess = Boolean(readerObj?.acesso_diretoria)
       if (!hasAccess && readerObj?.id_auth) {
         const { data: prof } = await (supabase.from('profiles') as any)
@@ -1106,11 +1150,23 @@ export const ReservasService = {
       }
     }
 
+    const { getPrazoRetiradaDiasUteis } = await import('./parametros')
+    const { addBusinessDays } = await import('@/lib/utils')
+    const prazoUteis = await getPrazoRetiradaDiasUteis()
+    const now = new Date()
+    const limitDate = addBusinessDays(now, prazoUteis)
+    limitDate.setHours(18, 0, 0, 0)
+
+    const expected = new Date()
+    expected.setDate(now.getDate() + 15)
+
     const { data, error } = await supabase
       .from('reserva')
       .update({
         status_reserva: 'Atendida',
-        data_atendimento: new Date().toISOString(),
+        status: 'CONTEMPLADO',
+        data_atendimento: now.toISOString(),
+        exemplar_reservado_id: copyToUseId,
       })
       .eq('id_reserva', id_reserva)
       .select()
@@ -1118,21 +1174,30 @@ export const ReservasService = {
 
     if (error) throw error
 
-    const now = new Date()
-    const expected = new Date()
-    expected.setDate(now.getDate() + 15)
+    // Verificar se já existe empréstimo PENDENTE_RETIRADA
+    const { data: existingLoan } = await supabase
+      .from('emprestimo')
+      .select('id_emprestimo')
+      .eq('id_exemplar', copyToUseId)
+      .eq('id_leitor', reservaData.id_leitor)
+      .is('data_devolucao_real', null)
+      .maybeSingle()
 
-    const { error: loanErr } = await supabase.from('emprestimo').insert({
-      id_exemplar: copyToUseId,
-      id_leitor: reservaData.id_leitor,
-      data_emprestimo: now.toISOString(),
-      data_prevista_devolucao: expected.toISOString(),
-      atraso: false,
-    })
+    if (!existingLoan) {
+      const { error: loanErr } = await supabase.from('emprestimo').insert({
+        id_exemplar: copyToUseId,
+        id_leitor: reservaData.id_leitor,
+        data_emprestimo: now.toISOString(),
+        data_prevista_devolucao: expected.toISOString(),
+        data_limite_retirada: limitDate.toISOString(),
+        status: 'PENDENTE_RETIRADA',
+        atraso: false,
+      })
+      if (loanErr) throw loanErr
+    }
 
-    if (loanErr) throw loanErr
-
-    await supabase.from('exemplar').update({ status: 'Emprestado' }).eq('id_exemplar', copyToUseId)
+    // Exemplar passa para BLOQUEADO aguardando retirada física
+    await supabase.from('exemplar').update({ status: 'BLOQUEADO' }).eq('id_exemplar', copyToUseId)
 
     try {
       const bookTitle = (reservaData.titulo as any)?.titulo_de_livro || reservaData.id_titulo
@@ -1143,7 +1208,7 @@ export const ReservasService = {
         copyToUseId,
         'Reserva Atendida',
         reservaData.id_leitor,
-        `Reserva #${id_reserva} atendida: exemplar ${copyToUseId} ("${bookTitle}") emprestado para o leitor ${readerName}`,
+        `Reserva #${id_reserva} atendida: exemplar ${copyToUseId} ("${bookTitle}") liberado para o leitor ${readerName} (Aguardando Retirada)`,
         operatorName,
         'exemplar',
       )
