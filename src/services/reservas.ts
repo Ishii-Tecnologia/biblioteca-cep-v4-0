@@ -439,7 +439,7 @@ export const ReservasService = {
     }
 
     if (id_exemplar) {
-      await supabase.from('exemplar').update({ status: 'Reservado' }).eq('id_exemplar', id_exemplar)
+      await supabase.from('exemplar').update({ status: 'RESERVADO' }).eq('id_exemplar', id_exemplar)
     }
 
     const { data, error } = await (supabase.from('reserva') as any)
@@ -524,8 +524,13 @@ export const ReservasService = {
       .select('id_exemplar, status')
       .eq('id_titulo', id_titulo)
 
+    const isAvailableStatus = (st?: string | null) => {
+      const s = (st || '').trim().toLowerCase()
+      return s === 'disponivel' || s === 'disponível'
+    }
+
     const totalCopies = exemplares?.length || 0
-    const disponiveis = (exemplares || []).filter((e) => e.status === 'Disponivel')
+    const disponiveis = (exemplares || []).filter((e) => isAvailableStatus(e.status))
     const disponivelParaEmprestimoDireto = disponiveis.length > 0
 
     const { count: totalNaFila } = await supabase
@@ -599,7 +604,12 @@ export const ReservasService = {
       .select('id_exemplar, status')
       .eq('id_titulo', id_titulo)
 
-    const disponiveis = (exemplares || []).filter((e) => e.status === 'Disponivel')
+    const isAvailableStatus = (st?: string | null) => {
+      const s = (st || '').trim().toLowerCase()
+      return s === 'disponivel' || s === 'disponível'
+    }
+
+    const disponiveis = (exemplares || []).filter((e) => isAvailableStatus(e.status))
     if (disponiveis.length > 0) {
       throw new Error(
         'Esta obra possui exemplar(es) disponível(is) na biblioteca. Realize o empréstimo direto em vez de reservar.',
@@ -774,7 +784,7 @@ export const ReservasService = {
       if (id_exemplar) {
         await supabase
           .from('exemplar')
-          .update({ status: 'Disponivel' })
+          .update({ status: 'DISPONIVEL' })
           .eq('id_exemplar', id_exemplar)
       }
       return null
@@ -804,9 +814,9 @@ export const ReservasService = {
       })
       .eq('id_reserva', proximaReserva.id_reserva)
 
-    // Se houver exemplar, manter como 'Reservado'
+    // Se houver exemplar, manter como 'RESERVADO'
     if (id_exemplar) {
-      await supabase.from('exemplar').update({ status: 'Reservado' }).eq('id_exemplar', id_exemplar)
+      await supabase.from('exemplar').update({ status: 'RESERVADO' }).eq('id_exemplar', id_exemplar)
     }
 
     const bookTitle = (proximaReserva.titulo as any)?.titulo_de_livro || id_titulo
@@ -1099,28 +1109,42 @@ export const ReservasService = {
     let copyToUseId = (reservaData as any).exemplar_reservado_id
 
     if (!copyToUseId) {
-      // Buscar exemplares disponíveis ou já bloqueados/reservados do título
+      // Buscar exemplares aceitando ambos os conjuntos de valores (Title-case e MAIÚSCULAS)
+      // com ordenação por seq para determinismo
       const { data: exemplares, error: exErr } = await supabase
         .from('exemplar')
         .select('id_exemplar, status, seq')
         .eq('id_titulo', reservaData.id_titulo)
+        .in('status', [
+          'Disponivel',
+          'DISPONIVEL',
+          'Disponível',
+          'DISPONÍVEL',
+          'Reservado',
+          'RESERVADO',
+          'Bloqueado',
+          'BLOQUEADO',
+        ])
+        .order('seq', { ascending: true })
 
       if (exErr) throw exErr
 
       const list = exemplares || []
-      // Prioridade 1: Disponível (qualquer casing)
+      // Prioridade 1: Disponível de verdade (aceitando qualquer casing)
       const disp = list.find((e) =>
-        ['disponivel', 'disponível'].includes((e.status || '').toLowerCase()),
+        ['disponivel', 'disponível'].includes((e.status || '').trim().toLowerCase()),
       )
       if (disp) {
         copyToUseId = disp.id_exemplar
       } else {
-        // Prioridade 2: Bloqueado ou Reservado
-        const bloq = list.find((e) =>
-          ['bloqueado', 'reservado'].includes((e.status || '').toLowerCase()),
+        // Prioridade 2: Reservado ou Bloqueado
+        const resOuBloq = list.find((e) =>
+          ['reservado', 'bloqueado'].includes((e.status || '').trim().toLowerCase()),
         )
-        if (bloq) {
-          copyToUseId = bloq.id_exemplar
+        if (resOuBloq) {
+          copyToUseId = resOuBloq.id_exemplar
+        } else if (list.length > 0) {
+          copyToUseId = list[0].id_exemplar
         }
       }
     }
@@ -1196,7 +1220,7 @@ export const ReservasService = {
       if (loanErr) throw loanErr
     }
 
-    // Exemplar passa para BLOQUEADO aguardando retirada física
+    // Exemplar passa para BLOQUEADO aguardando retirada física (padronizado em MAIÚSCULAS)
     await supabase.from('exemplar').update({ status: 'BLOQUEADO' }).eq('id_exemplar', copyToUseId)
 
     try {

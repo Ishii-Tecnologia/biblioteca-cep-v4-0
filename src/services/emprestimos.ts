@@ -184,13 +184,20 @@ export const EmprestimosService = {
     // 1. Total books and available copies
     const { data: exemplares } = await supabase.from('exemplar').select('status')
     const totalExemplares = exemplares?.length || 0
-    const disponiveis = exemplares?.filter((e) => e.status === 'Disponivel').length || 0
-    const emprestados = exemplares?.filter((e) => e.status === 'Emprestado').length || 0
+    const disponiveis =
+      exemplares?.filter((e) => {
+        const s = (e.status || '').trim().toLowerCase()
+        return s === 'disponivel' || s === 'disponível'
+      }).length || 0
+    const emprestados =
+      exemplares?.filter((e) => (e.status || '').trim().toLowerCase() === 'emprestado').length || 0
     const manutencao =
-      exemplares?.filter(
-        (e) =>
-          e.status === 'Manutencao' || e.status === 'EM_MANUTENCAO' || e.status === 'Em Manutencao',
-      ).length || 0
+      exemplares?.filter((e) => {
+        const s = (e.status || '').trim().toLowerCase()
+        return (
+          s === 'manutencao' || s === 'manutenção' || s === 'em_manutencao' || s === 'em manutencao'
+        )
+      }).length || 0
 
     // 2. Active readers
     const { count: totalLeitores } = await supabase
@@ -270,7 +277,8 @@ export const EmprestimosService = {
         .eq('id_exemplar', id_exemplar)
         .single()
       if (exErr || !ex) throw new Error('Exemplar não encontrado.')
-      if (ex.status !== 'Disponivel')
+      const statusLower = (ex.status || '').trim().toLowerCase()
+      if (statusLower !== 'disponivel' && statusLower !== 'disponível')
         throw new Error(`Exemplar não disponível. Status atual: ${ex.status}`)
 
       // 2. Check reader
@@ -304,10 +312,10 @@ export const EmprestimosService = {
         .single()
       if (loanErr) throw loanErr
 
-      // 5. Update exemplar
+      // 5. Update exemplar (padronizado em MAIÚSCULAS)
       await supabase
         .from('exemplar')
-        .update({ status: 'Emprestado' })
+        .update({ status: 'EMPRESTADO' })
         .eq('id_exemplar', id_exemplar)
 
       // 6. Log history
@@ -487,7 +495,7 @@ export const EmprestimosService = {
 
       await supabase
         .from('exemplar')
-        .update({ status: 'Disponivel' })
+        .update({ status: 'DISPONIVEL' })
         .eq('id_exemplar', id_exemplar)
 
       const readerName = (loan.leitor as any)?.nome_do_leitor || `Leitor #${loan.id_leitor}`
@@ -585,10 +593,10 @@ export const EmprestimosService = {
           diaSeguinte.setDate(diaSeguinte.getDate() + 1)
           const diaSeguinteIso = diaSeguinte.toISOString().split('T')[0]
 
-          // Marcar exemplar como 'Reservado' para este primeiro leitor
+          // Marcar exemplar como 'RESERVADO' para este primeiro leitor (padronizado em MAIÚSCULAS)
           await supabase
             .from('exemplar')
-            .update({ status: 'Reservado' })
+            .update({ status: 'RESERVADO' })
             .eq('id_exemplar', id_exemplar)
 
           // Atualizar status_reserva para 'Pronta para Retirada' e data de agendamento

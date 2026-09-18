@@ -82,7 +82,7 @@ export const ExemplaresService = {
         id_exemplar: `${id_titulo}-${seq}`,
         id_titulo: id_titulo,
         seq: seq,
-        status: 'Disponivel',
+        status: 'DISPONIVEL',
         localizacao: localizacao,
       })
     }

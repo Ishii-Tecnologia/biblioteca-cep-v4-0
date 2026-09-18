@@ -82,15 +82,25 @@ export const TitulosService = {
     let formatted: TituloWithStats[] = (data || []).map((item: any) => {
       const exemplares = item.exemplar || []
       const total = exemplares.length
-      const disponiveis = exemplares.filter((e: any) => e.status === 'Disponivel').length
-      const emprestados = exemplares.filter((e: any) => e.status === 'Emprestado').length
-      const manutencao = exemplares.filter(
-        (e: any) =>
-          e.status === 'Manutencao' ||
-          e.status === 'EM_MANUTENCAO' ||
-          e.status === 'Em Manutencao' ||
-          e.status === 'Perdido',
-      ).length
+      const isDisp = (st?: string | null) => {
+        const s = (st || '').trim().toLowerCase()
+        return s === 'disponivel' || s === 'disponível'
+      }
+      const isEmp = (st?: string | null) => (st || '').trim().toLowerCase() === 'emprestado'
+      const isManut = (st?: string | null) => {
+        const s = (st || '').trim().toLowerCase()
+        return (
+          s === 'manutencao' ||
+          s === 'manutenção' ||
+          s === 'em_manutencao' ||
+          s === 'em manutencao' ||
+          s === 'perdido'
+        )
+      }
+
+      const disponiveis = exemplares.filter((e: any) => isDisp(e.status)).length
+      const emprestados = exemplares.filter((e: any) => isEmp(e.status)).length
+      const manutencao = exemplares.filter((e: any) => isManut(e.status)).length
 
       const autorFormatado = formatAuthorDisplay(
         item.autor_espiritual,
@@ -176,13 +186,23 @@ export const TitulosService = {
 
     const allEx = exemplares || []
     const totalExemplares = allEx.length
-    const totalDisponiveis = allEx.filter((e: any) => e.status === 'Disponivel').length
-    const totalEmprestados = allEx.filter((e: any) => e.status === 'Emprestado').length
-    const totalManutencao = allEx.filter(
-      (e: any) =>
-        e.status === 'Manutencao' || e.status === 'EM_MANUTENCAO' || e.status === 'Em Manutencao',
-    ).length
-    const totalPerdidos = allEx.filter((e: any) => e.status === 'Perdido').length
+    const isDisp = (st?: string | null) => {
+      const s = (st || '').trim().toLowerCase()
+      return s === 'disponivel' || s === 'disponível'
+    }
+    const isEmp = (st?: string | null) => (st || '').trim().toLowerCase() === 'emprestado'
+    const isManut = (st?: string | null) => {
+      const s = (st || '').trim().toLowerCase()
+      return (
+        s === 'manutencao' || s === 'manutenção' || s === 'em_manutencao' || s === 'em manutencao'
+      )
+    }
+    const isPerd = (st?: string | null) => (st || '').trim().toLowerCase() === 'perdido'
+
+    const totalDisponiveis = allEx.filter((e: any) => isDisp(e.status)).length
+    const totalEmprestados = allEx.filter((e: any) => isEmp(e.status)).length
+    const totalManutencao = allEx.filter((e: any) => isManut(e.status)).length
+    const totalPerdidos = allEx.filter((e: any) => isPerd(e.status)).length
 
     return {
       totalTitulos: totalTitulos || 0,
@@ -361,7 +381,7 @@ export const TitulosService = {
           id_exemplar: `${data.id_titulo}-${seq}`,
           id_titulo: data.id_titulo,
           seq: seq,
-          status: 'Disponivel',
+          status: 'DISPONIVEL',
           localizacao: localizacaoPadrao,
         })
       }
