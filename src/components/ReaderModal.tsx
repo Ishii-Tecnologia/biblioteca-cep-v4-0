@@ -594,6 +594,7 @@ export function ReaderModal({
         // Apenas operador/admin pode alterar status de bloqueio e acesso à diretoria
         if (isOperadorOrAdmin && !isSelfEdit) {
           updatePayload.bloqueado = formData.bloqueado
+          updatePayload.status = formData.bloqueado ? 'BLOQUEADO' : 'ATIVO'
           updatePayload.acesso_diretoria = formData.acesso_diretoria
         }
 

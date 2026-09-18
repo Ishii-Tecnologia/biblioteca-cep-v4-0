@@ -557,9 +557,13 @@ export const LeitoresService = {
   },
 
   async toggleBlock(id_leitor: number, currentBlocked: boolean) {
+    const nextBlocked = !currentBlocked
     const { data, error } = await supabase
       .from('leitor')
-      .update({ bloqueado: !currentBlocked })
+      .update({
+        bloqueado: nextBlocked,
+        status: nextBlocked ? 'BLOQUEADO' : 'ATIVO',
+      })
       .eq('id_leitor', id_leitor)
       .select()
       .single()

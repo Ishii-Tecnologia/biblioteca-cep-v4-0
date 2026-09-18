@@ -1097,13 +1097,25 @@ export const ReservasService = {
       .select(`
         *,
         titulo:id_titulo(titulo_de_livro, colecao),
-        leitor:id_leitor(nome_do_leitor, acesso_diretoria, id_auth)
+        leitor:id_leitor(nome_do_leitor, acesso_diretoria, id_auth, bloqueado, status)
       `)
       .eq('id_reserva', id_reserva)
       .single()
 
     if (resErr || !reservaData) {
       throw new Error('Reserva não encontrada.')
+    }
+
+    const readerData = reservaData.leitor
+    const isLeitorBloqueado =
+      readerData?.bloqueado === true ||
+      (String(readerData?.status || '')
+        .trim()
+        .toUpperCase() === 'BLOQUEADO' &&
+        readerData?.bloqueado !== false)
+
+    if (isLeitorBloqueado) {
+      throw new Error('O leitor está BLOQUEADO e não pode receber empréstimos.')
     }
 
     let copyToUseId = (reservaData as any).exemplar_reservado_id
