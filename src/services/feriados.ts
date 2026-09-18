@@ -69,6 +69,17 @@ export const FeriadosService = {
    * Adiciona feriados nacionais padrão para um ano caso ainda não constem
    */
   async seedYearDefaults(ano: number): Promise<number> {
+    // Tenta primeiro via RPC SECURITY DEFINER (mais robusto e atômico)
+    const { data: rpcData, error: rpcError } = await (supabase.rpc as any)(
+      'semear_feriados_padrao',
+      { p_ano: ano },
+    )
+
+    if (!rpcError && typeof rpcData === 'number') {
+      return rpcData
+    }
+
+    // Fallback via upsert direto na tabela feriado
     const defaults = [
       { data: `${ano}-01-01`, descricao: 'Confraternização Universal' },
       { data: `${ano}-04-21`, descricao: 'Tiradentes' },
