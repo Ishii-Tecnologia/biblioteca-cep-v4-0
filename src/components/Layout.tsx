@@ -135,6 +135,7 @@ export default function Layout({ children }: LayoutProps) {
       label: 'Manual',
       icon: HelpCircle,
       authRequired: true,
+      operatorOnly: true,
     },
   ]
 
@@ -472,25 +473,27 @@ export default function Layout({ children }: LayoutProps) {
                         </DropdownMenuItem>
                       </>
                     )}
-                    <DropdownMenuItem asChild>
-                      <Link
-                        to="/manual"
-                        className="cursor-pointer font-medium text-emerald-800 bg-emerald-50/50"
-                      >
-                        <HelpCircle className="w-4 h-4 mr-2 text-emerald-600" />
-                        <span>Manual do Sistema</span>
-                      </Link>
-                    </DropdownMenuItem>
                     {isOperadorOrAdmin && (
-                      <DropdownMenuItem asChild>
-                        <Link
-                          to="/primeiros-passos"
-                          className="cursor-pointer font-medium text-amber-900 bg-amber-50/50"
-                        >
-                          <Sparkles className="w-4 h-4 mr-2 text-amber-600" />
-                          <span>Primeiros Passos (Operador)</span>
-                        </Link>
-                      </DropdownMenuItem>
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link
+                            to="/manual"
+                            className="cursor-pointer font-medium text-emerald-800 bg-emerald-50/50"
+                          >
+                            <HelpCircle className="w-4 h-4 mr-2 text-emerald-600" />
+                            <span>Manual do Sistema</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link
+                            to="/primeiros-passos"
+                            className="cursor-pointer font-medium text-amber-900 bg-amber-50/50"
+                          >
+                            <Sparkles className="w-4 h-4 mr-2 text-amber-600" />
+                            <span>Primeiros Passos (Operador)</span>
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
                     )}
                     {isRealAdmin && (
                       <>
@@ -893,7 +896,7 @@ export default function Layout({ children }: LayoutProps) {
                 <span>Primeiros Passos</span>
               </Link>
             )}
-            {user && (
+            {user && isOperadorOrAdmin && (
               <Link
                 to="/manual"
                 className="hover:text-emerald-700 transition-colors flex items-center gap-1 font-medium"

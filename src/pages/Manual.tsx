@@ -84,10 +84,8 @@ interface ManualTopic {
 export default function Manual() {
   const { isOperadorOrAdmin, isAdmin, profile } = useAuth()
 
-  // Perfil padrão: se operador/admin começa na aba do operador, senão leitor
-  const [activeTab, setActiveTab] = useState<'operador' | 'leitor'>(
-    isOperadorOrAdmin ? 'operador' : 'leitor',
-  )
+  // Perfil padrão: operador (o acesso já é restrito a operadores/admin na rota e navegação)
+  const [activeTab, setActiveTab] = useState<'operador' | 'leitor'>('operador')
   const [searchFilter, setSearchFilter] = useState('')
   const [activeSectionId, setActiveSectionId] = useState<string>('op-leitores')
   const [mobileTocOpen, setMobileTocOpen] = useState(false)

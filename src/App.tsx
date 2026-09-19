@@ -104,7 +104,7 @@ const App = () => (
               <Route
                 path="/manual"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requireOperator>
                     <Manual />
                   </ProtectedRoute>
                 }
@@ -112,7 +112,7 @@ const App = () => (
               <Route
                 path="/primeiros-passos"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requireOperator>
                     <PrimeirosPassos />
                   </ProtectedRoute>
                 }
