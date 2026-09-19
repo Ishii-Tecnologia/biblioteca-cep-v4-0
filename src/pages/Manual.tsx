@@ -1022,6 +1022,20 @@ export default function Manual() {
               Limites: até 4 empréstimos e 4 reservas
             </span>
           </div>
+
+          <div className="pt-2">
+            <Button
+              asChild
+              size="sm"
+              className="bg-amber-400 hover:bg-amber-300 text-amber-950 font-bold text-xs gap-1.5 shadow-sm"
+            >
+              <Link to="/primeiros-passos">
+                <Sparkles className="w-3.5 h-3.5 text-amber-800" />
+                <span>Novo Operador? Ver Guia de 1 Página (Primeiros Passos)</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -1114,9 +1128,42 @@ export default function Manual() {
         </Button>
       </div>
 
+      {/* Banner de Destaque para Primeiros Passos no Perfil Operador */}
+      {activeTab === 'operador' && (
+        <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-100/70 border border-emerald-300 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <span className="p-2.5 rounded-xl bg-emerald-600 text-white shadow-2xs shrink-0">
+              <Sparkles className="w-5 h-5" />
+            </span>
+            <div>
+              <h3 className="text-sm font-bold text-emerald-950 flex items-center gap-2">
+                É seu primeiro dia como operador ou precisa de um resumo rápido?
+                <Badge className="bg-emerald-200 text-emerald-900 border-emerald-300 text-[10px]">
+                  1 Página
+                </Badge>
+              </h3>
+              <p className="text-xs text-emerald-800 mt-0.5">
+                Consulte o roteiro condensado com o fluxo de ponta a ponta: cadastros, aprovações,
+                empréstimos e regras de ouro em 3 minutos.
+              </p>
+            </div>
+          </div>
+          <Button
+            asChild
+            size="sm"
+            className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shrink-0 gap-1.5 shadow-xs"
+          >
+            <Link to="/primeiros-passos">
+              <span>Abrir Primeiros Passos</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </Button>
+        </div>
+      )}
+
       {/* Layout Principal: Sumário Lateral + Conteúdo Central */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Sumário Lateral Fixo (Desktop) e Colapsável (Mobile) */}
+        {/* Sumário Lateral Fixo (Desktop) e Colapsável (Mobile) */}{' '}
         <aside className={`lg:col-span-4 space-y-4 ${mobileTocOpen ? 'block' : 'hidden lg:block'}`}>
           <div className="sticky top-20 bg-white border border-slate-200 rounded-xl p-4 shadow-2xs space-y-4 max-h-[calc(100vh-6rem)] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
@@ -1193,7 +1240,6 @@ export default function Manual() {
             </div>
           </div>
         </aside>
-
         {/* Área Central de Conteúdo dos Roteiros */}
         <main className="lg:col-span-8 space-y-6">
           {currentTopics.length === 0 ? (

@@ -481,6 +481,17 @@ export default function Layout({ children }: LayoutProps) {
                         <span>Manual do Sistema</span>
                       </Link>
                     </DropdownMenuItem>
+                    {isOperadorOrAdmin && (
+                      <DropdownMenuItem asChild>
+                        <Link
+                          to="/primeiros-passos"
+                          className="cursor-pointer font-medium text-amber-900 bg-amber-50/50"
+                        >
+                          <Sparkles className="w-4 h-4 mr-2 text-amber-600" />
+                          <span>Primeiros Passos (Operador)</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     {isRealAdmin && (
                       <>
                         <DropdownMenuSeparator />
@@ -873,6 +884,15 @@ export default function Layout({ children }: LayoutProps) {
             <span>— Sistema Gratuito de Controle de Acervo e Empréstimos</span>
           </div>
           <div className="flex items-center gap-4 text-slate-400">
+            {user && isOperadorOrAdmin && (
+              <Link
+                to="/primeiros-passos"
+                className="hover:text-amber-700 transition-colors flex items-center gap-1 font-medium text-slate-500"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                <span>Primeiros Passos</span>
+              </Link>
+            )}
             {user && (
               <Link
                 to="/manual"

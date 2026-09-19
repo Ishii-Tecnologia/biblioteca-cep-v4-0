@@ -18,6 +18,7 @@ import Usuarios from './pages/Usuarios'
 import Login from './pages/Login'
 import RedefinirSenha from './pages/RedefinirSenha'
 import Manual from './pages/Manual'
+import PrimeirosPassos from './pages/PrimeirosPassos'
 import NotFound from './pages/NotFound'
 
 const App = () => (
@@ -105,6 +106,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Manual />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/primeiros-passos"
+                element={
+                  <ProtectedRoute>
+                    <PrimeirosPassos />
                   </ProtectedRoute>
                 }
               />
