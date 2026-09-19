@@ -17,6 +17,7 @@ import Configuracoes from './pages/Configuracoes'
 import Usuarios from './pages/Usuarios'
 import Login from './pages/Login'
 import RedefinirSenha from './pages/RedefinirSenha'
+import Manual from './pages/Manual'
 import NotFound from './pages/NotFound'
 
 const App = () => (
@@ -96,6 +97,14 @@ const App = () => (
                 element={
                   <ProtectedRoute requireAdmin>
                     <Configuracoes />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manual"
+                element={
+                  <ProtectedRoute>
+                    <Manual />
                   </ProtectedRoute>
                 }
               />

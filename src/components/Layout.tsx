@@ -26,6 +26,7 @@ import {
   Sparkles,
   ChevronDown,
   Briefcase,
+  HelpCircle,
 } from 'lucide-react'
 import { ChangeOwnPasswordModal } from '@/components/ChangeOwnPasswordModal'
 import { EditOwnPhotoModal } from '@/components/EditOwnPhotoModal'
@@ -128,6 +129,12 @@ export default function Layout({ children }: LayoutProps) {
       icon: Settings,
       authRequired: true,
       adminOnly: true,
+    },
+    {
+      to: '/manual',
+      label: 'Manual',
+      icon: HelpCircle,
+      authRequired: true,
     },
   ]
 
@@ -465,6 +472,15 @@ export default function Layout({ children }: LayoutProps) {
                         </DropdownMenuItem>
                       </>
                     )}
+                    <DropdownMenuItem asChild>
+                      <Link
+                        to="/manual"
+                        className="cursor-pointer font-medium text-emerald-800 bg-emerald-50/50"
+                      >
+                        <HelpCircle className="w-4 h-4 mr-2 text-emerald-600" />
+                        <span>Manual do Sistema</span>
+                      </Link>
+                    </DropdownMenuItem>
                     {isRealAdmin && (
                       <>
                         <DropdownMenuSeparator />
@@ -857,6 +873,15 @@ export default function Layout({ children }: LayoutProps) {
             <span>— Sistema Gratuito de Controle de Acervo e Empréstimos</span>
           </div>
           <div className="flex items-center gap-4 text-slate-400">
+            {user && (
+              <Link
+                to="/manual"
+                className="hover:text-emerald-700 transition-colors flex items-center gap-1 font-medium"
+              >
+                <HelpCircle className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Manual do Sistema</span>
+              </Link>
+            )}
             <span>Versão 4.0</span>
           </div>
         </div>
