@@ -123,19 +123,19 @@ export default function Manual() {
           title: 'Preencher os Dados Pessoais (Coluna Única)',
           detail:
             'Preencha o Nome Completo (obrigatório, mín. 3 letras), E-mail de contato e o Telefone Celular com DDD (máscara automática: (99) 99999-9999). Se houver, informe também o Telefone Fixo.',
-          tip: 'O modal opera em coluna única para maior ergonomia e clareza de validação.',
+          tip: 'A janela abre em coluna única para facilitar a leitura e a conferência das informações.',
         },
         {
           number: 4,
           title: 'Vincular o(s) Curso(s) Frequentado(s) na CEP',
           detail:
-            'No campo "Curso(s) que está frequentando na CEP", selecione os cursos dos quais o leitor participa (ex: ESDE, Infância, Mocidade, Passes, Obras Básicas) e clique em "Adicionar Curso". É possível vincular múltiplos cursos.',
+            'No campo "Curso(s) que está frequentando na CEP", selecione os cursos dos quais o leitor participa (ex: Centro de Estudos, Curso Básico de Espiritismo, Educação Evangélica, Educação Mediúnica, Divulgador e Expositor) e clique em "Adicionar Curso". É possível vincular múltiplos cursos.',
         },
         {
           number: 5,
           title: 'Definir Senha Inicial e Permissão de Diretoria',
           detail:
-            'Informe a senha provisória de primeiro acesso (mínimo 6 caracteres). Se o leitor for membro da Diretoria Executiva da CEP, marque a caixa "Permitir empréstimos da Coleção Diretoria (Biblioteca Rino Curti)".',
+            'Informe a senha provisória de primeiro acesso (mínimo 6 caracteres). Se o leitor for membro da Diretoria Executiva da CEP ou frequentador do Centro de Estudos da CEP, marque a caixa "Permitir empréstimos da Coleção Diretoria (Biblioteca Rino Curti)".',
         },
         {
           number: 6,
@@ -146,14 +146,14 @@ export default function Manual() {
       ],
       rules: [
         'O e-mail deve ser único na base; domínios descartáveis (ex: @tempmail, @guerrillamail) são rejeitados automaticamente.',
-        'Ao salvar, o leitor já fica ativo e pode receber empréstimos de imediato.',
+        'Ao salvar, o leitor já fica ativo e pode realizar empréstimos de imediato.',
       ],
       example: {
-        title: 'Exemplo: Cadastro de Aluno do ESDE I',
+        title: 'Exemplo: Cadastro de Aluno do Centro de Estudos',
         context:
           'O leitor Carlos Eduardo deseja retirar livros do acervo e frequenta o curso de Terça-feira.',
         action:
-          'O operador preenche Nome: Carlos Eduardo, Celular: (11) 98765-4321, E-mail: carlos.edu@gmail.com, seleciona o curso "ESDE I" e clica em Cadastrar Leitor.',
+          'O operador preenche Nome: Carlos Eduardo, Celular: (11) 98765-4321, E-mail: carlos.edu@gmail.com, seleciona o curso "Centro de Estudos" e clica em Cadastrar Leitor.',
         result:
           'O leitor é criado com ID gerado (ex: #42). Um e-mail com link de primeiro acesso é enviado para carlos.edu@gmail.com com validade de 1 hora.',
         type: 'success',
@@ -342,10 +342,10 @@ export default function Manual() {
     },
     {
       id: 'op-acervo-cadastros',
-      shortTitle: 'Cadastrar Livros & Exemplares',
+      shortTitle: 'Cadastrar Livros e Exemplares',
       title: 'Gestão de Acervo: Bibliotecas Cecília Braga e Rino Curti',
       profile: 'operador',
-      category: 'Acervo & Exemplares',
+      category: 'Acervo e Exemplares',
       icon: BookOpen,
       screenUrl: '/acervo',
       screenButtonText: 'Abrir Acervo',
@@ -405,7 +405,7 @@ export default function Manual() {
       shortTitle: 'Importação em Lote via CSV',
       title: 'Importação de Acervo via Planilha CSV',
       profile: 'operador',
-      category: 'Acervo & Exemplares',
+      category: 'Acervo e Exemplares',
       icon: FileSpreadsheet,
       screenUrl: '/acervo',
       screenButtonText: 'Ver Importação CSV no Acervo',
@@ -457,10 +457,10 @@ export default function Manual() {
     },
     {
       id: 'op-emprestimos-ciclo',
-      shortTitle: 'Ciclo do Empréstimo & PENDENTE_RETIRADA',
+      shortTitle: 'Ciclo do Empréstimo e PENDENTE_RETIRADA',
       title: 'Ciclo Completo: Aguardando Retirada, Ativação e Devolução',
       profile: 'operador',
-      category: 'Empréstimos & Devoluções',
+      category: 'Empréstimos e Devoluções',
       icon: Repeat,
       screenUrl: '/emprestimos',
       screenButtonText: 'Abrir Tela de Empréstimos',
@@ -533,10 +533,10 @@ export default function Manual() {
     },
     {
       id: 'op-reservas-filas',
-      shortTitle: 'Reservas, Pré-Reservas & Fila de Espera',
+      shortTitle: 'Reservas, Pré-Reservas e Fila de Espera',
       title: 'Gestão de Fila de Reservas e Aprovação de Solicitações',
       profile: 'operador',
-      category: 'Reservas & Fila',
+      category: 'Reservas e Fila',
       icon: BookmarkCheck,
       screenUrl: '/reservas',
       screenButtonText: 'Abrir Gestão de Reservas',
@@ -614,10 +614,10 @@ export default function Manual() {
     },
     {
       id: 'op-config-parametros',
-      shortTitle: 'Parâmetros Rígidos & Feriados',
+      shortTitle: 'Parâmetros Rígidos e Feriados',
       title: 'Configurações do Sistema: Parâmetros, Feriados e Auditoria',
       profile: 'operador',
-      category: 'Administração & Sistema',
+      category: 'Administração e Sistema',
       icon: Settings,
       screenUrl: '/configuracoes',
       screenButtonText: 'Abrir Configurações',
@@ -674,7 +674,7 @@ export default function Manual() {
       shortTitle: 'Criar Conta (Auto-cadastro)',
       title: 'Como se Cadastrar na Biblioteca pela Tela de Login',
       profile: 'leitor',
-      category: 'Conta & Acesso',
+      category: 'Conta e Acesso',
       icon: UserPlus,
       screenUrl: '/login',
       screenButtonText: 'Ir para Tela de Login',
@@ -709,7 +709,7 @@ export default function Manual() {
           number: 5,
           title: 'Adicionar Cursos Frequentados na CEP',
           detail:
-            'Informe os cursos ou atividades que você frequenta na Coligação Espírita Progressista (ex: ESDE, Estudo das Obras Básicas, Infância).',
+            'Informe os cursos ou atividades que você frequenta na Coligação Espírita Progressista (ex: Centro de Estudos, Curso Básico de Espiritismo, Educação Evangélica).',
         },
         {
           number: 6,
@@ -740,10 +740,10 @@ export default function Manual() {
     },
     {
       id: 'leitor-primeiro-acesso',
-      shortTitle: 'Primeiro Acesso & Senha',
+      shortTitle: 'Primeiro Acesso e Senha',
       title: 'Definição de Senha e Ativação do Primeiro Acesso',
       profile: 'leitor',
-      category: 'Conta & Acesso',
+      category: 'Conta e Acesso',
       icon: KeyRound,
       screenUrl: '/login',
       screenButtonText: 'Ir para Login',
@@ -788,7 +788,7 @@ export default function Manual() {
     },
     {
       id: 'leitor-inicio-colecoes',
-      shortTitle: 'Nossas Bibliotecas & Coleções',
+      shortTitle: 'Nossas Bibliotecas e Coleções',
       title: 'Página Inicial: Conhecendo as Bibliotecas Cecília Braga e Rino Curti',
       profile: 'leitor',
       category: 'Navegação no Catálogo',
@@ -802,7 +802,7 @@ export default function Manual() {
           number: 1,
           title: 'Acessar a Página Inicial',
           detail:
-            'Na página inicial, role até a seção de destaque "Nossas Bibliotecas & Coleções".',
+            'Na página inicial, role até a seção de destaque "Nossas Bibliotecas e Coleções".',
         },
         {
           number: 2,
@@ -823,7 +823,7 @@ export default function Manual() {
     },
     {
       id: 'leitor-acervo-solicitar',
-      shortTitle: 'Buscar Livros & Pré-Reserva',
+      shortTitle: 'Buscar Livros e Pré-Reserva',
       title: 'Consultar Disponibilidade e "Solicitar Livro" (Pré-Reserva)',
       profile: 'leitor',
       category: 'Navegação no Catálogo',
@@ -890,10 +890,10 @@ export default function Manual() {
     },
     {
       id: 'leitor-minha-conta',
-      shortTitle: 'Minha Conta & Reservas',
+      shortTitle: 'Minha Conta e Reservas',
       title: 'Acompanhar Empréstimos Ativos, Prazos e Fila de Espera',
       profile: 'leitor',
-      category: 'Conta & Acesso',
+      category: 'Conta e Acesso',
       icon: UserCheck,
       screenUrl: '/emprestimos',
       screenButtonText: 'Ver Meus Empréstimos',
@@ -1052,7 +1052,7 @@ export default function Manual() {
             }`}
           >
             <Shield className="w-3.5 h-3.5" />
-            <span>Perfil: Operador & Administrador</span>
+            <span>Perfil: Operador e Administrador</span>
             <Badge
               variant="secondary"
               className={`text-[10px] ml-1 px-1.5 py-0 ${
@@ -1387,9 +1387,7 @@ export default function Manual() {
                             <span className="font-semibold text-emerald-700 uppercase text-[10px]">
                               Resultado Obtido
                             </span>
-                            <p className="text-emerald-950 font-medium leading-snug">
-                              {topic.example.result}
-                            </p>
+                            <p className="text-slate-600 leading-snug">{topic.example.result}</p>
                           </div>
                         </div>
                       </div>
@@ -1402,7 +1400,7 @@ export default function Manual() {
                           <div className="border border-slate-200 rounded-lg p-3.5 bg-white space-y-2">
                             <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                               <Info className="w-3.5 h-3.5 text-blue-600" />
-                              Regras de Negócio Aplicadas
+                              Regras Aplicadas
                             </h4>
                             <ul className="space-y-1.5 text-xs text-slate-600 list-disc list-inside">
                               {topic.rules.map((rule, idx) => (
