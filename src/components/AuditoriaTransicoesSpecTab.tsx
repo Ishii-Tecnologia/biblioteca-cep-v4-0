@@ -103,7 +103,7 @@ export function AuditoriaTransicoesSpecTab() {
             <div className="border rounded-md divide-y divide-border overflow-hidden">
               <div className="bg-muted/50 px-4 py-2 text-xs font-semibold grid grid-cols-12 gap-2 text-muted-foreground">
                 <div className="col-span-3 sm:col-span-2">Data/Hora</div>
-                <div className="col-span-3 sm:col-span-2">Entidade & ID</div>
+                <div className="col-span-3 sm:col-span-2">Entidade e ID</div>
                 <div className="col-span-4 sm:col-span-4">Transição (De → Para)</div>
                 <div className="col-span-2 sm:col-span-2">Operador</div>
                 <div className="hidden sm:block sm:col-span-2">Motivo/Detalhes</div>

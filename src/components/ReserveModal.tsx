@@ -357,7 +357,7 @@ export function ReserveModal({
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-slate-900">
                 <BookmarkCheck className="w-5 h-5 text-emerald-600" />
-                Reservas & Fila de Espera
+                Reservas e Fila de Espera
               </DialogTitle>
               <DialogDescription>
                 Reserve um exemplar quando todas as cópias físicas estiverem emprestadas.

@@ -112,7 +112,7 @@ export function ReadyForPickupModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-slate-900">
             <Sparkles className="w-5 h-5 text-emerald-600" />
-            Liberar Livro & Disparar Notificação
+            Liberar Livro e Disparar Notificação
           </DialogTitle>
           <DialogDescription>
             Notifique o leitor de que o exemplar reservado já está disponível para retirada na
