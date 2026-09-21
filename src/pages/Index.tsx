@@ -172,7 +172,7 @@ export default function Index() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Card Biblioteca Cecíclia Braga (Acervo Geral) */}
+          {/* Card Biblioteca Cecília Braga (Acervo Geral) */}
           <Card className="border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all flex flex-col justify-between">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-3">
@@ -184,7 +184,7 @@ export default function Index() {
                 </Badge>
               </div>
               <CardTitle className="text-base sm:text-lg font-bold text-slate-900 mt-2">
-                Biblioteca Cecíclia Braga
+                Biblioteca Cecília Braga
               </CardTitle>
               <CardDescription className="text-xs text-slate-600 leading-relaxed">
                 Acervo geral da Biblioteca da CEP. Catálogo amplo e aberto a todos os leitores

@@ -327,7 +327,7 @@ export function ReaderLoanHistoryModal({
                               variant="outline"
                               className="bg-emerald-50 text-emerald-800 border-emerald-300 font-medium text-[10px] py-0 px-1.5 shadow-none"
                             >
-                              Biblioteca Cecíclia Braga
+                              Biblioteca Cecília Braga
                             </Badge>
                           )
                         })()}

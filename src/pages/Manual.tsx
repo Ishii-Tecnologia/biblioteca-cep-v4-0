@@ -343,7 +343,7 @@ export default function Manual() {
     {
       id: 'op-acervo-cadastros',
       shortTitle: 'Cadastrar Livros & Exemplares',
-      title: 'Gestão de Acervo: Bibliotecas Cecíclia Braga e Rino Curti',
+      title: 'Gestão de Acervo: Bibliotecas Cecília Braga e Rino Curti',
       profile: 'operador',
       category: 'Acervo & Exemplares',
       icon: BookOpen,
@@ -356,7 +356,7 @@ export default function Manual() {
           number: 1,
           title: 'Acessar o Acervo correspondente',
           detail:
-            'Use o menu "Acervo": selecione "Biblioteca Cecíclia Braga" (acervo geral) ou "Biblioteca Rino Curti" (acervo especial, restrito à Diretoria).',
+            'Use o menu "Acervo": selecione "Biblioteca Cecília Braga" (acervo geral) ou "Biblioteca Rino Curti" (acervo especial, restrito à Diretoria).',
         },
         {
           number: 2,
@@ -389,12 +389,12 @@ export default function Manual() {
         },
       ],
       rules: [
-        'A Biblioteca Cecíclia Braga é de livre acesso a todos os leitores cadastrados.',
+        'A Biblioteca Cecília Braga é de livre acesso a todos os leitores cadastrados.',
         'A Biblioteca Rino Curti é restrita: apenas leitores com a marcação "Acesso Diretoria" podem solicitar ou retirar livros dela.',
       ],
       example: {
         title: 'Exemplo: Adição de 3 exemplares de "O Evangelho Segundo o Espiritismo"',
-        context: 'Livro de Allan Kardec código AK-002 para o acervo Cecíclia Braga.',
+        context: 'Livro de Allan Kardec código AK-002 para o acervo Cecília Braga.',
         action: 'Operador cadastra a obra com 3 exemplares físicos.',
         result: 'Criados os exemplares AK-002-1, AK-002-2 e AK-002-3 com status DISPONÍVEL.',
         type: 'success',
@@ -789,7 +789,7 @@ export default function Manual() {
     {
       id: 'leitor-inicio-colecoes',
       shortTitle: 'Nossas Bibliotecas & Coleções',
-      title: 'Página Inicial: Conhecendo as Bibliotecas Cecíclia Braga e Rino Curti',
+      title: 'Página Inicial: Conhecendo as Bibliotecas Cecília Braga e Rino Curti',
       profile: 'leitor',
       category: 'Navegação no Catálogo',
       icon: Building2,
@@ -806,7 +806,7 @@ export default function Manual() {
         },
         {
           number: 2,
-          title: 'Biblioteca Cecíclia Braga (Acervo Geral)',
+          title: 'Biblioteca Cecília Braga (Acervo Geral)',
           detail:
             'Reúne obras da Doutrina Espírita, romances, estudos, mediunidade, obras básicas de Allan Kardec, obras de Chico Xavier, Divaldo Franco e literatura infantojuvenil. Disponível para TODOS os leitores cadastrados.',
         },
@@ -916,7 +916,7 @@ export default function Manual() {
           number: 3,
           title: 'Identificar a Biblioteca de Origem',
           detail:
-            'Cada item exibe a etiqueta da biblioteca correspondente: "Biblioteca Cecíclia Braga" (acervo geral) ou "Biblioteca Rino Curti" (Diretoria).',
+            'Cada item exibe a etiqueta da biblioteca correspondente: "Biblioteca Cecília Braga" (acervo geral) ou "Biblioteca Rino Curti" (Diretoria).',
         },
         {
           number: 4,
@@ -939,7 +939,7 @@ export default function Manual() {
         context: 'Lucas entra na conta para ver quando deve devolver seu livro.',
         action: 'Acessa o menu Empréstimos no cabeçalho.',
         result:
-          'Visualiza o livro "Paulo e Estêvão" com o badge "Biblioteca Cecíclia Braga" e a devolução prevista para a próxima quarta-feira.',
+          'Visualiza o livro "Paulo e Estêvão" com o badge "Biblioteca Cecília Braga" e a devolução prevista para a próxima quarta-feira.',
         type: 'info',
       },
     },
@@ -1000,10 +1000,9 @@ export default function Manual() {
             Manual do Sistema
           </h1>
           <p className="text-emerald-100 text-xs sm:text-sm md:text-base leading-relaxed">
-            Roteiros passo a passo com exemplos concretos, regras de negócio institucionais e
-            mensagens reais do sistema para as duas coleções:{' '}
-            <strong>Biblioteca Cecíclia Braga</strong> (acervo geral) e{' '}
-            <strong>Biblioteca Rino Curti</strong> (Diretoria).
+            Roteiros passo a passo com exemplos concretos, regras institucionais e mensagens do
+            sistema aplicados às coleções da Coligação Espírita Progressista (CEP) — Biblioteca
+            Cecília Braga (Acervo Geral) e Biblioteca Rino Curti (Diretoria).
           </p>
 
           <div className="pt-2 flex flex-wrap gap-2 text-xs">

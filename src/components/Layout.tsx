@@ -260,10 +260,10 @@ export default function Layout({ children }: LayoutProps) {
                             <BookOpen className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                             <div>
                               <div className="font-semibold text-slate-900 text-xs sm:text-sm">
-                                Biblioteca Cecíclia Braga
+                                Biblioteca Cecília Braga
                               </div>
                               <div className="text-[11px] text-slate-500 font-normal">
-                                Acervo Cecíclia Braga
+                                Acervo Cecília Braga
                               </div>
                             </div>
                           </Link>
@@ -397,7 +397,7 @@ export default function Layout({ children }: LayoutProps) {
                           <DropdownMenuItem asChild>
                             <Link to="/acervo" className="cursor-pointer flex items-center">
                               <BookMarked className="w-4 h-4 mr-2 text-emerald-600" />
-                              <span>Biblioteca Cecíclia Braga</span>
+                              <span>Biblioteca Cecília Braga</span>
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
@@ -736,7 +736,7 @@ export default function Layout({ children }: LayoutProps) {
                       >
                         <div className="flex items-center gap-2.5">
                           <BookMarked className="w-4 h-4 text-emerald-600" />
-                          <span>Biblioteca Cecíclia Braga</span>
+                          <span>Biblioteca Cecília Braga</span>
                         </div>
                       </NavLink>
                       <NavLink
