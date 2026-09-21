@@ -171,7 +171,7 @@ export default function Manual() {
     },
     {
       id: 'op-leitores-validacao',
-      shortTitle: 'Aprovar Auto-Cadastros',
+      shortTitle: 'Aprovar Autocadastros',
       title: 'Aprovação de Cadastros "Pendentes de Validação"',
       profile: 'operador',
       category: 'Gestão de Leitores',
@@ -179,7 +179,7 @@ export default function Manual() {
       screenUrl: '/leitores',
       screenButtonText: 'Ver Leitores Pendentes',
       summary:
-        'Como o operador revisa e aprova ou recusa as solicitações de cadastro feitas pelos próprios leitores na tela inicial/login.',
+        'Como o operador revisa, aprova ou recusa as solicitações de cadastro feitas pelos próprios leitores na tela inicial/login.',
       prerequisites: [
         'Existirem cadastros submetidos pelos leitores com status "Pendente de Validação".',
       ],
@@ -188,7 +188,7 @@ export default function Manual() {
           number: 1,
           title: 'Localizar a lista de pendentes',
           detail:
-            'Na página "Leitores", use o botão de filtro "Pendentes de Validação" (badge em destaque âmbar).',
+            'Na página "Leitores", use o botão de filtro "Pendentes de Validação" (selo em destaque âmbar).',
         },
         {
           number: 2,
@@ -200,7 +200,7 @@ export default function Manual() {
           number: 3,
           title: 'Aprovar o cadastro',
           detail:
-            'Clique no botão verde "Aprovar" no card do leitor. Confirme no modal clicando em "Sim, Aprovar e Enviar E-mail".',
+            'Clique no botão verde "Aprovar" no card do leitor. Confirme clicando em "Aprovar".',
         },
         {
           number: 4,
@@ -217,11 +217,11 @@ export default function Manual() {
         },
       ],
       rules: [
-        'Caso já tenha havido disparo recente para o mesmo e-mail, o sistema ativa o leitor mas aplica proteção de taxa (cooldown) para não sofrer bloqueio de spam.',
+        'Se o link de primeiro acesso já foi enviado há pouco tempo para este e-mail, o leitor é ativado normalmente, mas o sistema espera alguns minutos antes de permitir o envio de um novo e-mail — isso evita que o servidor de e-mail entenda como spam e bloqueie os envios.',
         'Após aprovação, o leitor migra de status "Pendente" para "Ativo".',
       ],
       example: {
-        title: 'Exemplo: Leitora que se auto-cadastrou pelo celular',
+        title: 'Exemplo: Leitora que se autocadastrou pelo celular',
         context:
           'Maria Souza solicitou cadastro na tela de login. O card dela exibe a etiqueta "Pendente de Validação".',
         action: 'O operador clica no botão "Aprovar" no card de Maria Souza e confirma.',
