@@ -268,7 +268,7 @@ export default function Manual() {
           number: 3,
           title: 'Notificar o leitor',
           detail:
-            'Oriente o leitor a verificar a caixa de entrada (e pasta de lixo eletrônico/spam). O e-mail chega com o título de definição de senha da Biblioteca CEP e expira em 1 hora.',
+            'Oriente o leitor a verificar a caixa de entrada, inclusive a pasta de lixo eletrônico/spam. O e-mail chega com o título de definição de senha da Biblioteca CEP e expira em 1 hora.',
         },
       ],
       rules: [
@@ -350,7 +350,7 @@ export default function Manual() {
       screenUrl: '/acervo',
       screenButtonText: 'Abrir Acervo',
       summary:
-        'Como cadastrar novas obras, definir a biblioteca correta, adicionar múltiplos exemplares físicos e gerar códigos determinísticos.',
+        'Como cadastrar novas obras, definir a biblioteca correta, adicionar múltiplos exemplares físicos e o sistema cria automaticamente os códigos de identificação dos exemplares.',
       steps: [
         {
           number: 1,
@@ -1387,7 +1387,9 @@ export default function Manual() {
                             <span className="font-semibold text-emerald-700 uppercase text-[10px]">
                               Resultado Obtido
                             </span>
-                            <p className="text-slate-600 leading-snug">{topic.example.result}</p>
+                            <p className="text-slate-600 font-normal leading-snug">
+                              {topic.example.result}
+                            </p>
                           </div>
                         </div>
                       </div>
