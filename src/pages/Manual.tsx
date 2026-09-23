@@ -465,7 +465,7 @@ export default function Manual() {
       screenUrl: '/emprestimos',
       screenButtonText: 'Abrir Tela de Empréstimos',
       summary:
-        'Roteiro passo a passo do fluxo de empréstimo: geração de reserva/retirada, prazo de 4 dias úteis, confirmação de retirada física e devolução com avanço FIFO na fila.',
+        'Roteiro passo a passo do fluxo de empréstimo: geração de reserva/retirada, prazo de 4 dias úteis, confirmação de retirada física e devolução com Avanço na Fila de Reserva.',
       steps: [
         {
           number: 1,
@@ -490,7 +490,7 @@ export default function Manual() {
           number: 4,
           title: 'Transição para ATIVO e Início do Prazo de 15 Dias',
           detail:
-            'Ao confirmar, o status transiciona para ATIVO e passa a contar o prazo regular do empréstimo (padrão: 15 dias corridos).',
+            'Ao confirmar, o status é alterado para ATIVO e passa a contar o prazo regular do empréstimo (padrão: 15 dias corridos).',
         },
         {
           number: 5,
@@ -500,9 +500,9 @@ export default function Manual() {
         },
         {
           number: 6,
-          title: 'Contemplação Automática da Fila (FIFO)',
+          title: 'Contemplação Automática da Fila de Reserva',
           detail:
-            'Se houver outros leitores na fila de espera daquela obra, o sistema contempla automaticamente o 1º leitor da fila (critério FIFO — First In, First Out). A reserva dele é atendida, o exemplar permanece BLOQUEADO e gera um novo empréstimo PENDENTE_RETIRADA com 4 dias úteis para o novo contemplado.',
+            'Se houver outros leitores na fila de espera daquela obra, o sistema contempla automaticamente o 1º leitor da fila de reserva. A reserva dele é atendida, o exemplar permanece BLOQUEADO e gera um novo empréstimo PENDENTE_RETIRADA com 4 dias úteis para o novo contemplado.',
         },
       ],
       rules: [
@@ -541,7 +541,7 @@ export default function Manual() {
       screenUrl: '/reservas',
       screenButtonText: 'Abrir Gestão de Reservas',
       summary:
-        'Como gerenciar a fila máxima de 2 leitores por livro, aprovar pré-reservas digitais, atender reservas manualmente e entender o job automático de expiração.',
+        'Como gerenciar a fila máxima de 2 leitores por livro, aprovar pré-reservas digitais, atender reservas manualmente e entender expiração automática.',
       steps: [
         {
           number: 1,
@@ -553,7 +553,7 @@ export default function Manual() {
           number: 2,
           title: 'Acessar a aba "Pré-Reservas (Solicitações)"',
           detail:
-            'Aba com badge numérico indicando pré-reservas pendentes de validação feitas pelos leitores pelo catálogo digital.',
+            'Aba com selo numérico indicando pré-reservas pendentes de validação feitas pelos leitores pelo catálogo digital.',
         },
         {
           number: 3,
@@ -581,7 +581,7 @@ export default function Manual() {
         },
         {
           number: 7,
-          title: 'Job Automático de Expiração de Prazos',
+          title: 'Expiração Automática de Prazos',
           detail:
             'O sistema possui rotina que monitora as reservas prontas para retirada. Se passarem os 4 dias úteis sem retirada, o status é marcado como "Expirada" e a vez passa automaticamente para o próximo leitor da fila.',
         },
@@ -622,7 +622,7 @@ export default function Manual() {
       screenUrl: '/configuracoes',
       screenButtonText: 'Abrir Configurações',
       summary:
-        'Módulo exclusivo para Administradores: ajuste de prazos úteis, limites rígidos, semeadura de feriados nacionais e auditoria de transições de estado.',
+        'Módulo exclusivo para Administradores: ajuste de prazos úteis, limites rígidos, marcação de feriados nacionais e auditoria de transições de estado.',
       prerequisites: ['Acesso restrito ao perfil Administrador.'],
       steps: [
         {
@@ -640,7 +640,7 @@ export default function Manual() {
           number: 3,
           title: 'Aba "Feriados" (Cálculo de Dias Úteis)',
           detail:
-            'Gerencie o calendário de feriados do ano. O botão "Semear Padrões" insere automaticamente todos os feriados nacionais do ano selecionado. Você também pode adicionar datas municipais ou feriados locais.',
+            'Gerencie o calendário de feriados do ano. O botão "Programar Feriados" insere automaticamente todos os feriados nacionais do ano selecionado. Você também pode adicionar datas municipais ou feriados locais.',
           tip: 'Regra de dias úteis: Domingo NÃO conta; SÁBADO CONTA como dia útil na Biblioteca CEP.',
         },
         {
@@ -655,11 +655,11 @@ export default function Manual() {
         'Sábado é dia normal de atendimento na CEP e é contabilizado no prazo de retirada de 4 dias úteis.',
       ],
       example: {
-        title: 'Exemplo: Início do ano novo e semeadura de feriados',
+        title: 'Exemplo: Início do ano novo e marcação de feriados',
         context:
           'Na virada de ano, a biblioteca precisa assegurar que feriados como Tiradentes, Páscoa e Natal sejam respeitados.',
         action:
-          'O Admin acessa Configurações > Feriados, escolhe o novo ano e clica em "Semear Padrões".',
+          'O Admin acessa Configurações > Feriados, escolhe o novo ano e clica em "Programar Feriados".',
         result:
           'Todos os feriados federais são gravados e o cálculo de 4 dias úteis passa a pular automaticamente essas datas.',
         type: 'info',
@@ -671,7 +671,7 @@ export default function Manual() {
   const readerTopics: ManualTopic[] = [
     {
       id: 'leitor-autocadastro',
-      shortTitle: 'Criar Conta (Auto-cadastro)',
+      shortTitle: 'Criar Conta (Autocadastro)',
       title: 'Como se Cadastrar na Biblioteca pela Tela de Login',
       profile: 'leitor',
       category: 'Conta e Acesso',
@@ -729,7 +729,7 @@ export default function Manual() {
         'Após aprovação pela equipe, você receberá o e-mail de primeiro acesso.',
       ],
       example: {
-        title: 'Exemplo: Auto-cadastro no domingo antes da palestra',
+        title: 'Exemplo: Autocadastro no domingo antes da palestra',
         context: 'Mariana acessa a biblioteca pelo celular antes de começar o estudo.',
         action:
           'Ela clica em "Cadastrar-se como Leitor", preenche nome, WhatsApp e e-mail e envia.',
