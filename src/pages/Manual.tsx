@@ -571,7 +571,7 @@ export default function Manual() {
           number: 5,
           title: 'Rejeitar Solicitação',
           detail:
-            'Se não for possível atender, clique em "Rejeitar" e preencha a justificativa obrigatória no modal (ex: obra em restauração, leitor com pendência).',
+            'Se não for possível atender, clique em "Rejeitar" e preencha a justificativa obrigatória na janela (ex: obra em restauração, leitor com pendência).',
         },
         {
           number: 6,
@@ -796,7 +796,7 @@ export default function Manual() {
       screenUrl: '/emprestimos',
       screenButtonText: 'Ver Meus Empréstimos',
       summary:
-        'Como consultar os livros que estão em sua posse, datas de devolução previstas, posição na fila e badges da biblioteca de origem.',
+        'Como consultar os livros que estão emprestados, datas de devolução previstas, posição na fila e etiquetas da biblioteca de origem.',
       steps: [
         {
           number: 1,
@@ -837,7 +837,7 @@ export default function Manual() {
         context: 'Lucas entra na conta para ver quando deve devolver seu livro.',
         action: 'Acessa o menu Empréstimos no cabeçalho.',
         result:
-          'Visualiza o livro "Paulo e Estêvão" com o badge "Biblioteca Cecília Braga" e a devolução prevista para a próxima quarta-feira.',
+          'Visualiza o livro "Paulo e Estêvão" com a etiqueta "Biblioteca Cecília Braga" e a devolução prevista para a próxima quarta-feira.',
         type: 'info',
       },
     },
@@ -869,7 +869,7 @@ export default function Manual() {
           number: 3,
           title: 'Biblioteca Rino Curti (Acervo Restrito)',
           detail:
-            'Acervo especial de obras históricas, documentos da casa e títulos sob guarda da Diretoria Executiva da CEP. Acesso sinalizado por badge especial e permitido para membros autorizados.',
+            'Acervo especial de obras históricas, documentos da casa e títulos sob guarda da Diretoria Executiva da CEP. Acesso sinalizado por Etiqueta especial e permitido para membros autorizados.',
         },
       ],
       rules: [
@@ -909,7 +909,7 @@ export default function Manual() {
           number: 4,
           title: 'Clicar em "Solicitar Livro"',
           detail:
-            'Clique no botão "Solicitar Livro". Um modal abrirá com os detalhes da solicitação.',
+            'Clique no botão "Solicitar Livro". Uma janela abrirá com os detalhes da solicitação.',
         },
         {
           number: 5,
