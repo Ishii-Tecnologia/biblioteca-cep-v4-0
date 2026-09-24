@@ -787,6 +787,61 @@ export default function Manual() {
       },
     },
     {
+      id: 'leitor-minha-conta',
+      shortTitle: 'Minha Conta e Reservas',
+      title: 'Acompanhar Empréstimos Ativos, Prazos e Fila de Espera',
+      profile: 'leitor',
+      category: 'Conta e Acesso',
+      icon: UserCheck,
+      screenUrl: '/emprestimos',
+      screenButtonText: 'Ver Meus Empréstimos',
+      summary:
+        'Como consultar os livros que estão em sua posse, datas de devolução previstas, posição na fila e badges da biblioteca de origem.',
+      steps: [
+        {
+          number: 1,
+          title: 'Acessar "Meus Dados" ou "Minha Conta"',
+          detail:
+            'Clique no seu nome/avatar no canto superior direito para abrir o menu do usuário e clique em "Empréstimos", "Reservas" ou "Meus Dados".',
+        },
+        {
+          number: 2,
+          title: 'Verificar Empréstimos Ativos e Prazos',
+          detail:
+            'Na tela de Empréstimos, veja os livros em sua posse e a data limite de devolução. Fique atento aos alertas coloridos para evitar atrasos.',
+        },
+        {
+          number: 3,
+          title: 'Identificar a Biblioteca de Origem',
+          detail:
+            'Cada item exibe a etiqueta da biblioteca correspondente: "Biblioteca Cecília Braga" (acervo geral) ou "Biblioteca Rino Curti" (Diretoria).',
+        },
+        {
+          number: 4,
+          title: 'Acompanhar Posição na Fila de Reservas',
+          detail:
+            'Na tela de Reservas, você vê sua posição na fila de espera (ex: 1º da fila). Assim que o exemplar for devolvido por quem o estava lendo, ele ficará reservado para você por 4 dias úteis.',
+        },
+        {
+          number: 5,
+          title: 'Atualizar Dados de Contato e Foto',
+          detail:
+            'Em "Meus Dados", você pode manter seu telefone WhatsApp atualizado e alterar sua foto de perfil.',
+        },
+      ],
+      rules: [
+        'Mantenha seu telefone com DDD e e-mail sempre em dia para receber avisos sobre a disponibilidade de reservas.',
+      ],
+      example: {
+        title: 'Exemplo: Leitor verificando devolução',
+        context: 'Lucas entra na conta para ver quando deve devolver seu livro.',
+        action: 'Acessa o menu Empréstimos no cabeçalho.',
+        result:
+          'Visualiza o livro "Paulo e Estêvão" com o badge "Biblioteca Cecília Braga" e a devolução prevista para a próxima quarta-feira.',
+        type: 'info',
+      },
+    },
+    {
       id: 'leitor-inicio-colecoes',
       shortTitle: 'Nossas Bibliotecas e Coleções',
       title: 'Página Inicial: Conhecendo as Bibliotecas Cecília Braga e Rino Curti',
@@ -886,61 +941,6 @@ export default function Manual() {
         result:
           'O sistema exibe o aviso verde: "Solicitação enviada, aguardando validação do operador". Quando validado, ele terá 4 dias úteis para retirar no balcão da CEP.',
         type: 'success',
-      },
-    },
-    {
-      id: 'leitor-minha-conta',
-      shortTitle: 'Minha Conta e Reservas',
-      title: 'Acompanhar Empréstimos Ativos, Prazos e Fila de Espera',
-      profile: 'leitor',
-      category: 'Conta e Acesso',
-      icon: UserCheck,
-      screenUrl: '/emprestimos',
-      screenButtonText: 'Ver Meus Empréstimos',
-      summary:
-        'Como consultar os livros que estão em sua posse, datas de devolução previstas, posição na fila e badges da biblioteca de origem.',
-      steps: [
-        {
-          number: 1,
-          title: 'Acessar "Meus Dados" ou "Minha Conta"',
-          detail:
-            'Clique no seu nome/avatar no canto superior direito para abrir o menu do usuário e clique em "Empréstimos", "Reservas" ou "Meus Dados".',
-        },
-        {
-          number: 2,
-          title: 'Verificar Empréstimos Ativos e Prazos',
-          detail:
-            'Na tela de Empréstimos, veja os livros em sua posse e a data limite de devolução. Fique atento aos alertas coloridos para evitar atrasos.',
-        },
-        {
-          number: 3,
-          title: 'Identificar a Biblioteca de Origem',
-          detail:
-            'Cada item exibe a etiqueta da biblioteca correspondente: "Biblioteca Cecília Braga" (acervo geral) ou "Biblioteca Rino Curti" (Diretoria).',
-        },
-        {
-          number: 4,
-          title: 'Acompanhar Posição na Fila de Reservas',
-          detail:
-            'Na tela de Reservas, você vê sua posição na fila de espera (ex: 1º da fila). Assim que o exemplar for devolvido por quem o estava lendo, ele ficará reservado para você por 4 dias úteis.',
-        },
-        {
-          number: 5,
-          title: 'Atualizar Dados de Contato e Foto',
-          detail:
-            'Em "Meus Dados", você pode manter seu telefone WhatsApp atualizado e alterar sua foto de perfil.',
-        },
-      ],
-      rules: [
-        'Mantenha seu telefone com DDD e e-mail sempre em dia para receber avisos sobre a disponibilidade de reservas.',
-      ],
-      example: {
-        title: 'Exemplo: Leitor verificando devolução',
-        context: 'Lucas entra na conta para ver quando deve devolver seu livro.',
-        action: 'Acessa o menu Empréstimos no cabeçalho.',
-        result:
-          'Visualiza o livro "Paulo e Estêvão" com o badge "Biblioteca Cecília Braga" e a devolução prevista para a próxima quarta-feira.',
-        type: 'info',
       },
     },
   ]
