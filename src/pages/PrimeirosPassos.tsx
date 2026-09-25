@@ -50,8 +50,10 @@ export default function PrimeirosPassos() {
             Primeiros Passos do Operador
           </h1>
           <p className="text-emerald-100 text-xs sm:text-sm md:text-base leading-relaxed">
-            Bem-vindo(a) à equipe da biblioteca! Este é o roteiro essencial de consulta rápida com
-            tudo o que você precisa saber para operar o sistema com confiança em poucos minutos.
+            Bem-vindo(a) à equipe! Elaboramos este guia prático para ajudar você a dominar as
+            funções essenciais do nosso sistema com facilidade e segurança. Sinta-se preparado(a)
+            para realizar seus atendimentos de forma ágil, autônoma e eficiente desde o primeiro
+            dia. Conte conosco nessa jornada e excelente trabalho!
           </p>
 
           <div className="pt-2 flex flex-wrap items-center gap-2 text-xs">
@@ -198,9 +200,10 @@ export default function PrimeirosPassos() {
 
           <div className="p-5 space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed">
             <p>
-              A Biblioteca CEP é o sistema unificado de controle de obras espíritas, cadastro de
-              leitores e empréstimos físicos da Coligação Espírita Progressista. As obras são
-              divididas em duas coleções distintas:
+              A Biblioteca CEP é o sistema unificado de controle de obras da literatura espírita,
+              que, além da movimentação (empréstimos de livros físicos), envolve cadastro de
+              leitores e catalogação do material do acervo da Coligação Espírita Progressista. As
+              obras são divididas em duas coleções distintas:
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
@@ -273,7 +276,7 @@ export default function PrimeirosPassos() {
                 <p className="text-xs text-slate-600">
                   Clique em <strong>"Cadastrar Novo Leitor"</strong> em Leitores. Preencha nome
                   (mín. 3 letras), e-mail único, telefone celular com DDD e vincule o(s) curso(s)
-                  frequentados na CEP (ex: ESDE, Infância).
+                  frequentados na CEP (ex: Curso Básico, Educação Mediúnica).
                 </p>
               </div>
 
