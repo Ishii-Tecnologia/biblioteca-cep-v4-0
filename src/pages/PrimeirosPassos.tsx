@@ -178,7 +178,7 @@ export default function PrimeirosPassos() {
               </span>
               <div>
                 <h3 className="text-base font-bold text-slate-900">
-                  Visão Geral do Sistema & Os Dois Acervos
+                  Visão Geral do Sistema e Os Dois Acervos
                 </h3>
                 <p className="text-xs text-slate-500">
                   Entenda a estrutura das duas bibliotecas mantidas pela CEP
@@ -326,10 +326,10 @@ export default function PrimeirosPassos() {
               </span>
               <div>
                 <h3 className="text-base font-bold text-slate-900">
-                  Fluxo do Acervo: Cadastrar Livros, Exemplares & Importação CSV
+                  Fluxo do Acervo: Cadastrar Livros, Exemplares e Importação CSV
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Catalogação inteligente e geração determinística de códigos
+                  Catalogação inteligente e geração padronizada de código
                 </p>
               </div>
             </div>
@@ -378,7 +378,7 @@ export default function PrimeirosPassos() {
           </div>
         </section>
 
-        {/* Passo 4: Fluxo de Empréstimos & Ciclo Completo */}
+        {/* Passo 4: Fluxo de Empréstimos e Ciclo Completo */}
         <section className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
           <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -387,7 +387,7 @@ export default function PrimeirosPassos() {
               </span>
               <div>
                 <h3 className="text-base font-bold text-slate-900">
-                  Fluxo de Empréstimos: Da Solicitação à Devolução com Fila FIFO
+                  Fluxo de Empréstimos: Da Solicitação à Devolução com Fila de Reserva
                 </h3>
                 <p className="text-xs text-slate-500">
                   O ciclo mais importante da sua rotina no balcão
@@ -454,7 +454,7 @@ export default function PrimeirosPassos() {
               <div className="p-3 rounded-lg bg-purple-50/70 border border-purple-200 flex flex-col justify-between">
                 <div>
                   <Badge className="bg-purple-600 text-white text-[10px] mb-1">Passo D</Badge>
-                  <div className="font-bold text-slate-900">4. Devolver & Fila FIFO</div>
+                  <div className="font-bold text-slate-900">4. Devolver e Fila de Reserva</div>
                   <p className="text-slate-600 text-[11px] mt-1">
                     Ao devolver, se houver fila de espera, o <strong>1º da fila</strong> é
                     contemplado automaticamente!
@@ -577,10 +577,10 @@ export default function PrimeirosPassos() {
               <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
                 <span className="font-bold text-slate-900 flex items-center gap-1.5 text-xs">
                   <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                  Semeadura de Feriados
+                  Marcação de Feriados
                 </span>
                 <p className="text-xs text-slate-600">
-                  Insira feriados nacionais com o botão <strong>"Semear Padrões"</strong>. Dias
+                  Insira feriados nacionais com o botão <strong>"Programar Feriados"</strong>. Dias
                   feriados são pulados automaticamente na contagem de dias úteis.
                 </p>
               </div>
@@ -609,7 +609,7 @@ export default function PrimeirosPassos() {
           </div>
           <p className="text-xs text-slate-300">
             Acesse o Manual Completo com capturas, mensagens de erro detalhadas, simulação de leitor
-            e regras de negócio completas.
+            e regras completas de funcionamento do sistema.
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
