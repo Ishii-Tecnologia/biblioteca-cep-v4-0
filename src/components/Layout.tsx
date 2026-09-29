@@ -226,7 +226,7 @@ export default function Layout({ children }: LayoutProps) {
                     </Badge>
                   </div>
                   <p className="text-[11px] text-slate-500 leading-none">
-                    Sistema de Gestão de Acervo & Empréstimos
+                    Sistema de Gestão de Acervo e Empréstimos
                   </p>
                 </div>
               </Link>

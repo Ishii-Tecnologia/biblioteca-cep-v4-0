@@ -101,7 +101,7 @@ export default function Index() {
             Sistema Integrado de Gestão Bibliotecária
           </div>
           <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
-            Biblioteca CEP — Controle de Acervo & Empréstimos
+            Biblioteca CEP — Controle de Acervo e Empréstimos
           </h1>
           <p className="text-sm sm:text-base text-emerald-100/90 leading-relaxed">
             Plataforma aberta e gratuita para consulta de acervo, registro de empréstimos com
@@ -163,7 +163,7 @@ export default function Index() {
           <div>
             <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
               <Library className="w-5 h-5 text-emerald-600" />
-              Nossas Bibliotecas & Coleções
+              Nossas Bibliotecas e Coleções
             </h2>
             <p className="text-xs text-slate-500">
               Acesse os acervos disponíveis na Biblioteca da CEP
@@ -528,7 +528,7 @@ export default function Index() {
         <div className="bg-slate-100/80 border border-slate-200 rounded-xl p-4 space-y-2">
           <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
             <ShieldCheck className="w-4 h-4 text-slate-700" />
-            Gratuito & Educativo
+            Gratuito e Educativo
           </div>
           <p className="text-xs text-slate-700 leading-relaxed">
             O acervo é público e comunitário. Não há cobrança de taxas ou multas pecuniárias para

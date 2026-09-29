@@ -2006,7 +2006,7 @@ export default function Historico() {
                         title="Disparar fluxo completo agora: gerar PDF, enviar por e-mail e expurgar a base"
                       >
                         <Mail className="h-4 w-4 text-emerald-600" />
-                        {runningJob ? 'Processando Job...' : 'Disparar Envio & Expurgo Mensal'}
+                        {runningJob ? 'Processando Job...' : 'Disparar Envio e Expurgo Mensal'}
                       </Button>
                       <Button
                         variant="destructive"
@@ -2031,7 +2031,7 @@ export default function Historico() {
                     />
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-100">
-                        <span>Envio Automático & Expurgo:</span>
+                        <span>Envio Automático e Expurgo:</span>
                         <Badge
                           variant="outline"
                           className={`text-[10px] py-0 px-1.5 ${

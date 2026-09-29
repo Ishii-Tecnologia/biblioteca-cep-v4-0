@@ -214,7 +214,7 @@ export default function Reservas() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <BookmarkCheck className="w-6 h-6 text-emerald-600" />
-            Reservas & Fila de Espera
+            Reservas e Fila de Espera
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
             Gerenciamento de solicitações de reserva para obras com todos os exemplares emprestados.

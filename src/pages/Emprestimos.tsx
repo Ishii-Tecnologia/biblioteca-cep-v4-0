@@ -136,7 +136,7 @@ export default function Emprestimos() {
         const leitorNome =
           res.leitor_nome || res.primeiro_da_fila_notificado?.leitor || 'Primeiro da fila'
         toast({
-          title: 'Exemplar devolvido & 1º da Fila Contemplado!',
+          title: 'Exemplar devolvido e 1º da Fila Contemplado!',
           description: `Livro devolvido. O leitor ${leitorNome} foi contemplado e notificado com prazo de 4 dias úteis para retirada.`,
         })
       } else {
@@ -207,7 +207,7 @@ export default function Emprestimos() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <Repeat className="w-6 h-6 text-emerald-600" />
-            Controle de Empréstimos & Devoluções
+            Controle de Empréstimos e Devoluções
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
             Acompanhamento de prazos, histórico de renovações (+{prazoRenovacaoDias}d) e registro de

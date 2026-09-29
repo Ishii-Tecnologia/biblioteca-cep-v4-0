@@ -1102,7 +1102,7 @@ export default function Configuracoes() {
             Regras Rígidas (Seção 7)
           </TabsTrigger>
           <TabsTrigger value="feriados" className="text-xs">
-            Feriados & Dias Úteis
+            Feriados e Dias Úteis
           </TabsTrigger>
           <TabsTrigger value="auditoria" className="text-xs">
             Auditoria de Transições
@@ -1174,7 +1174,7 @@ export default function Configuracoes() {
                 <CardHeader className="pb-4">
                   <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
                     <Users2 className="w-5 h-5 text-emerald-600" />
-                    Estruturas & Rótulos de Autoria
+                    Estruturas e Rótulos de Autoria
                   </CardTitle>
                   <CardDescription className="text-xs">
                     Personalize os títulos e rótulos exibidos nos formulários de cadastro de livros
@@ -1243,7 +1243,7 @@ export default function Configuracoes() {
                 <CardHeader className="pb-4">
                   <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
                     <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
-                    Arquivos CSV & Modelo de Importação
+                    Arquivos CSV e Modelo de Importação
                   </CardTitle>
                   <CardDescription className="text-xs">
                     Configure o delimitador padrão das exportações/importações e baixe o modelo
@@ -1408,7 +1408,7 @@ export default function Configuracoes() {
                 <CardHeader className="pb-4">
                   <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
                     <Clock className="w-5 h-5 text-emerald-600" />
-                    Políticas de Circulação & Prazos
+                    Políticas de Circulação e Prazos
                   </CardTitle>
                   <CardDescription className="text-xs">
                     Defina os prazos padrão para cálculo automático da data prevista e tolerâncias
@@ -1580,7 +1580,7 @@ export default function Configuracoes() {
                 <CardHeader className="pb-4">
                   <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
                     <BookmarkCheck className="w-5 h-5 text-emerald-600" />
-                    Reservas & Fila de Espera
+                    Reservas e Fila de Espera
                   </CardTitle>
                   <CardDescription className="text-xs">
                     Configure os parâmetros operacionais da fila de espera e personalize os
@@ -1754,7 +1754,7 @@ export default function Configuracoes() {
                     <div>
                       <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
                         <Mail className="w-5 h-5 text-emerald-600" />
-                        Envio Automático do Relatório de Auditoria & Expurgo Mensal
+                        Envio Automático do Relatório de Auditoria e Expurgo Mensal
                       </CardTitle>
                       <CardDescription className="text-xs">
                         Configure o agendamento mensal que gera o Histórico Geral em PDF, envia por
@@ -1783,7 +1783,7 @@ export default function Configuracoes() {
                         htmlFor="auditoria_ativo"
                         className="text-xs font-bold text-slate-900 cursor-pointer"
                       >
-                        Habilitar Envio Mensal Automático & Rotina de Expurgo
+                        Habilitar Envio Mensal Automático e Rotina de Expurgo
                       </Label>
                       <p className="text-[11px] text-slate-500">
                         O job roda diariamente. Se o dia atual coincidir com o configurado, executa
@@ -2118,7 +2118,7 @@ export default function Configuracoes() {
                     <div>
                       <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
                         <Users2 className="w-5 h-5 text-emerald-600" />
-                        Manutenção de Autores, Médiuns & Autores Espirituais
+                        Manutenção de Autores, Médiuns e Autores Espirituais
                       </CardTitle>
                       <CardDescription className="text-xs">
                         Gerencie a lista oficial de Autores/Médiuns e Autores Espirituais utilizada
@@ -2151,7 +2151,7 @@ export default function Configuracoes() {
                       </TabsTrigger>
                       <TabsTrigger value="MEDIUM_ENCARNADO" className="text-xs">
                         <UserCheck className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                        Autores & Médiuns (
+                        Autores e Médiuns (
                         {
                           authorsList.filter(
                             (a) =>
@@ -2604,7 +2604,7 @@ export default function Configuracoes() {
                     <div>
                       <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
                         <Tag className="w-5 h-5 text-emerald-600" />
-                        Categorias & Gêneros Literários
+                        Categorias e Gêneros Literários
                       </CardTitle>
                       <CardDescription className="text-xs">
                         Gerencie a lista oficial de categorias do acervo. A edição atualiza todos os
@@ -2772,7 +2772,7 @@ export default function Configuracoes() {
                 <CardHeader className="pb-4">
                   <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
                     <Zap className="w-5 h-5 text-amber-500" />
-                    Rotinas de Integridade & Verificação de Atrasos
+                    Rotinas de Integridade e Verificação de Atrasos
                   </CardTitle>
                   <CardDescription className="text-xs">
                     Dispare rotinas no banco de dados para recalcular atrasos e sincronizar o status
