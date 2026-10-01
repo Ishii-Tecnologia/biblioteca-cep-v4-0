@@ -647,7 +647,7 @@ export default function Manual() {
           number: 4,
           title: 'Aba "Auditoria de Transições"',
           detail:
-            'Acompanhe o log determinístico com registro de quem, quando e de/para qual estado ocorreu cada movimentação de exemplar, empréstimo e reserva no sistema.',
+            'Acompanhe o log com registro padronizado de quem, quando e de/para qual estado ocorreu cada movimentação de exemplar, empréstimo e reserva no sistema.',
         },
       ],
       rules: [
@@ -917,12 +917,23 @@ export default function Manual() {
           detail:
             'Clique em "Confirmar Solicitação". O sistema registrará sua intenção e exibirá a confirmação oficial.',
         },
+        {
+          number: 6,
+          title: 'Acompanhar ou Cancelar Solicitação',
+          detail:
+            'Na tela "Reservas e Fila de Espera" ou "Controle de Empréstimos e Devoluções", você pode visualizar todas as solicitações com o selo "Aguardando Liberação" e, se desistir ou não puder comparecer, clicar em "Cancelar Solicitação" a qualquer momento antes da validação do operador.',
+        },
       ],
       systemMessages: [
         {
           text: 'Solicitação enviada, aguardando validação do operador',
           meaning:
             'Sua solicitação foi registrada no sistema. O operador da biblioteca irá processá-la e você receberá o aviso para retirar.',
+        },
+        {
+          text: 'Solicitação cancelada com sucesso',
+          meaning:
+            'Sua solicitação pendente foi cancelada por você e não precisará mais ser validada pelo operador.',
         },
         {
           text: 'Não há disponibilidade para mais reservas.',
@@ -933,13 +944,14 @@ export default function Manual() {
       rules: [
         'Limite por leitor: você pode ter no máximo 4 empréstimos ativos e 4 reservas simultâneas.',
         'Se você já tiver 4 livros ou reservas ativas, precisará concluir ou cancelar alguma antes.',
+        'Cancelamento de solicitações: o leitor pode cancelar seus próprios pedidos pendentes de liberação diretamente na tela de reservas ou de empréstimos.',
       ],
       example: {
-        title: 'Exemplo: Solicitando "Missionários da Luz"',
+        title: 'Exemplo: Solicitando e Acompanhando "Missionários da Luz"',
         context: 'O leitor Fernando deseja estudar a obra no próximo sábado.',
         action: 'Localiza o livro no acervo e clica no botão "Solicitar Livro".',
         result:
-          'O sistema exibe o aviso verde: "Solicitação enviada, aguardando validação do operador". Quando validado, ele terá 4 dias úteis para retirar no balcão da CEP.',
+          'O sistema exibe o aviso: "Solicitação enviada, aguardando validação do operador". Na tela de Reservas, Fernando visualiza o pedido com selo "Aguardando Liberação" e a opção de "Cancelar Solicitação" caso necessário.',
         type: 'success',
       },
     },

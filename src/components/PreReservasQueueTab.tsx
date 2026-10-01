@@ -201,6 +201,14 @@ export function PreReservasQueueTab() {
             Rejeitadas
           </Button>
           <Button
+            variant={statusFilter === 'CANCELADO' ? 'default' : 'ghost'}
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setStatusFilter('CANCELADO')}
+          >
+            Canceladas
+          </Button>
+          <Button
             variant={statusFilter === 'all' ? 'default' : 'ghost'}
             size="sm"
             className="h-7 text-xs"
@@ -268,7 +276,9 @@ export function PreReservasQueueTab() {
                                 ? 'outline'
                                 : item.status === 'APROVADO'
                                   ? 'default'
-                                  : 'destructive'
+                                  : item.status === 'CANCELADO'
+                                    ? 'secondary'
+                                    : 'destructive'
                             }
                             className="text-xs"
                           >

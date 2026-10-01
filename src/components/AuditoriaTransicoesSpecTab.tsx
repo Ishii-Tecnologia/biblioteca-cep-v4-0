@@ -55,8 +55,8 @@ export function AuditoriaTransicoesSpecTab() {
                 Auditoria de Transições de Estado (Seção 8)
               </CardTitle>
               <CardDescription>
-                Registro determinístico de quem, quando, de/para qual estado ocorreu cada
-                movimentação de exemplar, empréstimo, reserva e pré-reserva.
+                Registro padronizado de quem, quando, de/para qual estado ocorreu cada movimentação
+                de exemplar, empréstimo, reserva e pré-reserva.
               </CardDescription>
             </div>
 

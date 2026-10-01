@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase/client'
 
-export type PreReservaStatus = 'PENDENTE_VALIDACAO' | 'APROVADO' | 'REJEITADO'
+export type PreReservaStatus = 'PENDENTE_VALIDACAO' | 'APROVADO' | 'REJEITADO' | 'CANCELADO'
 
 export interface PreReserva {
   id: number
@@ -38,6 +38,19 @@ export interface PreReservaDetailed extends PreReserva {
 }
 
 export const PreReservasService = {
+  /**
+   * Leitor ou staff cancela pré-reserva pendente
+   */
+  async cancelar(id: number, motivo?: string): Promise<any> {
+    const { data, error } = await (supabase.rpc as any)('cancelar_pre_reserva', {
+      p_pre_reserva_id: id,
+      p_motivo: motivo || 'Cancelado pelo usuário.',
+    })
+
+    if (error) throw error
+    return data
+  },
+
   /**
    * Leitor solicita livro -> cria pré-reserva (PENDENTE_VALIDACAO)
    */
@@ -152,13 +165,19 @@ export const PreReservasService = {
   },
 
   /**
-   * Conta pré-reservas pendentes de validação
+   * Conta pré-reservas pendentes de validação (geral ou por leitor)
    */
-  async countPendentes(): Promise<number> {
-    const { count, error } = await supabase
+  async countPendentes(leitorId?: number): Promise<number> {
+    let query = supabase
       .from('pre_reserva')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'PENDENTE_VALIDACAO')
+
+    if (leitorId) {
+      query = query.eq('leitor_id', leitorId)
+    }
+
+    const { count, error } = await query
 
     if (error) return 0
     return count || 0

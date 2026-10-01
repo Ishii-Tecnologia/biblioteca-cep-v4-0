@@ -62,7 +62,7 @@ export function FeriadosSpecTab() {
       loadFeriados()
     } catch (err: any) {
       toast({
-        title: 'Erro ao semear feriados',
+        title: 'Erro ao estabelecer padrões de feriados',
         description: err.message,
         variant: 'destructive',
       })
@@ -177,7 +177,7 @@ export function FeriadosSpecTab() {
                 disabled={loading}
                 className="h-8 text-xs flex items-center gap-1"
               >
-                Semear Padrões ({selectedYear})
+                Estabelecer Padrões ({selectedYear})
               </Button>
 
               <Button
@@ -200,8 +200,8 @@ export function FeriadosSpecTab() {
             </div>
           ) : feriados.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground border rounded-lg">
-              Nenhum feriado cadastrado para o ano {selectedYear}. Clique em "Semear Padrões" para
-              carregar feriados nacionais.
+              Nenhum feriado cadastrado para o ano {selectedYear}. Clique em "Estabelecer Padrões"
+              para carregar feriados nacionais.
             </div>
           ) : (
             <div className="border rounded-md divide-y divide-border overflow-hidden">

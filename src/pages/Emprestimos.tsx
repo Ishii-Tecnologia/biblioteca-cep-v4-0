@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { useHeaderCounters } from '@/hooks/use-header-counters'
 import { EmprestimosService, EmprestimoDetailed } from '@/services/emprestimos'
 import { getPrazoRenovacaoDias } from '@/services/parametros'
+import { PreReservasService } from '@/services/pre-reservas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -21,6 +22,7 @@ import {
   Calendar,
   User,
   Book,
+  XCircle,
 } from 'lucide-react'
 import { LoanModal } from '@/components/LoanModal'
 import { ConfirmModal } from '@/components/ConfirmModal'
@@ -53,12 +55,31 @@ export default function Emprestimos() {
   const [pickupConfirmOpen, setPickupConfirmOpen] = useState(false)
   const [loanToPickup, setLoanToPickup] = useState<EmprestimoDetailed | null>(null)
 
+  // Pré-reservas do leitor (Solicitações aguardando liberação do operador)
+  const [minhasPreReservas, setMinhasPreReservas] = useState<any[]>([])
+  const [cancelPreReservaConfirmOpen, setCancelPreReservaConfirmOpen] = useState(false)
+  const [preReservaToCancel, setPreReservaToCancel] = useState<any | null>(null)
+
+  const loadMinhasPreReservas = async () => {
+    if (profile?.id_leitor) {
+      try {
+        const data = await PreReservasService.getAll('PENDENTE_VALIDACAO', profile.id_leitor)
+        setMinhasPreReservas(data)
+      } catch (e) {
+        console.warn('Erro ao carregar pré-reservas do leitor:', e)
+      }
+    } else {
+      setMinhasPreReservas([])
+    }
+  }
+
   const loadLoans = async () => {
     setLoading(true)
     try {
       const [data, prazoRenovacao] = await Promise.all([
         EmprestimosService.getAll(statusTab, searchQuery),
         getPrazoRenovacaoDias(),
+        loadMinhasPreReservas(),
       ])
       setLoans(data)
       setPrazoRenovacaoDias(prazoRenovacao)
@@ -76,7 +97,39 @@ export default function Emprestimos() {
 
   useEffect(() => {
     loadLoans()
-  }, [statusTab])
+  }, [statusTab, profile?.id_leitor])
+
+  const handleOpenCancelPreReserva = (pr: any) => {
+    setPreReservaToCancel(pr)
+    setCancelPreReservaConfirmOpen(true)
+  }
+
+  const executeCancelPreReserva = async () => {
+    if (!preReservaToCancel) return
+    setActionLoadingId(preReservaToCancel.id)
+    try {
+      await PreReservasService.cancelar(
+        preReservaToCancel.id,
+        'Cancelado pelo próprio leitor através da tela de controle de empréstimos.',
+      )
+      toast({
+        title: 'Solicitação cancelada com sucesso',
+        description: `O pedido do livro "${preReservaToCancel.livro?.titulo_de_livro || 'Livro'}" foi cancelado.`,
+      })
+      setCancelPreReservaConfirmOpen(false)
+      setPreReservaToCancel(null)
+      await loadMinhasPreReservas()
+      refreshCounters()
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao cancelar solicitação',
+        description: err.message || 'Falha ao processar cancelamento.',
+        variant: 'destructive',
+      })
+    } finally {
+      setActionLoadingId(null)
+    }
+  }
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -225,6 +278,109 @@ export default function Emprestimos() {
           </Button>
         )}
       </div>
+
+      {/* Seção do Leitor: Solicitações Aguardando Liberação / Validação do Operador */}
+      {minhasPreReservas.length > 0 && (
+        <div className="space-y-3 bg-blue-50/60 border border-blue-200 rounded-xl p-4 sm:p-5">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="space-y-0.5">
+              <h3 className="text-sm font-bold text-blue-950 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-blue-600" />
+                Solicitações Aguardando Liberação ({minhasPreReservas.length})
+              </h3>
+              <p className="text-xs text-blue-800">
+                Livros que você solicitou e que estão sob validação do operador da biblioteca.
+              </p>
+            </div>
+            <Badge className="bg-blue-600 text-white font-semibold text-xs px-2 py-0.5">
+              Aguardando Liberação
+            </Badge>
+          </div>
+
+          <div className="grid gap-3 pt-1">
+            {minhasPreReservas.map((pr) => {
+              const isDiretoria =
+                pr.livro?.colecao === 'diretoria' || pr.livro_id?.toUpperCase().startsWith('DIR-')
+              const isActionLoading = actionLoadingId === pr.id
+
+              return (
+                <Card
+                  key={`emprestimos-pre-reserva-${pr.id}`}
+                  className="border-blue-200/90 bg-white shadow-xs overflow-hidden"
+                >
+                  <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-[11px] font-bold px-2 py-0.5 bg-blue-50 text-blue-800 rounded border border-blue-200">
+                          Pedido #{pr.id}
+                        </span>
+                        <span className="inline-flex items-center rounded-full border border-blue-300 bg-blue-100 px-2.5 py-0.5 text-[11px] font-bold text-blue-900 gap-1 select-none pointer-events-none">
+                          <Clock className="w-3 h-3 text-blue-700 animate-pulse" />
+                          Aguardando Liberação
+                        </span>
+                        {isDiretoria ? (
+                          <Badge
+                            variant="outline"
+                            className="bg-amber-50 text-amber-900 border-amber-300 font-semibold text-[10px]"
+                          >
+                            Biblioteca Rino Curti (Diretoria)
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="bg-emerald-50 text-emerald-800 border-emerald-300 font-medium text-[10px]"
+                          >
+                            Biblioteca Cecília Braga (Geral)
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="flex items-start gap-2.5 pt-0.5">
+                        <Book className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                            {pr.livro?.titulo_de_livro || `Livro #${pr.livro_id}`}
+                          </p>
+                          <p className="text-[11px] text-slate-500 truncate">
+                            {pr.livro?.autor || 'Autor não informado'} • Cód: {pr.livro_id}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                        <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>
+                          Data da Solicitação:{' '}
+                          <strong className="text-slate-700 font-medium">
+                            {formatDate(pr.created_at)}
+                          </strong>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end sm:self-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isActionLoading}
+                        onClick={() => handleOpenCancelPreReserva(pr)}
+                        className="h-8 text-xs text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/30 gap-1.5 font-medium"
+                      >
+                        {isActionLoading ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <XCircle className="w-3.5 h-3.5" />
+                        )}
+                        Cancelar Solicitação
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Tabs & Search */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
@@ -561,6 +717,43 @@ export default function Emprestimos() {
         variant="primary"
         loading={actionLoadingId === loanToRenew?.id_emprestimo}
         onConfirm={executeRenew}
+      />
+
+      {/* Modal de Confirmação para Cancelar Solicitação de Pré-reserva */}
+      <ConfirmModal
+        open={cancelPreReservaConfirmOpen}
+        onOpenChange={setCancelPreReservaConfirmOpen}
+        title="Cancelar Solicitação"
+        description={
+          preReservaToCancel ? (
+            <div className="space-y-2 text-xs sm:text-sm">
+              <p>Deseja realmente cancelar esta solicitação pendente?</p>
+              <div className="bg-slate-50 p-2.5 rounded border border-slate-200">
+                <p className="font-semibold text-slate-900">
+                  {preReservaToCancel.livro?.titulo_de_livro || 'Livro solicitado'}
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Biblioteca de Origem:{' '}
+                  {preReservaToCancel.livro?.colecao === 'diretoria'
+                    ? 'Biblioteca Rino Curti (Diretoria)'
+                    : 'Biblioteca Cecília Braga (Geral)'}
+                </p>
+                <p className="text-xs text-slate-500">
+                  Data da solicitação: {formatDate(preReservaToCancel.created_at)}
+                </p>
+              </div>
+              <p className="text-rose-600 text-xs">
+                O pedido será cancelado e o operador não precisará mais validá-lo.
+              </p>
+            </div>
+          ) : (
+            'Tem certeza que deseja cancelar esta solicitação pendente?'
+          )
+        }
+        confirmLabel="Sim, Cancelar Solicitação"
+        variant="destructive"
+        loading={actionLoadingId === preReservaToCancel?.id}
+        onConfirm={executeCancelPreReserva}
       />
     </div>
   )
