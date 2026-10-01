@@ -422,6 +422,8 @@ export const HistoricoService = {
         id_titulo,
         titulo_de_livro,
         autor,
+        autor_espiritual,
+        autor_mediunico,
         categoria,
         editora,
         colecao,

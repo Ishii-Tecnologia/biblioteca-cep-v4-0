@@ -493,10 +493,10 @@ export default function Manual() {
         },
         {
           number: 4,
-          title: 'Configurar as Colunas na Janela "Colunas na Impressão"',
+          title: 'Configurar as Colunas e a Ordenação na Janela "Colunas na Impressão"',
           detail:
-            'Ao lado do botão de impressão, clique no botão "Colunas na Impressão". Uma janela se abrirá listando todas as colunas disponíveis para aquele relatório. Marque as caixas das colunas que deseja exibir e desmarque aquelas que preferir omitir na folha impressa.',
-          tip: 'A seleção das colunas marcadas e desmarcadas fica gravada automaticamente no seu navegador. Quando você voltar à tela, suas preferências de colunas estarão preservadas.',
+            'Ao lado do botão de impressão, clique no botão "Colunas na Impressão". Uma janela se abrirá listando todas as colunas disponíveis para aquele relatório. Marque as caixas das colunas que deseja exibir e desmarque aquelas que preferir omitir na folha impressa. Ao lado de cada coluna, é possível definir a prioridade de ordenação clicando no controle numérico correspondente (1..N). Sem marcação numérica de ordenação, o relatório segue a ordenação padrão.',
+          tip: 'A seleção das colunas e a sequência de ordenação escolhida ficam gravadas automaticamente no seu navegador. Quando você voltar à tela, suas preferências estarão preservadas.',
         },
         {
           number: 5,
@@ -512,19 +512,21 @@ export default function Manual() {
         },
       ],
       rules: [
-        'No relatório de Títulos e Exemplares, as colunas configuráveis são: Código do Título, Título do Livro, Acervo, Autor, Categoria, Editora, Qtd. Exemplares e Códigos / Status.',
+        'No relatório de Títulos e Exemplares, as colunas configuráveis são: Código do Título, Título do Livro, Acervo, Autor (Médium/Psicografia), Autor Espiritual, Categoria, Editora, Qtd. Exemplares e Códigos / Status. Obras convencionais têm seu autor exibido na coluna Autor (Médium/Psicografia), enquanto obras com psicografia têm médium e autor espiritual em colunas distintas.',
+        'Na janela "Colunas na Impressão", ao lado de cada coluna, há a marcação de ordenação sequencial de 1 até o número de colunas. Ao clicar, a coluna recebe o próximo numeral sequencial para definir o critério de classificação (ORDER BY) do relatório. Se nenhuma coluna for marcada, vale a ordenação padrão.',
         'No relatório de Movimentações por Período, é possível escolher: Tipo de Registro, Data do Evento, Livro / Título, Acervo, Exemplar, Leitor, Status e Detalhes / Previsão.',
-        'Nos relatórios de Leitores, Usuários e Logs, cada aba possui sua própria seleção independente de colunas.',
+        'Nos relatórios de Leitores, Usuários e Logs, cada aba possui sua própria seleção independente de colunas e prioridades de ordenação.',
         'Caso a janela de impressão não abra, certifique-se de liberar o bloqueador de pop-ups do navegador para o endereço do sistema.',
       ],
       example: {
-        title: 'Exemplo: Emissão de catálogo sintético da Coleção Diretoria em PDF',
+        title:
+          'Exemplo: Emissão de catálogo sintético da Coleção Diretoria em PDF ordenado por autor espiritual e título',
         context:
-          'A diretoria da CEP solicitou uma relação rápida apenas com os títulos, autores e categorias cadastrados na Biblioteca Rino Curti, sem a listagem extensa de códigos de exemplares.',
+          'A diretoria da CEP solicitou uma relação rápida com os títulos, autores e categorias cadastrados na Biblioteca Rino Curti, distinguindo médium e autor espiritual, ordenada primeiramente por Autor Espiritual e em seguida por Título.',
         action:
-          'O operador entra na aba "Títulos e Exemplares" do Histórico, filtra Acervo por "Acervo Diretoria", clica em "Colunas na Impressão", desmarca "Códigos / Status" e "Editora", deixando ativas apenas Título, Autor, Categoria e Qtd. Exemplares, e clica no botão "Imprimir / PDF".',
+          'O operador entra na aba "Títulos e Exemplares" do Histórico, filtra Acervo por "Acervo Diretoria", clica em "Colunas na Impressão", desmarca "Códigos / Status" e "Editora", marca a ordenação da coluna "Autor Espiritual" como 1 e da coluna "Título do Livro" como 2, e clica no botão "Imprimir / PDF".',
         result:
-          'O navegador abre a prévia diagramada em folha A4 contendo apenas as colunas escolhidas com o totalizador da coleção, permitindo salvar o PDF imediatamente.',
+          'O navegador abre a prévia diagramada em folha A4 contendo as colunas escolhidas com a classificação desejada e o totalizador da coleção, permitindo salvar o PDF imediatamente.',
         type: 'success',
       },
     },

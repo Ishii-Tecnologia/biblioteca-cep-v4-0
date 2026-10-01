@@ -130,13 +130,18 @@ export default function Historico() {
   const [colecaoMovFilter, setColecaoMovFilter] = useState<'all' | 'geral' | 'diretoria'>('all')
   const [searchMov, setSearchMov] = useState('')
 
-  // --- CHAVES LOCALSTORAGE PARA PERSISTÊNCIA DE COLUNAS ---
+  // --- CHAVES LOCALSTORAGE PARA PERSISTÊNCIA DE COLUNAS E ORDENAÇÃO ---
   const STORAGE_KEYS = {
     logs: 'biblioteca_cep_relatorio_cols_logs',
     leitores: 'biblioteca_cep_relatorio_cols_leitores',
     titulos: 'biblioteca_cep_relatorio_cols_titulos',
     usuarios: 'biblioteca_cep_relatorio_cols_usuarios',
     movimentacoes: 'biblioteca_cep_relatorio_cols_movimentacoes',
+    orderLogs: 'biblioteca_cep_relatorio_order_logs',
+    orderLeitores: 'biblioteca_cep_relatorio_order_leitores',
+    orderTitulos: 'biblioteca_cep_relatorio_order_titulos',
+    orderUsuarios: 'biblioteca_cep_relatorio_order_usuarios',
+    orderMovimentacoes: 'biblioteca_cep_relatorio_order_movimentacoes',
   }
 
   // --- SELEÇÃO DE COLUNAS PARA IMPRESSÃO / PDF (COM PERSISTÊNCIA) ---
@@ -189,7 +194,8 @@ export default function Historico() {
     codigo: true,
     titulo: true,
     acervo: true,
-    autor: true,
+    autor_mediunipis: true,
+    autor_espiritual: true,
     categoria: true,
     editora: true,
     total_exemplares: true,
@@ -200,7 +206,14 @@ export default function Historico() {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.titulos)
       if (saved) {
-        return { ...defaultColsTitulos, ...JSON.parse(saved) }
+        const parsed = JSON.parse(saved)
+        // Migração suave caso o usuário já tivesse chave antiga 'autor'
+        if (parsed.autor !== undefined && parsed.autor_mediunipis === undefined) {
+          parsed.autor_mediunipis = parsed.autor
+          parsed.autor_espiritual = parsed.autor
+          delete parsed.autor
+        }
+        return { ...defaultColsTitulos, ...parsed }
       }
     } catch (e) {
       console.error('Erro ao ler colunas de titulos do localStorage', e)
@@ -252,7 +265,85 @@ export default function Historico() {
     return defaultColsMovimentacoes
   })
 
-  // Efeitos para persistir quando o usuário altera qualquer seleção de colunas
+  // --- ORDENAÇÃO DE COLUNAS PARA IMPRESSÃO (NUMERAL SEQUENCIAL 1..N) ---
+  const [orderLogs, setOrderLogs] = useState<Record<string, number>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.orderLogs)
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.error('Erro ao ler ordenação de logs do localStorage', e)
+    }
+    return {}
+  })
+
+  const [orderLeitores, setOrderLeitores] = useState<Record<string, number>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.orderLeitores)
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.error('Erro ao ler ordenação de leitores do localStorage', e)
+    }
+    return {}
+  })
+
+  const [orderTitulos, setOrderTitulos] = useState<Record<string, number>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.orderTitulos)
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.error('Erro ao ler ordenação de títulos do localStorage', e)
+    }
+    return {}
+  })
+
+  const [orderUsuarios, setOrderUsuarios] = useState<Record<string, number>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.orderUsuarios)
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.error('Erro ao ler ordenação de usuários do localStorage', e)
+    }
+    return {}
+  })
+
+  const [orderMovimentacoes, setOrderMovimentacoes] = useState<Record<string, number>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.orderMovimentacoes)
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.error('Erro ao ler ordenação de movimentações do localStorage', e)
+    }
+    return {}
+  })
+
+  // Helper para alternar ordenação de uma coluna mantendo sequência 1..N sem buracos
+  const toggleColumnOrder = (
+    currentOrder: Record<string, number>,
+    setOrder: React.Dispatch<React.SetStateAction<Record<string, number>>>,
+    colKey: string,
+  ) => {
+    setOrder((prev) => {
+      const next = { ...prev }
+      if (next[colKey] !== undefined) {
+        // Remover ordenação e renumerar as que estavam depois
+        const removedNum = next[colKey]
+        delete next[colKey]
+        Object.keys(next).forEach((key) => {
+          if (next[key] > removedNum) {
+            next[key] -= 1
+          }
+        })
+      } else {
+        // Atribuir o próximo numeral disponível
+        const currentNumbers = Object.values(next)
+        const nextNum = currentNumbers.length > 0 ? Math.max(...currentNumbers) + 1 : 1
+        next[colKey] = nextNum
+      }
+      return next
+    })
+  }
+
+  // Efeitos para persistir quando o usuário altera qualquer seleção de colunas ou ordenação
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEYS.logs, JSON.stringify(colsLogs))
@@ -292,6 +383,46 @@ export default function Historico() {
       console.error('Erro ao salvar colunas de movimentações no localStorage', e)
     }
   }, [colsMovimentacoes])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.orderLogs, JSON.stringify(orderLogs))
+    } catch (e) {
+      console.error('Erro ao salvar ordenação de logs no localStorage', e)
+    }
+  }, [orderLogs])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.orderLeitores, JSON.stringify(orderLeitores))
+    } catch (e) {
+      console.error('Erro ao salvar ordenação de leitores no localStorage', e)
+    }
+  }, [orderLeitores])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.orderTitulos, JSON.stringify(orderTitulos))
+    } catch (e) {
+      console.error('Erro ao salvar ordenação de títulos no localStorage', e)
+    }
+  }, [orderTitulos])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.orderUsuarios, JSON.stringify(orderUsuarios))
+    } catch (e) {
+      console.error('Erro ao salvar ordenação de usuários no localStorage', e)
+    }
+  }, [orderUsuarios])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.orderMovimentacoes, JSON.stringify(orderMovimentacoes))
+    } catch (e) {
+      console.error('Erro ao salvar ordenação de movimentações no localStorage', e)
+    }
+  }, [orderMovimentacoes])
 
   // Check admin
   const isAdmin = profile?.role === 'admin'
@@ -712,6 +843,50 @@ export default function Historico() {
       return
     }
 
+    // Ordenação dos leitores se houver prioridades definidas pelo usuário
+    const sortedLeitoresData = [...filteredLeitores]
+    const activeOrderLeitores = Object.entries(orderLeitores).sort((a, b) => a[1] - b[1])
+    if (activeOrderLeitores.length > 0) {
+      sortedLeitoresData.sort((a: any, b: any) => {
+        for (const [colKey] of activeOrderLeitores) {
+          let valA: any = ''
+          let valB: any = ''
+          if (colKey === 'id') {
+            valA = Number(a.id_leitor) || 0
+            valB = Number(b.id_leitor) || 0
+          } else if (colKey === 'nome') {
+            valA = (a.nome_do_leitor || '').toLowerCase()
+            valB = (b.nome_do_leitor || '').toLowerCase()
+          } else if (colKey === 'email') {
+            valA = (a.email || '').toLowerCase()
+            valB = (b.email || '').toLowerCase()
+          } else if (colKey === 'telefone') {
+            valA = (a.telefone || '').toLowerCase()
+            valB = (b.telefone || '').toLowerCase()
+          } else if (colKey === 'status') {
+            valA = a.bloqueado ? 1 : 0
+            valB = b.bloqueado ? 1 : 0
+          } else if (colKey === 'emprestimos') {
+            valA = Number(a.emprestimos_ativos || 0)
+            valB = Number(b.emprestimos_ativos || 0)
+          } else if (colKey === 'data_cadastro') {
+            valA =
+              a.data_cadastro || a.created_at
+                ? new Date(a.data_cadastro || a.created_at).getTime()
+                : 0
+            valB =
+              b.data_cadastro || b.created_at
+                ? new Date(b.data_cadastro || b.created_at).getTime()
+                : 0
+          }
+
+          if (valA < valB) return -1
+          if (valA > valB) return 1
+        }
+        return 0
+      })
+    }
+
     const visibleColsCount = Object.values(colsLeitores).filter(Boolean).length || 1
 
     const ths: string[] = []
@@ -724,7 +899,7 @@ export default function Historico() {
       ths.push('<th style="text-align: center;">Empréstimos (Ativos / Total)</th>')
     if (colsLeitores.data_cadastro) ths.push('<th style="text-align: center;">Data Cadastro</th>')
 
-    const rowsHtml = filteredLeitores
+    const rowsHtml = sortedLeitoresData
       .map((l) => {
         const tds: string[] = []
         if (colsLeitores.id) {
@@ -854,6 +1029,47 @@ export default function Historico() {
       return
     }
 
+    // Ordenação dos dados do relatório se houver prioridades definidas pelo usuário
+    const sortedLogsData = [...filteredLogs]
+    const activeOrderLogs = Object.entries(orderLogs).sort((a, b) => a[1] - b[1])
+    if (activeOrderLogs.length > 0) {
+      sortedLogsData.sort((a: any, b: any) => {
+        for (const [colKey] of activeOrderLogs) {
+          let valA: any = ''
+          let valB: any = ''
+          if (colKey === 'data_hora') {
+            valA = a.data_hora ? new Date(a.data_hora).getTime() : 0
+            valB = b.data_hora ? new Date(b.data_hora).getTime() : 0
+          } else if (colKey === 'operacao') {
+            valA = (a.tipo_operacao || '').toLowerCase()
+            valB = (b.tipo_operacao || '').toLowerCase()
+          } else if (colKey === 'acervo') {
+            valA = (a.colecao || '').toLowerCase()
+            valB = (b.colecao || '').toLowerCase()
+          } else if (colKey === 'exemplar') {
+            valA = (a.id_exemplar || '').toLowerCase()
+            valB = (b.id_exemplar || '').toLowerCase()
+          } else if (colKey === 'leitor') {
+            valA = (a.leitor?.nome_do_leitor || '').toLowerCase()
+            valB = (b.leitor?.nome_do_leitor || '').toLowerCase()
+          } else if (colKey === 'operador') {
+            valA = (a.usuario_sistema || '').toLowerCase()
+            valB = (b.usuario_sistema || '').toLowerCase()
+          } else if (colKey === 'detalhes') {
+            valA = (a.detalhes || '').toLowerCase()
+            valB = (b.detalhes || '').toLowerCase()
+          } else if (colKey === 'observacao') {
+            valA = (a.observacao || '').toLowerCase()
+            valB = (b.observacao || '').toLowerCase()
+          }
+
+          if (valA < valB) return -1
+          if (valA > valB) return 1
+        }
+        return 0
+      })
+    }
+
     const visibleColsCount = Object.values(colsLogs).filter(Boolean).length || 1
 
     const ths: string[] = []
@@ -866,7 +1082,7 @@ export default function Historico() {
     if (colsLogs.detalhes) ths.push('<th>Detalhes</th>')
     if (colsLogs.observacao) ths.push('<th>Observação</th>')
 
-    const rowsHtml = filteredLogs
+    const rowsHtml = sortedLogsData
       .map((l) => {
         const tds: string[] = []
         const col = (
@@ -989,19 +1205,87 @@ export default function Historico() {
       return
     }
 
+    // Helper de resolução de autores para as duas colunas
+    const resolveAutores = (t: any) => {
+      const autorEsp = (t.autor_espiritual || '').trim()
+      const autorMed = (t.autor_mediunico || '').trim()
+      const autorPadrao = (t.autor || '').trim()
+
+      let autorMediumPsicografia = ''
+      let autorEspiritual = ''
+
+      if (autorEsp) {
+        // Obra espírita / psicografada com autor espiritual
+        autorEspiritual = autorEsp
+        autorMediumPsicografia = autorMed || autorPadrao || '-'
+      } else {
+        // Obra convencional (sem autor espiritual): fica na coluna Autor
+        autorMediumPsicografia = autorPadrao || autorMed || '-'
+        autorEspiritual = '-'
+      }
+
+      return { autorMediumPsicografia, autorEspiritual }
+    }
+
+    // Ordenação dos títulos se houver prioridades definidas pelo usuário
+    const sortedTitulosData = [...filteredTitulos]
+    const activeOrderTitulos = Object.entries(orderTitulos).sort((a, b) => a[1] - b[1])
+    if (activeOrderTitulos.length > 0) {
+      sortedTitulosData.sort((a: any, b: any) => {
+        for (const [colKey] of activeOrderTitulos) {
+          let valA: any = ''
+          let valB: any = ''
+          if (colKey === 'codigo') {
+            valA = (a.id_titulo || '').toLowerCase()
+            valB = (b.id_titulo || '').toLowerCase()
+          } else if (colKey === 'titulo') {
+            valA = (a.titulo_de_livro || '').toLowerCase()
+            valB = (b.titulo_de_livro || '').toLowerCase()
+          } else if (colKey === 'acervo') {
+            valA = (a.colecao || '').toLowerCase()
+            valB = (b.colecao || '').toLowerCase()
+          } else if (colKey === 'autor_mediunipis') {
+            valA = resolveAutores(a).autorMediumPsicografia.toLowerCase()
+            valB = resolveAutores(b).autorMediumPsicografia.toLowerCase()
+          } else if (colKey === 'autor_espiritual') {
+            valA = resolveAutores(a).autorEspiritual.toLowerCase()
+            valB = resolveAutores(b).autorEspiritual.toLowerCase()
+          } else if (colKey === 'categoria') {
+            valA = (a.categoria || '').toLowerCase()
+            valB = (b.categoria || '').toLowerCase()
+          } else if (colKey === 'editora') {
+            valA = (a.editora || '').toLowerCase()
+            valB = (b.editora || '').toLowerCase()
+          } else if (colKey === 'total_exemplares') {
+            valA = (a.exemplar || []).length
+            valB = (b.exemplar || []).length
+          } else if (colKey === 'detalhes_exemplares') {
+            valA = ((a.exemplar || [])[0]?.id_exemplar || '').toLowerCase()
+            valB = ((b.exemplar || [])[0]?.id_exemplar || '').toLowerCase()
+          }
+
+          if (valA < valB) return -1
+          if (valA > valB) return 1
+        }
+        return 0
+      })
+    }
+
     const visibleColsCount = Object.values(colsTitulos).filter(Boolean).length || 1
 
     const ths: string[] = []
-    if (colsTitulos.codigo) ths.push('<th>Código</th>')
+    if (colsTitulos.codigo) ths.push('<th style="width: 80px;">Código</th>')
     if (colsTitulos.titulo) ths.push('<th>Título</th>')
-    if (colsTitulos.acervo) ths.push('<th>Acervo</th>')
-    if (colsTitulos.autor) ths.push('<th>Autor</th>')
+    if (colsTitulos.acervo) ths.push('<th style="width: 85px;">Acervo</th>')
+    if (colsTitulos.autor_mediunipis) ths.push('<th>Autor (Médium/Psicografia)</th>')
+    if (colsTitulos.autor_espiritual) ths.push('<th>Autor Espiritual</th>')
     if (colsTitulos.categoria) ths.push('<th>Categoria</th>')
     if (colsTitulos.editora) ths.push('<th>Editora</th>')
-    if (colsTitulos.total_exemplares) ths.push('<th style="text-align: center;">Exemplares</th>')
+    if (colsTitulos.total_exemplares)
+      ths.push('<th style="text-align: center; width: 65px;">Exemplares</th>')
     if (colsTitulos.detalhes_exemplares) ths.push('<th>Códigos / Status</th>')
 
-    const rowsHtml = filteredTitulos
+    const rowsHtml = sortedTitulosData
       .map((t) => {
         const exemplares = t.exemplar || []
         const exemplaresFormatted = exemplares.length
@@ -1021,10 +1305,12 @@ export default function Historico() {
             ? '<span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a;">Rino Curti</span>'
             : '<span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">Cecília Braga</span>'
 
+        const { autorMediumPsicografia, autorEspiritual } = resolveAutores(t)
+
         const tds: string[] = []
         if (colsTitulos.codigo) {
           tds.push(
-            `<td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0; font-family: monospace;">${t.id_titulo}</td>`,
+            `<td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0; font-family: monospace; font-size: 11px;">${t.id_titulo}</td>`,
           )
         }
         if (colsTitulos.titulo) {
@@ -1037,9 +1323,14 @@ export default function Historico() {
             `<td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0;">${acervoBadgeHtml}</td>`,
           )
         }
-        if (colsTitulos.autor) {
+        if (colsTitulos.autor_mediunipis) {
           tds.push(
-            `<td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0;">${t.autor || '-'}</td>`,
+            `<td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0;">${autorMediumPsicografia}</td>`,
+          )
+        }
+        if (colsTitulos.autor_espiritual) {
+          tds.push(
+            `<td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0; font-style: ${autorEspiritual !== '-' ? 'italic' : 'normal'};">${autorEspiritual}</td>`,
           )
         }
         if (colsTitulos.categoria) {
@@ -1174,6 +1465,41 @@ export default function Historico() {
       return
     }
 
+    // Ordenação dos usuários se houver prioridades definidas pelo usuário
+    const sortedUsuariosData = [...filteredUsuarios]
+    const activeOrderUsuarios = Object.entries(orderUsuarios).sort((a, b) => a[1] - b[1])
+    if (activeOrderUsuarios.length > 0) {
+      sortedUsuariosData.sort((a: any, b: any) => {
+        for (const [colKey] of activeOrderUsuarios) {
+          let valA: any = ''
+          let valB: any = ''
+          if (colKey === 'nome') {
+            valA = (a.full_name || a.nome || '').toLowerCase()
+            valB = (b.full_name || b.nome || '').toLowerCase()
+          } else if (colKey === 'email') {
+            valA = (a.email || '').toLowerCase()
+            valB = (b.email || '').toLowerCase()
+          } else if (colKey === 'telefone') {
+            valA = (a.phone || a.telefone || '').toLowerCase()
+            valB = (b.phone || b.telefone || '').toLowerCase()
+          } else if (colKey === 'papel') {
+            valA = (a.role || '').toLowerCase()
+            valB = (b.role || '').toLowerCase()
+          } else if (colKey === 'status') {
+            valA = a.status === 'inativo' || a.bloqueado ? 1 : 0
+            valB = b.status === 'inativo' || b.bloqueado ? 1 : 0
+          } else if (colKey === 'data_cadastro') {
+            valA = a.created_at ? new Date(a.created_at).getTime() : 0
+            valB = b.created_at ? new Date(b.created_at).getTime() : 0
+          }
+
+          if (valA < valB) return -1
+          if (valA > valB) return 1
+        }
+        return 0
+      })
+    }
+
     const visibleColsCount = Object.values(colsUsuarios).filter(Boolean).length || 1
 
     const ths: string[] = []
@@ -1185,7 +1511,7 @@ export default function Historico() {
     if (colsUsuarios.data_cadastro)
       ths.push('<th style="text-align: center;">Data de Cadastro</th>')
 
-    const rowsHtml = filteredUsuarios
+    const rowsHtml = sortedUsuariosData
       .map((u) => {
         const tds: string[] = []
         if (colsUsuarios.nome) {
@@ -1327,11 +1653,21 @@ export default function Historico() {
         t.colecao || (t.id_titulo?.toUpperCase().startsWith('DIR-') ? 'diretoria' : 'geral')
       ).toLowerCase()
       const acervoText = col === 'diretoria' ? 'Biblioteca Rino Curti' : 'Biblioteca Cecília Braga'
+      const autorEsp = (t.autor_espiritual || '').trim()
+      const autorMed = (t.autor_mediunico || '').trim()
+      const autorPadrao = (t.autor || '').trim()
+
+      const autorMediumPsicografia = autorEsp
+        ? autorMed || autorPadrao || '-'
+        : autorPadrao || autorMed || '-'
+      const autorEspiritual = autorEsp ? autorEsp : '-'
+
       exportData.push({
         Codigo_Titulo: t.id_titulo,
         Titulo: t.titulo_de_livro,
         Acervo: acervoText,
-        Autor: t.autor,
+        Autor_Medium_Psicografia: autorMediumPsicografia,
+        Autor_Espiritual: autorEspiritual,
         Categoria: t.categoria || '-',
         Editora: t.editora || '-',
         Total_Exemplares: exemplares.length,
@@ -1407,6 +1743,47 @@ export default function Historico() {
       return
     }
 
+    // Ordenação das movimentações se houver prioridades definidas pelo usuário
+    const sortedMovimentacoesData = [...filteredMovimentacoes]
+    const activeOrderMov = Object.entries(orderMovimentacoes).sort((a, b) => a[1] - b[1])
+    if (activeOrderMov.length > 0) {
+      sortedMovimentacoesData.sort((a: any, b: any) => {
+        for (const [colKey] of activeOrderMov) {
+          let valA: any = ''
+          let valB: any = ''
+          if (colKey === 'tipo') {
+            valA = (a.tipo_registro || '').toLowerCase()
+            valB = (b.tipo_registro || '').toLowerCase()
+          } else if (colKey === 'data_evento') {
+            valA = a.data_evento ? new Date(a.data_evento).getTime() : 0
+            valB = b.data_evento ? new Date(b.data_evento).getTime() : 0
+          } else if (colKey === 'titulo_livro') {
+            valA = (a.titulo_livro || '').toLowerCase()
+            valB = (b.titulo_livro || '').toLowerCase()
+          } else if (colKey === 'acervo') {
+            valA = (a.colecao || '').toLowerCase()
+            valB = (b.colecao || '').toLowerCase()
+          } else if (colKey === 'exemplar') {
+            valA = (a.id_exemplar || '').toLowerCase()
+            valB = (b.id_exemplar || '').toLowerCase()
+          } else if (colKey === 'leitor') {
+            valA = (a.leitor_nome || '').toLowerCase()
+            valB = (b.leitor_nome || '').toLowerCase()
+          } else if (colKey === 'status') {
+            valA = (a.status || '').toLowerCase()
+            valB = (b.status || '').toLowerCase()
+          } else if (colKey === 'detalhes') {
+            valA = (a.detalhes || '').toLowerCase()
+            valB = (b.detalhes || '').toLowerCase()
+          }
+
+          if (valA < valB) return -1
+          if (valA > valB) return 1
+        }
+        return 0
+      })
+    }
+
     const visibleColsCount = Object.values(colsMovimentacoes).filter(Boolean).length || 1
 
     const ths: string[] = []
@@ -1419,7 +1796,7 @@ export default function Historico() {
     if (colsMovimentacoes.status) ths.push('<th>Status</th>')
     if (colsMovimentacoes.detalhes) ths.push('<th>Detalhes / Previsão</th>')
 
-    const rowsHtml = filteredMovimentacoes
+    const rowsHtml = sortedMovimentacoesData
       .map((m) => {
         const tds: string[] = []
         const col = (
@@ -1657,77 +2034,77 @@ export default function Historico() {
                         Colunas na Impressão
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-56 p-3" align="end">
-                      <div className="space-y-2">
-                        <div className="text-xs font-semibold text-foreground border-b pb-1 flex items-center justify-between">
+                    <PopoverContent className="w-72 p-3" align="end">
+                      <div className="space-y-2.5">
+                        <div className="text-xs font-semibold text-foreground border-b pb-1.5 flex items-center justify-between">
                           <span>Colunas do Relatório</span>
-                          <span className="text-[10px] text-muted-foreground">Impressão/PDF</span>
+                          <span className="text-[10px] text-muted-foreground">Impressão / PDF</span>
                         </div>
+                        <p className="text-[11px] text-muted-foreground leading-tight">
+                          Marque para exibir. Clique no numeral para definir a ordem sequencial
+                          (1..N) de classificação do relatório.
+                        </p>
                         <div className="space-y-1.5 pt-1">
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsLeitores.id}
-                              onCheckedChange={(v) =>
-                                setColsLeitores((prev) => ({ ...prev, id: !!v }))
-                              }
-                            />
-                            <span>ID do Leitor</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsLeitores.nome}
-                              onCheckedChange={(v) =>
-                                setColsLeitores((prev) => ({ ...prev, nome: !!v }))
-                              }
-                            />
-                            <span>Nome</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsLeitores.email}
-                              onCheckedChange={(v) =>
-                                setColsLeitores((prev) => ({ ...prev, email: !!v }))
-                              }
-                            />
-                            <span>E-mail</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsLeitores.telefone}
-                              onCheckedChange={(v) =>
-                                setColsLeitores((prev) => ({ ...prev, telefone: !!v }))
-                              }
-                            />
-                            <span>Telefone</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsLeitores.status}
-                              onCheckedChange={(v) =>
-                                setColsLeitores((prev) => ({ ...prev, status: !!v }))
-                              }
-                            />
-                            <span>Status (Ativo/Bloqueado)</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsLeitores.emprestimos}
-                              onCheckedChange={(v) =>
-                                setColsLeitores((prev) => ({ ...prev, emprestimos: !!v }))
-                              }
-                            />
-                            <span>Empréstimos</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsLeitores.data_cadastro}
-                              onCheckedChange={(v) =>
-                                setColsLeitores((prev) => ({ ...prev, data_cadastro: !!v }))
-                              }
-                            />
-                            <span>Data de Cadastro</span>
-                          </label>
+                          {[
+                            { key: 'id', label: 'ID do Leitor' },
+                            { key: 'nome', label: 'Nome' },
+                            { key: 'email', label: 'E-mail' },
+                            { key: 'telefone', label: 'Telefone' },
+                            { key: 'status', label: 'Status (Ativo / Bloqueado)' },
+                            { key: 'emprestimos', label: 'Empréstimos' },
+                            { key: 'data_cadastro', label: 'Data de Cadastro' },
+                          ].map((col) => {
+                            const isChecked = (colsLeitores as any)[col.key]
+                            const orderNum = orderLeitores[col.key]
+                            return (
+                              <div
+                                key={col.key}
+                                className="flex items-center justify-between gap-2 text-xs py-0.5 hover:bg-muted/40 px-1 rounded transition-colors"
+                              >
+                                <label className="flex items-center gap-2 cursor-pointer flex-1">
+                                  <Checkbox
+                                    checked={isChecked}
+                                    onCheckedChange={(v) =>
+                                      setColsLeitores((prev) => ({ ...prev, [col.key]: !!v }))
+                                    }
+                                  />
+                                  <span className="truncate">{col.label}</span>
+                                </label>
+                                <button
+                                  type="button"
+                                  title={
+                                    orderNum
+                                      ? `Prioridade de ordenação: ${orderNum}º (clique para remover)`
+                                      : 'Clique para definir prioridade de ordenação neste relatório'
+                                  }
+                                  onClick={() =>
+                                    toggleColumnOrder(orderLeitores, setOrderLeitores, col.key)
+                                  }
+                                  className={`h-5 min-w-[22px] px-1 text-[11px] font-bold rounded flex items-center justify-center border transition-all ${
+                                    orderNum
+                                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                                      : 'bg-muted/60 text-muted-foreground border-dashed border-border hover:border-primary hover:text-foreground'
+                                  }`}
+                                >
+                                  {orderNum || '—'}
+                                </button>
+                              </div>
+                            )
+                          })}
                         </div>
+                        {Object.keys(orderLeitores).length > 0 && (
+                          <div className="pt-2 border-t flex justify-end">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setOrderLeitores({})}
+                              className="h-6 text-[11px] px-2 text-muted-foreground hover:text-foreground"
+                            >
+                              Limpar ordenação
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </PopoverContent>
                   </Popover>
@@ -1899,86 +2276,78 @@ export default function Historico() {
                         Colunas na Impressão
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-56 p-3" align="end">
-                      <div className="space-y-2">
-                        <div className="text-xs font-semibold text-foreground border-b pb-1 flex items-center justify-between">
+                    <PopoverContent className="w-72 p-3" align="end">
+                      <div className="space-y-2.5">
+                        <div className="text-xs font-semibold text-foreground border-b pb-1.5 flex items-center justify-between">
                           <span>Colunas do Relatório</span>
-                          <span className="text-[10px] text-muted-foreground">Impressão/PDF</span>
+                          <span className="text-[10px] text-muted-foreground">Impressão / PDF</span>
                         </div>
+                        <p className="text-[11px] text-muted-foreground leading-tight">
+                          Marque para exibir. Clique no numeral para definir a ordem sequencial
+                          (1..N) de classificação do relatório.
+                        </p>
                         <div className="space-y-1.5 pt-1">
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsLogs.data_hora}
-                              onCheckedChange={(v) =>
-                                setColsLogs((prev) => ({ ...prev, data_hora: !!v }))
-                              }
-                            />
-                            <span>Data / Hora</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsLogs.operacao}
-                              onCheckedChange={(v) =>
-                                setColsLogs((prev) => ({ ...prev, operacao: !!v }))
-                              }
-                            />
-                            <span>Operação</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsLogs.acervo}
-                              onCheckedChange={(v) =>
-                                setColsLogs((prev) => ({ ...prev, acervo: !!v }))
-                              }
-                            />
-                            <span>Acervo</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsLogs.exemplar}
-                              onCheckedChange={(v) =>
-                                setColsLogs((prev) => ({ ...prev, exemplar: !!v }))
-                              }
-                            />
-                            <span>Exemplar</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsLogs.leitor}
-                              onCheckedChange={(v) =>
-                                setColsLogs((prev) => ({ ...prev, leitor: !!v }))
-                              }
-                            />
-                            <span>Leitor</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsLogs.operador}
-                              onCheckedChange={(v) =>
-                                setColsLogs((prev) => ({ ...prev, operador: !!v }))
-                              }
-                            />
-                            <span>Operador</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsLogs.detalhes}
-                              onCheckedChange={(v) =>
-                                setColsLogs((prev) => ({ ...prev, detalhes: !!v }))
-                              }
-                            />
-                            <span>Detalhes</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsLogs.observacao}
-                              onCheckedChange={(v) =>
-                                setColsLogs((prev) => ({ ...prev, observacao: !!v }))
-                              }
-                            />
-                            <span>Observação</span>
-                          </label>
+                          {[
+                            { key: 'data_hora', label: 'Data / Hora' },
+                            { key: 'operacao', label: 'Operação' },
+                            { key: 'acervo', label: 'Acervo' },
+                            { key: 'exemplar', label: 'Exemplar' },
+                            { key: 'leitor', label: 'Leitor' },
+                            { key: 'operador', label: 'Operador' },
+                            { key: 'detalhes', label: 'Detalhes' },
+                            { key: 'observacao', label: 'Observação' },
+                          ].map((col) => {
+                            const isChecked = (colsLogs as any)[col.key]
+                            const orderNum = orderLogs[col.key]
+                            return (
+                              <div
+                                key={col.key}
+                                className="flex items-center justify-between gap-2 text-xs py-0.5 hover:bg-muted/40 px-1 rounded transition-colors"
+                              >
+                                <label className="flex items-center gap-2 cursor-pointer flex-1">
+                                  <Checkbox
+                                    checked={isChecked}
+                                    onCheckedChange={(v) =>
+                                      setColsLogs((prev) => ({ ...prev, [col.key]: !!v }))
+                                    }
+                                  />
+                                  <span className="truncate">{col.label}</span>
+                                </label>
+                                <button
+                                  type="button"
+                                  title={
+                                    orderNum
+                                      ? `Prioridade de ordenação: ${orderNum}º (clique para remover)`
+                                      : 'Clique para definir prioridade de ordenação neste relatório'
+                                  }
+                                  onClick={() =>
+                                    toggleColumnOrder(orderLogs, setOrderLogs, col.key)
+                                  }
+                                  className={`h-5 min-w-[22px] px-1 text-[11px] font-bold rounded flex items-center justify-center border transition-all ${
+                                    orderNum
+                                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                                      : 'bg-muted/60 text-muted-foreground border-dashed border-border hover:border-primary hover:text-foreground'
+                                  }`}
+                                >
+                                  {orderNum || '—'}
+                                </button>
+                              </div>
+                            )
+                          })}
                         </div>
+                        {Object.keys(orderLogs).length > 0 && (
+                          <div className="pt-2 border-t flex justify-end">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setOrderLogs({})}
+                              className="h-6 text-[11px] px-2 text-muted-foreground hover:text-foreground"
+                            >
+                              Limpar ordenação
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </PopoverContent>
                   </Popover>
@@ -2390,89 +2759,79 @@ export default function Historico() {
                         Colunas na Impressão
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-56 p-3" align="end">
-                      <div className="space-y-2">
-                        <div className="text-xs font-semibold text-foreground border-b pb-1 flex items-center justify-between">
+                    <PopoverContent className="w-80 p-3" align="end">
+                      <div className="space-y-2.5">
+                        <div className="text-xs font-semibold text-foreground border-b pb-1.5 flex items-center justify-between">
                           <span>Colunas do Relatório</span>
-                          <span className="text-[10px] text-muted-foreground">Impressão/PDF</span>
+                          <span className="text-[10px] text-muted-foreground">Impressão / PDF</span>
                         </div>
+                        <p className="text-[11px] text-muted-foreground leading-tight">
+                          Marque para exibir. Clique no numeral para definir a ordem sequencial
+                          (1..N) de classificação do relatório.
+                        </p>
                         <div className="space-y-1.5 pt-1">
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsTitulos.codigo}
-                              onCheckedChange={(v) =>
-                                setColsTitulos((prev) => ({ ...prev, codigo: !!v }))
-                              }
-                            />
-                            <span>Código do Título</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsTitulos.titulo}
-                              onCheckedChange={(v) =>
-                                setColsTitulos((prev) => ({ ...prev, titulo: !!v }))
-                              }
-                            />
-                            <span>Título do Livro</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsTitulos.acervo}
-                              onCheckedChange={(v) =>
-                                setColsTitulos((prev) => ({ ...prev, acervo: !!v }))
-                              }
-                            />
-                            <span>Acervo</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsTitulos.autor}
-                              onCheckedChange={(v) =>
-                                setColsTitulos((prev) => ({ ...prev, autor: !!v }))
-                              }
-                            />
-                            <span>Autor</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsTitulos.categoria}
-                              onCheckedChange={(v) =>
-                                setColsTitulos((prev) => ({ ...prev, categoria: !!v }))
-                              }
-                            />
-                            <span>Categoria</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsTitulos.editora}
-                              onCheckedChange={(v) =>
-                                setColsTitulos((prev) => ({ ...prev, editora: !!v }))
-                              }
-                            />
-                            <span>Editora</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsTitulos.total_exemplares}
-                              onCheckedChange={(v) =>
-                                setColsTitulos((prev) => ({ ...prev, total_exemplares: !!v }))
-                              }
-                            />
-                            <span>Qtd. Exemplares</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsTitulos.detalhes_exemplares}
-                              onCheckedChange={(v) =>
-                                setColsTitulos((prev) => ({
-                                  ...prev,
-                                  detalhes_exemplares: !!v,
-                                }))
-                              }
-                            />
-                            <span>Códigos / Status</span>
-                          </label>
+                          {[
+                            { key: 'codigo', label: 'Código do Título' },
+                            { key: 'titulo', label: 'Título do Livro' },
+                            { key: 'acervo', label: 'Acervo' },
+                            { key: 'autor_mediunipis', label: 'Autor (Médium/Psicografia)' },
+                            { key: 'autor_espiritual', label: 'Autor Espiritual' },
+                            { key: 'categoria', label: 'Categoria' },
+                            { key: 'editora', label: 'Editora' },
+                            { key: 'total_exemplares', label: 'Qtd. Exemplares' },
+                            { key: 'detalhes_exemplares', label: 'Códigos / Status' },
+                          ].map((col) => {
+                            const isChecked = (colsTitulos as any)[col.key]
+                            const orderNum = orderTitulos[col.key]
+                            return (
+                              <div
+                                key={col.key}
+                                className="flex items-center justify-between gap-2 text-xs py-0.5 hover:bg-muted/40 px-1 rounded transition-colors"
+                              >
+                                <label className="flex items-center gap-2 cursor-pointer flex-1">
+                                  <Checkbox
+                                    checked={isChecked}
+                                    onCheckedChange={(v) =>
+                                      setColsTitulos((prev) => ({ ...prev, [col.key]: !!v }))
+                                    }
+                                  />
+                                  <span className="truncate">{col.label}</span>
+                                </label>
+                                <button
+                                  type="button"
+                                  title={
+                                    orderNum
+                                      ? `Prioridade de ordenação: ${orderNum}º (clique para remover)`
+                                      : 'Clique para definir prioridade de ordenação neste relatório'
+                                  }
+                                  onClick={() =>
+                                    toggleColumnOrder(orderTitulos, setOrderTitulos, col.key)
+                                  }
+                                  className={`h-5 min-w-[22px] px-1 text-[11px] font-bold rounded flex items-center justify-center border transition-all ${
+                                    orderNum
+                                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                                      : 'bg-muted/60 text-muted-foreground border-dashed border-border hover:border-primary hover:text-foreground'
+                                  }`}
+                                >
+                                  {orderNum || '—'}
+                                </button>
+                              </div>
+                            )
+                          })}
                         </div>
+                        {Object.keys(orderTitulos).length > 0 && (
+                          <div className="pt-2 border-t flex justify-end">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setOrderTitulos({})}
+                              className="h-6 text-[11px] px-2 text-muted-foreground hover:text-foreground"
+                            >
+                              Limpar ordenação
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </PopoverContent>
                   </Popover>
@@ -2745,68 +3104,76 @@ export default function Historico() {
                         Colunas na Impressão
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-56 p-3" align="end">
-                      <div className="space-y-2">
-                        <div className="text-xs font-semibold text-foreground border-b pb-1 flex items-center justify-between">
+                    <PopoverContent className="w-72 p-3" align="end">
+                      <div className="space-y-2.5">
+                        <div className="text-xs font-semibold text-foreground border-b pb-1.5 flex items-center justify-between">
                           <span>Colunas do Relatório</span>
-                          <span className="text-[10px] text-muted-foreground">Impressão/PDF</span>
+                          <span className="text-[10px] text-muted-foreground">Impressão / PDF</span>
                         </div>
+                        <p className="text-[11px] text-muted-foreground leading-tight">
+                          Marque para exibir. Clique no numeral para definir a ordem sequencial
+                          (1..N) de classificação do relatório.
+                        </p>
                         <div className="space-y-1.5 pt-1">
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsUsuarios.nome}
-                              onCheckedChange={(v) =>
-                                setColsUsuarios((prev) => ({ ...prev, nome: !!v }))
-                              }
-                            />
-                            <span>Nome</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsUsuarios.email}
-                              onCheckedChange={(v) =>
-                                setColsUsuarios((prev) => ({ ...prev, email: !!v }))
-                              }
-                            />
-                            <span>E-mail</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsUsuarios.telefone}
-                              onCheckedChange={(v) =>
-                                setColsUsuarios((prev) => ({ ...prev, telefone: !!v }))
-                              }
-                            />
-                            <span>Telefone</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsUsuarios.papel}
-                              onCheckedChange={(v) =>
-                                setColsUsuarios((prev) => ({ ...prev, papel: !!v }))
-                              }
-                            />
-                            <span>Papel</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsUsuarios.status}
-                              onCheckedChange={(v) =>
-                                setColsUsuarios((prev) => ({ ...prev, status: !!v }))
-                              }
-                            />
-                            <span>Status</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsUsuarios.data_cadastro}
-                              onCheckedChange={(v) =>
-                                setColsUsuarios((prev) => ({ ...prev, data_cadastro: !!v }))
-                              }
-                            />
-                            <span>Data de Cadastro</span>
-                          </label>
+                          {[
+                            { key: 'nome', label: 'Nome' },
+                            { key: 'email', label: 'E-mail' },
+                            { key: 'telefone', label: 'Telefone' },
+                            { key: 'papel', label: 'Papel' },
+                            { key: 'status', label: 'Status' },
+                            { key: 'data_cadastro', label: 'Data de Cadastro' },
+                          ].map((col) => {
+                            const isChecked = (colsUsuarios as any)[col.key]
+                            const orderNum = orderUsuarios[col.key]
+                            return (
+                              <div
+                                key={col.key}
+                                className="flex items-center justify-between gap-2 text-xs py-0.5 hover:bg-muted/40 px-1 rounded transition-colors"
+                              >
+                                <label className="flex items-center gap-2 cursor-pointer flex-1">
+                                  <Checkbox
+                                    checked={isChecked}
+                                    onCheckedChange={(v) =>
+                                      setColsUsuarios((prev) => ({ ...prev, [col.key]: !!v }))
+                                    }
+                                  />
+                                  <span className="truncate">{col.label}</span>
+                                </label>
+                                <button
+                                  type="button"
+                                  title={
+                                    orderNum
+                                      ? `Prioridade de ordenação: ${orderNum}º (clique para remover)`
+                                      : 'Clique para definir prioridade de ordenação neste relatório'
+                                  }
+                                  onClick={() =>
+                                    toggleColumnOrder(orderUsuarios, setOrderUsuarios, col.key)
+                                  }
+                                  className={`h-5 min-w-[22px] px-1 text-[11px] font-bold rounded flex items-center justify-center border transition-all ${
+                                    orderNum
+                                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                                      : 'bg-muted/60 text-muted-foreground border-dashed border-border hover:border-primary hover:text-foreground'
+                                  }`}
+                                >
+                                  {orderNum || '—'}
+                                </button>
+                              </div>
+                            )
+                          })}
                         </div>
+                        {Object.keys(orderUsuarios).length > 0 && (
+                          <div className="pt-2 border-t flex justify-end">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setOrderUsuarios({})}
+                              className="h-6 text-[11px] px-2 text-muted-foreground hover:text-foreground"
+                            >
+                              Limpar ordenação
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </PopoverContent>
                   </Popover>
@@ -2968,86 +3335,82 @@ export default function Historico() {
                         Colunas na Impressão
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-56 p-3" align="end">
-                      <div className="space-y-2">
-                        <div className="text-xs font-semibold text-foreground border-b pb-1 flex items-center justify-between">
+                    <PopoverContent className="w-72 p-3" align="end">
+                      <div className="space-y-2.5">
+                        <div className="text-xs font-semibold text-foreground border-b pb-1.5 flex items-center justify-between">
                           <span>Colunas do Relatório</span>
-                          <span className="text-[10px] text-muted-foreground">Impressão/PDF</span>
+                          <span className="text-[10px] text-muted-foreground">Impressão / PDF</span>
                         </div>
+                        <p className="text-[11px] text-muted-foreground leading-tight">
+                          Marque para exibir. Clique no numeral para definir a ordem sequencial
+                          (1..N) de classificação do relatório.
+                        </p>
                         <div className="space-y-1.5 pt-1">
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsMovimentacoes.tipo}
-                              onCheckedChange={(v) =>
-                                setColsMovimentacoes((prev) => ({ ...prev, tipo: !!v }))
-                              }
-                            />
-                            <span>Tipo de Registro</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsMovimentacoes.data_evento}
-                              onCheckedChange={(v) =>
-                                setColsMovimentacoes((prev) => ({ ...prev, data_evento: !!v }))
-                              }
-                            />
-                            <span>Data do Evento</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsMovimentacoes.titulo_livro}
-                              onCheckedChange={(v) =>
-                                setColsMovimentacoes((prev) => ({ ...prev, titulo_livro: !!v }))
-                              }
-                            />
-                            <span>Livro / Título</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsMovimentacoes.acervo}
-                              onCheckedChange={(v) =>
-                                setColsMovimentacoes((prev) => ({ ...prev, acervo: !!v }))
-                              }
-                            />
-                            <span>Acervo</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsMovimentacoes.exemplar}
-                              onCheckedChange={(v) =>
-                                setColsMovimentacoes((prev) => ({ ...prev, exemplar: !!v }))
-                              }
-                            />
-                            <span>Exemplar</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsMovimentacoes.leitor}
-                              onCheckedChange={(v) =>
-                                setColsMovimentacoes((prev) => ({ ...prev, leitor: !!v }))
-                              }
-                            />
-                            <span>Leitor</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsMovimentacoes.status}
-                              onCheckedChange={(v) =>
-                                setColsMovimentacoes((prev) => ({ ...prev, status: !!v }))
-                              }
-                            />
-                            <span>Status</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs cursor-pointer hover:text-foreground">
-                            <Checkbox
-                              checked={colsMovimentacoes.detalhes}
-                              onCheckedChange={(v) =>
-                                setColsMovimentacoes((prev) => ({ ...prev, detalhes: !!v }))
-                              }
-                            />
-                            <span>Detalhes / Previsão</span>
-                          </label>
+                          {[
+                            { key: 'tipo', label: 'Tipo de Registro' },
+                            { key: 'data_evento', label: 'Data do Evento' },
+                            { key: 'titulo_livro', label: 'Livro / Título' },
+                            { key: 'acervo', label: 'Acervo' },
+                            { key: 'exemplar', label: 'Exemplar' },
+                            { key: 'leitor', label: 'Leitor' },
+                            { key: 'status', label: 'Status' },
+                            { key: 'detalhes', label: 'Detalhes / Previsão' },
+                          ].map((col) => {
+                            const isChecked = (colsMovimentacoes as any)[col.key]
+                            const orderNum = orderMovimentacoes[col.key]
+                            return (
+                              <div
+                                key={col.key}
+                                className="flex items-center justify-between gap-2 text-xs py-0.5 hover:bg-muted/40 px-1 rounded transition-colors"
+                              >
+                                <label className="flex items-center gap-2 cursor-pointer flex-1">
+                                  <Checkbox
+                                    checked={isChecked}
+                                    onCheckedChange={(v) =>
+                                      setColsMovimentacoes((prev) => ({ ...prev, [col.key]: !!v }))
+                                    }
+                                  />
+                                  <span className="truncate">{col.label}</span>
+                                </label>
+                                <button
+                                  type="button"
+                                  title={
+                                    orderNum
+                                      ? `Prioridade de ordenação: ${orderNum}º (clique para remover)`
+                                      : 'Clique para definir prioridade de ordenação neste relatório'
+                                  }
+                                  onClick={() =>
+                                    toggleColumnOrder(
+                                      orderMovimentacoes,
+                                      setOrderMovimentacoes,
+                                      col.key,
+                                    )
+                                  }
+                                  className={`h-5 min-w-[22px] px-1 text-[11px] font-bold rounded flex items-center justify-center border transition-all ${
+                                    orderNum
+                                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                                      : 'bg-muted/60 text-muted-foreground border-dashed border-border hover:border-primary hover:text-foreground'
+                                  }`}
+                                >
+                                  {orderNum || '—'}
+                                </button>
+                              </div>
+                            )
+                          })}
                         </div>
+                        {Object.keys(orderMovimentacoes).length > 0 && (
+                          <div className="pt-2 border-t flex justify-end">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setOrderMovimentacoes({})}
+                              className="h-6 text-[11px] px-2 text-muted-foreground hover:text-foreground"
+                            >
+                              Limpar ordenação
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </PopoverContent>
                   </Popover>
