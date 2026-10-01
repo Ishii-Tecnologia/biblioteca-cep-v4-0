@@ -34,6 +34,7 @@ import {
   UserPlus,
   Send,
   Eye,
+  Printer,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -453,6 +454,77 @@ export default function Manual() {
         action: 'Operador carrega "doacoes_2025.csv" e clica em Iniciar Importação.',
         result:
           'O relatório final informa: "50 títulos importados (75 exemplares gerados), 0 rejeitados". O registro é auditado em Relatórios / Histórico.',
+        type: 'success',
+      },
+    },
+    {
+      id: 'op-relatorios-impressao-pdf',
+      shortTitle: 'Relatórios e Impressão / PDF',
+      title: 'Relatórios e Exportação de Dados (Imprimir / PDF)',
+      profile: 'operador',
+      category: 'Acervo e Exemplares',
+      icon: Printer,
+      screenUrl: '/historico',
+      screenButtonText: 'Abrir Histórico e Relatórios',
+      summary:
+        'Como consultar os relatórios gerenciais e de auditoria do sistema, escolher exatamente quais colunas incluir ou ocultar e gerar o documento para impressão em papel ou arquivo PDF.',
+      prerequisites: [
+        'Estar conectado como Operador ou Administrador.',
+        'Permitir abertura de janelas pop-up no navegador para visualização da impressão.',
+      ],
+      steps: [
+        {
+          number: 1,
+          title: 'Acessar o Módulo de Relatórios e Histórico',
+          detail:
+            'No menu principal superior, clique no item "Histórico" (ou navegue até a tela Histórico e Auditoria). A página reúne cinco relatórios completos organizados em abas.',
+        },
+        {
+          number: 2,
+          title: 'Selecionar a Aba do Relatório Desejado',
+          detail:
+            'Escolha a aba conforme o tipo de informação que precisa extrair: "Títulos e Exemplares" (catálogo completo de obras do acervo, autor, editora, quantidade e códigos de exemplares físicos), "Auditoria (Logs)" (registro cronológico de todas as ações de operadores), "Leitores" (relação de pessoas cadastradas, telefones e empréstimos), "Usuários" (equipe com permissão de operador ou administrador) ou "Movimentações" (empréstimos e reservas filtrados por intervalo de datas).',
+        },
+        {
+          number: 3,
+          title: 'Aplicar os Filtros de Busca',
+          detail:
+            'Antes de imprimir, utilize os campos de filtro para delimitar o que deve sair na listagem: na aba de Títulos e Exemplares, filtre por Acervo (Todos, Geral ou Diretoria), por Categoria ou digite termos no campo de busca (título, autor ou código). Na aba de Movimentações, use os seletores "De" e "Até" para definir o período desejado.',
+        },
+        {
+          number: 4,
+          title: 'Configurar as Colunas na Janela "Colunas na Impressão"',
+          detail:
+            'Ao lado do botão de impressão, clique no botão "Colunas na Impressão". Uma janela se abrirá listando todas as colunas disponíveis para aquele relatório. Marque as caixas das colunas que deseja exibir e desmarque aquelas que preferir omitir na folha impressa.',
+          tip: 'A seleção das colunas marcadas e desmarcadas fica gravada automaticamente no seu navegador. Quando você voltar à tela, suas preferências de colunas estarão preservadas.',
+        },
+        {
+          number: 5,
+          title: 'Clicar no Botão "Imprimir / PDF"',
+          detail:
+            'Após definir os filtros e ajustar as colunas desejadas, clique no botão "Imprimir / PDF" (ícone de impressora). Uma nova janela limpa e formatada especificamente para impressão será aberta com o cabeçalho institucional da Coligação Espírita Progressista (CEP).',
+        },
+        {
+          number: 6,
+          title: 'Gerar o Arquivo PDF ou Imprimir em Papel',
+          detail:
+            'A janela de impressão do seu navegador abrirá de forma automática. No campo "Destino", escolha a impressora física para papel ou selecione "Salvar como PDF" para gerar um arquivo eletrônico no seu computador.',
+        },
+      ],
+      rules: [
+        'No relatório de Títulos e Exemplares, as colunas configuráveis são: Código do Título, Título do Livro, Acervo, Autor, Categoria, Editora, Qtd. Exemplares e Códigos / Status.',
+        'No relatório de Movimentações por Período, é possível escolher: Tipo de Registro, Data do Evento, Livro / Título, Acervo, Exemplar, Leitor, Status e Detalhes / Previsão.',
+        'Nos relatórios de Leitores, Usuários e Logs, cada aba possui sua própria seleção independente de colunas.',
+        'Caso a janela de impressão não abra, certifique-se de liberar o bloqueador de pop-ups do navegador para o endereço do sistema.',
+      ],
+      example: {
+        title: 'Exemplo: Emissão de catálogo sintético da Coleção Diretoria em PDF',
+        context:
+          'A diretoria da CEP solicitou uma relação rápida apenas com os títulos, autores e categorias cadastrados na Biblioteca Rino Curti, sem a listagem extensa de códigos de exemplares.',
+        action:
+          'O operador entra na aba "Títulos e Exemplares" do Histórico, filtra Acervo por "Acervo Diretoria", clica em "Colunas na Impressão", desmarca "Códigos / Status" e "Editora", deixando ativas apenas Título, Autor, Categoria e Qtd. Exemplares, e clica no botão "Imprimir / PDF".',
+        result:
+          'O navegador abre a prévia diagramada em folha A4 contendo apenas as colunas escolhidas com o totalizador da coleção, permitindo salvar o PDF imediatamente.',
         type: 'success',
       },
     },
