@@ -261,7 +261,8 @@ export default function Manual() {
         {
           number: 2,
           title: 'Verificar status do botão de reenvio',
-          detail: 'No rodapé do card do leitor, clique no botão "Reenviar Link".',
+          detail:
+            'No corpo do card do leitor, logo abaixo de "empréstimo(s) ativo(s)", clique no botão "Reenviar Link de Acesso".',
           tip: 'Se o botão tiver sido clicado há menos de 60 segundos, ele exibirá um cronômetro regressivo: "Reenviar (45s)". O botão fica travado até o término.',
         },
         {
