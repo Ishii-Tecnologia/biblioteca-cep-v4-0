@@ -495,7 +495,7 @@ export default function Manual() {
           number: 4,
           title: 'Configurar as Colunas e a Ordenação na Janela "Colunas na Impressão"',
           detail:
-            'Ao lado do botão de impressão, clique no botão "Colunas na Impressão". Uma janela se abrirá listando todas as colunas disponíveis para aquele relatório. Marque as caixas das colunas que deseja exibir e desmarque aquelas que preferir omitir na folha impressa. Ao lado de cada coluna, é possível definir a prioridade de ordenação clicando no controle numérico correspondente (1..N). Sem marcação numérica de ordenação, o relatório segue a ordenação padrão.',
+            'Ao lado do botão de impressão, clique no botão "Colunas na Impressão". Uma janela se abrirá listando todas as colunas disponíveis para aquele relatório. Marque as caixas das colunas que deseja exibir e desmarque aquelas que preferir omitir na folha impressa. Ao lado de cada coluna, há a marcação de ordenação, que recebe um numeral sequencial começando em 1 até o número máximo de colunas, seguindo a sequência conforme cada coluna é escolhida; essa sequência define a ordenação do relatório impresso; se nenhuma coluna for marcada, vale a ordenação padrão.',
           tip: 'A seleção das colunas e a sequência de ordenação escolhida ficam gravadas automaticamente no seu navegador. Quando você voltar à tela, suas preferências estarão preservadas.',
         },
         {
@@ -512,8 +512,8 @@ export default function Manual() {
         },
       ],
       rules: [
-        'No relatório de Títulos e Exemplares, as colunas configuráveis são: Código do Título, Título do Livro, Acervo, Autor (Médium/Psicografia), Autor Espiritual, Categoria, Editora, Qtd. Exemplares e Códigos / Status. Obras convencionais têm seu autor exibido na coluna Autor (Médium/Psicografia), enquanto obras com psicografia têm médium e autor espiritual em colunas distintas.',
-        'Na janela "Colunas na Impressão", ao lado de cada coluna, há a marcação de ordenação sequencial de 1 até o número de colunas. Ao clicar, a coluna recebe o próximo numeral sequencial para definir o critério de classificação (ORDER BY) do relatório. Se nenhuma coluna for marcada, vale a ordenação padrão.',
+        'No relatório de Títulos e Exemplares, as colunas de autor são separadas em "Autor (Médium/Psicografia)" e "Autor Espiritual": quando a obra possui autor espiritual cadastrado, o médium ou psicógrafo aparece em "Autor (Médium/Psicografia)" e o autor espiritual na própria coluna "Autor Espiritual"; quando se trata de obra convencional (sem autor espiritual), o autor convencional é apresentado na coluna "Autor (Médium/Psicografia)". As demais colunas configuráveis são: Código do Título, Título do Livro, Acervo, Categoria, Editora, Qtd. Exemplares e Códigos / Status.',
+        'Na janela "Colunas na Impressão", ao lado de cada coluna há a marcação de ordenação, que recebe um numeral sequencial começando em 1 até o número máximo de colunas, seguindo a sequência conforme cada coluna é escolhida. Essa sequência define a ordenação do relatório impresso. Se nenhuma coluna for marcada, vale a ordenação padrão.',
         'No relatório de Movimentações por Período, é possível escolher: Tipo de Registro, Data do Evento, Livro / Título, Acervo, Exemplar, Leitor, Status e Detalhes / Previsão.',
         'Nos relatórios de Leitores, Usuários e Logs, cada aba possui sua própria seleção independente de colunas e prioridades de ordenação.',
         'Caso a janela de impressão não abra, certifique-se de liberar o bloqueador de pop-ups do navegador para o endereço do sistema.',
