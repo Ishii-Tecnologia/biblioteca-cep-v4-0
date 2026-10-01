@@ -815,19 +815,73 @@ export default function Historico() {
     0,
   )
 
-  // Export leitores CSV
+  // Export leitores CSV respeitando a seleção de colunas e ordenação
   const handleExportLeitores = () => {
-    const exportData = filteredLeitores.map((l) => ({
-      ID: l.id_leitor,
-      Nome: l.nome_do_leitor || '-',
-      Email: l.email || '-',
-      Telefone: l.telefone ? formatPhone(l.telefone) : '-',
-      Status: l.bloqueado ? 'Bloqueado' : 'Ativo',
-      Data_Cadastro: formatDate(l.data_cadastro || l.created_at),
-      Emprestimos_Ativos: l.emprestimos_ativos || 0,
-      Emprestimos_Atrasados: l.emprestimos_atrasados || 0,
-      Total_Emprestimos: l.total_emprestimos || 0,
-    }))
+    const sortedLeitoresData = [...filteredLeitores]
+    const activeOrderLeitores = Object.entries(orderLeitores).sort((a, b) => a[1] - b[1])
+    if (activeOrderLeitores.length > 0) {
+      sortedLeitoresData.sort((a: any, b: any) => {
+        for (const [colKey] of activeOrderLeitores) {
+          let valA: any = ''
+          let valB: any = ''
+          if (colKey === 'id') {
+            valA = Number(a.id_leitor) || 0
+            valB = Number(b.id_leitor) || 0
+          } else if (colKey === 'nome') {
+            valA = (a.nome_do_leitor || '').toLowerCase()
+            valB = (b.nome_do_leitor || '').toLowerCase()
+          } else if (colKey === 'email') {
+            valA = (a.email || '').toLowerCase()
+            valB = (b.email || '').toLowerCase()
+          } else if (colKey === 'telefone') {
+            valA = (a.telefone || '').toLowerCase()
+            valB = (b.telefone || '').toLowerCase()
+          } else if (colKey === 'status') {
+            valA = a.bloqueado ? 1 : 0
+            valB = b.bloqueado ? 1 : 0
+          } else if (colKey === 'emprestimos') {
+            valA = Number(a.emprestimos_ativos || 0)
+            valB = Number(b.emprestimos_ativos || 0)
+          } else if (colKey === 'data_cadastro') {
+            valA =
+              a.data_cadastro || a.created_at
+                ? new Date(a.data_cadastro || a.created_at).getTime()
+                : 0
+            valB =
+              b.data_cadastro || b.created_at
+                ? new Date(b.data_cadastro || b.created_at).getTime()
+                : 0
+          }
+
+          if (valA < valB) return -1
+          if (valA > valB) return 1
+        }
+        return 0
+      })
+    }
+
+    const exportData = sortedLeitoresData.map((l) => {
+      const row: Record<string, any> = {}
+      if (colsLeitores.id) row['ID'] = l.id_leitor
+      if (colsLeitores.nome) row['Nome'] = l.nome_do_leitor || '-'
+      if (colsLeitores.email) row['Email'] = l.email || '-'
+      if (colsLeitores.telefone) row['Telefone'] = l.telefone ? formatPhone(l.telefone) : '-'
+      if (colsLeitores.status) row['Status'] = l.bloqueado ? 'Bloqueado' : 'Ativo'
+      if (colsLeitores.emprestimos) {
+        row['Emprestimos_Ativos'] = l.emprestimos_ativos || 0
+        row['Emprestimos_Atrasados'] = l.emprestimos_atrasados || 0
+        row['Total_Emprestimos'] = l.total_emprestimos || 0
+      }
+      if (colsLeitores.data_cadastro) {
+        row['Data_Cadastro'] = formatDate(l.data_cadastro || l.created_at)
+      }
+      // Fallback caso todas as colunas tenham sido desmarcadas
+      if (Object.keys(row).length === 0) {
+        row['ID'] = l.id_leitor
+        row['Nome'] = l.nome_do_leitor || '-'
+      }
+      return row
+    })
     exportCSV(exportData, 'relatorio_leitores')
   }
 
