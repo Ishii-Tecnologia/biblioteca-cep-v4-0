@@ -2075,7 +2075,7 @@ export default function Historico() {
                     <User className="h-5 w-5 text-primary" />
                     Relatório de Leitores Cadastrados
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="max-w-xl">
                     Listagem consolidada contendo Nome, E-mail, Telefone, Status de bloqueio, Data
                     de Cadastro e estatísticas de empréstimos (dd/mm/yy).
                   </CardDescription>
