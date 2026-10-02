@@ -98,7 +98,7 @@ export const AuthorCombobox: React.FC<AuthorComboboxProps> = ({
       onChange(created.name, created)
       setOpen(false)
     } catch (err: any) {
-      alert(`Erro ao cadastrar autor: ${err.message}`)
+      alert(err.message || 'Erro ao cadastrar autor.')
     } finally {
       setCreating(false)
     }

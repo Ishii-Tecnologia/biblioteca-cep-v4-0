@@ -17,7 +17,79 @@ export interface LinkedBook {
   autor_mediunico?: string | null
 }
 
+/**
+ * Normaliza o nome do autor para comparação segura:
+ * remove acentos e diacríticos, passa para minúsculas, limpa espaços múltiplos.
+ */
+export function normalizeAuthorName(name: string): string {
+  if (!name) return ''
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')
+}
+
+/**
+ * Retorna o rótulo legível em português para o tipo de autoria.
+ */
+export function getAuthorTypeLabel(type: AuthorType | string): string {
+  switch (type) {
+    case 'ESPIRITO':
+      return 'Espírito'
+    case 'MEDIUM':
+      return 'Médium'
+    case 'ENCARNADO':
+      return 'Autor Convencional'
+    default:
+      return 'Autor'
+  }
+}
+
 export const AuthorsService = {
+  normalizeName: normalizeAuthorName,
+  getTypeLabel: getAuthorTypeLabel,
+
+  /**
+   * Verifica se já existe algum autor cadastrado com o mesmo nome (ignorando maiúsculas e acentos),
+   * independente do tipo (Espírito, Médium ou Autor Convencional).
+   * Se excludeId for fornecido, ignora o próprio registro (útil na edição).
+   */
+  async findDuplicate(
+    name: string,
+    excludeId?: string,
+  ): Promise<{ duplicate: boolean; existingAuthor?: Author; message?: string }> {
+    const trimmed = name.trim()
+    if (!trimmed) {
+      return { duplicate: false }
+    }
+
+    const normInput = normalizeAuthorName(trimmed)
+
+    // Buscar todos os autores para checagem com remoção de acentos em memória
+    // (número pequeno de autores na base)
+    const { data, error } = await (supabase.from('authors' as any) as any).select('*')
+    if (error || !data) {
+      return { duplicate: false }
+    }
+
+    const match = (data as Author[]).find((a) => {
+      if (excludeId && a.id === excludeId) return false
+      return normalizeAuthorName(a.name) === normInput
+    })
+
+    if (match) {
+      const typeLabel = getAuthorTypeLabel(match.type)
+      return {
+        duplicate: true,
+        existingAuthor: match,
+        message: `"${match.name}" já está cadastrado como ${typeLabel}.`,
+      }
+    }
+
+    return { duplicate: false }
+  },
   /**
    * Busca autores com autocompletar incremental (mínimo 2 caracteres sugerido)
    * Case-insensitive, ordenado por relevância e nome, limitado a ~15 resultados
@@ -94,42 +166,19 @@ export const AuthorsService = {
       throw new Error('Nome do autor não pode ser vazio.')
     }
 
-    // Tentar localizar existente case-insensitive
-    const { data: existing } = await (supabase.from('authors' as any) as any)
-      .select('*')
-      .ilike('name', trimmed)
-      .eq('type', type)
-      .maybeSingle()
-
-    if (existing) {
-      return existing as Author
+    // Tentar localizar existente por normalização de nome independente do tipo
+    const check = await this.findDuplicate(trimmed)
+    if (check.duplicate && check.existingAuthor) {
+      return check.existingAuthor
     }
 
-    // Inserir novo autor
-    const { data, error } = await (supabase.from('authors' as any) as any)
-      .insert({
-        name: trimmed,
-        type: type,
-      })
-      .select()
-      .single()
-
-    if (error) {
-      // Caso conflito simultâneo, buscar novamente
-      const { data: fallback } = await (supabase.from('authors' as any) as any)
-        .select('*')
-        .ilike('name', trimmed)
-        .eq('type', type)
-        .single()
-      if (fallback) return fallback as Author
-      throw error
-    }
-
-    return data as Author
+    // Se não existir duplicado, criar novo
+    return await this.create(trimmed, type)
   },
 
   /**
-   * Cria um novo autor/médium/espírito
+   * Cria um novo autor/médium/espírito validando a regra de unicidade de nome:
+   * não será permitido que o nome se repita independente se for médium, espírito ou autor convencional.
    */
   async create(name: string, type: AuthorType): Promise<Author> {
     const trimmed = name.trim()
@@ -137,17 +186,30 @@ export const AuthorsService = {
       throw new Error('O nome do autor/espírito/médium é obrigatório.')
     }
 
-    // Verificar se já existe com o mesmo nome e tipo (case insensitive)
-    const { data: existing } = await (supabase.from('authors' as any) as any)
-      .select('*')
-      .ilike('name', trimmed)
-      .eq('type', type)
-      .maybeSingle()
-
-    if (existing) {
-      throw new Error(`Já existe um registro com o nome "${trimmed}" para este tipo.`)
+    // Validação de unicidade no frontend/serviço (independente de tipo, sem diferenciar acentos ou maiúsculas)
+    const check = await this.findDuplicate(trimmed)
+    if (check.duplicate && check.existingAuthor) {
+      const typeLabel = getAuthorTypeLabel(check.existingAuthor.type)
+      throw new Error(`"${check.existingAuthor.name}" já está cadastrado como ${typeLabel}.`)
     }
 
+    // Tentar chamar a RPC segura do backend create_author_safe
+    const { data: rpcData, error: rpcError } = await (supabase.rpc as any)('create_author_safe', {
+      p_name: trimmed,
+      p_type: type,
+    })
+
+    if (!rpcError && rpcData) {
+      const res = rpcData as any
+      if (res.success === false) {
+        throw new Error(res.error || 'Erro ao cadastrar autor.')
+      }
+      if (res.author) {
+        return res.author as Author
+      }
+    }
+
+    // Fallback caso RPC não responda
     const { data, error } = await (supabase.from('authors' as any) as any)
       .insert({
         name: trimmed,
@@ -171,6 +233,14 @@ export const AuthorsService = {
     const trimmed = name.trim()
     if (!trimmed) {
       throw new Error('O nome não pode ficar vazio.')
+    }
+
+    // Validação de unicidade no frontend/serviço:
+    // Não pode conflitar com outro registro (exceto o próprio sendo editado)
+    const check = await this.findDuplicate(trimmed, id)
+    if (check.duplicate && check.existingAuthor) {
+      const typeLabel = getAuthorTypeLabel(check.existingAuthor.type)
+      throw new Error(`"${check.existingAuthor.name}" já está cadastrado como ${typeLabel}.`)
     }
 
     // Tentar executar via RPC segura update_author_cascade

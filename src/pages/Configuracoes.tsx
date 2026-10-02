@@ -44,7 +44,14 @@ import { Badge } from '@/components/ui/badge'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import { CategoriasService, Categoria } from '@/services/categorias'
 import { CursosService, Curso } from '@/services/cursos'
-import { AuthorsService, Author, AuthorType, LinkedBook } from '@/services/authors'
+import {
+  AuthorsService,
+  Author,
+  AuthorType,
+  LinkedBook,
+  normalizeAuthorName,
+  getAuthorTypeLabel,
+} from '@/services/authors'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Select,
@@ -770,11 +777,25 @@ export default function Configuracoes() {
   // Authors handlers
   const handleAddAuthor = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newAuthorName.trim()) return
+    const trimmed = newAuthorName.trim()
+    if (!trimmed) return
+
+    // Validação preventiva imediata com base na lista já carregada em memória
+    const normInput = normalizeAuthorName(trimmed)
+    const duplicate = authorsList.find((a) => normalizeAuthorName(a.name) === normInput)
+    if (duplicate) {
+      const typeLabel = getAuthorTypeLabel(duplicate.type)
+      toast({
+        title: 'Nome já cadastrado',
+        description: `"${duplicate.name}" já está cadastrado como ${typeLabel}. Não é permitido que o nome se repita, independentemente do tipo.`,
+        variant: 'destructive',
+      })
+      return
+    }
 
     setAddingAuthor(true)
     try {
-      await AuthorsService.create(newAuthorName, newAuthorType)
+      await AuthorsService.create(trimmed, newAuthorType)
       const typeLabel =
         newAuthorType === 'ESPIRITO'
           ? 'Autor Espiritual'
@@ -784,13 +805,13 @@ export default function Configuracoes() {
 
       toast({
         title: `${typeLabel} adicionado`,
-        description: `"${newAuthorName.trim()}" foi cadastrado com sucesso.`,
+        description: `"${trimmed}" foi cadastrado com sucesso.`,
       })
       setNewAuthorName('')
       await loadAuthors()
     } catch (err: any) {
       toast({
-        title: 'Erro ao cadastrar',
+        title: 'Não foi possível cadastrar',
         description: err.message || 'Não foi possível salvar o nome.',
         variant: 'destructive',
       })
@@ -810,7 +831,8 @@ export default function Configuracoes() {
   }
 
   const handleSaveEditAuthor = async (author: Author) => {
-    if (!editingAuthorName.trim()) {
+    const trimmed = editingAuthorName.trim()
+    if (!trimmed) {
       toast({
         title: 'Nome obrigatório',
         description: 'O nome não pode ficar em branco.',
@@ -819,23 +841,45 @@ export default function Configuracoes() {
       return
     }
 
+    // Se o nome não mudou em nada comparado a si mesmo, apenas cancela edição
+    if (trimmed === author.name) {
+      setEditingAuthorId(null)
+      setEditingAuthorName('')
+      return
+    }
+
+    // Validação preventiva imediata com base na lista já carregada em memória
+    const normInput = normalizeAuthorName(trimmed)
+    const duplicate = authorsList.find(
+      (a) => a.id !== author.id && normalizeAuthorName(a.name) === normInput,
+    )
+    if (duplicate) {
+      const typeLabel = getAuthorTypeLabel(duplicate.type)
+      toast({
+        title: 'Nome já cadastrado',
+        description: `"${duplicate.name}" já está cadastrado como ${typeLabel}. Não é permitido que o nome se repita, independentemente do tipo.`,
+        variant: 'destructive',
+      })
+      return
+    }
+
     setSavingAuthorEdit(true)
     try {
-      const result = await AuthorsService.update(author.id, editingAuthorName, author.type)
+      const result = await AuthorsService.update(author.id, trimmed, author.type)
       const count = result.updatedBooksCount
       toast({
         title: 'Registro atualizado',
         description:
           count > 0
-            ? `O nome foi alterado para "${editingAuthorName.trim()}" e refletido em ${count} livro(s) do acervo.`
-            : `O nome foi alterado para "${editingAuthorName.trim()}".`,
+            ? `O nome foi alterado para "${trimmed}" e refletido em ${count} livro(s) do acervo.`
+            : `O nome foi alterado para "${trimmed}".`,
       })
       setEditingAuthorId(null)
       setEditingAuthorName('')
       await loadAuthors()
     } catch (err: any) {
       toast({
-        title: 'Erro ao atualizar',
+        title: 'Não foi possível atualizar',
         description: err.message || 'Não foi possível atualizar o registro.',
         variant: 'destructive',
       })
