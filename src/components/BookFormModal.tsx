@@ -154,9 +154,9 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
   // Preenche formulário ao editar ou abrir
   useEffect(() => {
     if (bookToEdit) {
-      setIdTitulo(bookToEdit.id_titulo)
+      setIdTitulo(bookToEdit.id_titulo || '')
       setIsbn(bookToEdit.isbn || '')
-      setTituloDeLivro(bookToEdit.titulo_de_livro)
+      setTituloDeLivro(bookToEdit.titulo_de_livro || '')
       setAutorEspiritual(bookToEdit.autor_espiritual || '')
       setAutorMediunico(bookToEdit.autor_mediunico || '')
       setAutor(bookToEdit.autor || '')
@@ -653,24 +653,26 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
 
     const isMediumistic = authorStructure === 'ESPIRITO_MEDIUM'
 
-    // Validação de Autoria
-    if (isMediumistic) {
-      if (!autorEspiritual.trim() && !autorMediunico.trim()) {
-        toast({
-          title: 'Autoria incompleta',
-          description: `Informe ao menos o Autor Espiritual ou o Médium para a estrutura "${labelEspiritoMedium}".`,
-          variant: 'destructive',
-        })
-        return
-      }
-    } else {
-      if (!autor.trim()) {
-        toast({
-          title: 'Autor obrigatório',
-          description: 'Informe o nome do autor da obra.',
-          variant: 'destructive',
-        })
-        return
+    // Validação de Autoria para novos cadastros (livros existentes podem ser salvos mesmo sem autor vinculado após desvinculação)
+    if (!isEditing) {
+      if (isMediumistic) {
+        if (!autorEspiritual.trim() && !autorMediunico.trim()) {
+          toast({
+            title: 'Autoria incompleta',
+            description: `Informe ao menos o Autor Espiritual ou o Médium para a estrutura "${labelEspiritoMedium}".`,
+            variant: 'destructive',
+          })
+          return
+        }
+      } else {
+        if (!autor.trim()) {
+          toast({
+            title: 'Autor obrigatório',
+            description: 'Informe o nome do autor da obra.',
+            variant: 'destructive',
+          })
+          return
+        }
       }
     }
 
@@ -764,15 +766,16 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
     setLoading(true)
 
     try {
-      const finalAutorEspiritual = isMediumistic ? autorEspiritual.trim() : null
-      const finalAutorMediunico = isMediumistic ? autorMediunico.trim() : null
-      const finalAutorGeral = !isMediumistic ? autor.trim() : ''
+      const finalAutorEspiritual = isMediumistic ? autorEspiritual.trim() || null : null
+      const finalAutorMediunico = isMediumistic ? autorMediunico.trim() || null : null
+      const finalAutorGeral = !isMediumistic ? autor.trim() || null : null
 
-      const finalUnifiedAuthor = formatAuthorDisplay(
+      const formattedDisplay = formatAuthorDisplay(
         finalAutorEspiritual,
         finalAutorMediunico,
         finalAutorGeral,
       )
+      const finalUnifiedAuthor = formattedDisplay ? formattedDisplay : null
 
       let normalizedIsbnValue: string | null = null
       if (isbn.trim()) {

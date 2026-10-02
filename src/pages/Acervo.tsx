@@ -711,7 +711,7 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
                         {book.autor_espiritual && (
                           <Sparkles className="w-3 h-3 text-amber-500 shrink-0 inline" />
                         )}
-                        <span>{book.autor_formatado || book.autor}</span>
+                        <span>{book.autor_formatado || book.autor || 'Autor não informado'}</span>
                       </p>
 
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400 mt-2">

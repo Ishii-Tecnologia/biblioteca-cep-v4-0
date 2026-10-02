@@ -821,10 +821,14 @@ export default function Configuracoes() {
 
     setSavingAuthorEdit(true)
     try {
-      await AuthorsService.update(author.id, editingAuthorName)
+      const result = await AuthorsService.update(author.id, editingAuthorName, author.type)
+      const count = result.updatedBooksCount
       toast({
         title: 'Registro atualizado',
-        description: `O nome foi alterado para "${editingAuthorName.trim()}".`,
+        description:
+          count > 0
+            ? `O nome foi alterado para "${editingAuthorName.trim()}" e refletido em ${count} livro(s) do acervo.`
+            : `O nome foi alterado para "${editingAuthorName.trim()}".`,
       })
       setEditingAuthorId(null)
       setEditingAuthorName('')
@@ -859,12 +863,17 @@ export default function Configuracoes() {
 
   const handleExecuteDeleteAuthor = async () => {
     if (!authorToDelete) return
+    const targetAuthor = authorToDelete
     setDeletingAuthor(true)
     try {
-      await AuthorsService.delete(authorToDelete.id)
+      const result = await AuthorsService.delete(targetAuthor.id)
+      const count = result.affectedBooksCount
       toast({
-        title: 'Nome removido da lista',
-        description: `"${authorToDelete.name}" foi removido da lista gerenciada. O cadastro dos livros existentes foi preservado sem alterações.`,
+        title: 'Autor excluído com sucesso',
+        description:
+          count > 0
+            ? `"${targetAuthor.name}" foi excluído. ${count} livro(s) que tinham esse autor vinculado ficaram sem autor (campo vazio).`
+            : `"${targetAuthor.name}" foi excluído da lista de autores.`,
       })
       setDeleteAuthorModalOpen(false)
       setAuthorToDelete(null)
@@ -2921,15 +2930,15 @@ export default function Configuracoes() {
                     ))}
                   </div>
                   <p className="text-[11px] text-amber-800 leading-tight">
-                    <strong>Nota:</strong> A exclusão removerá o nome da lista ativa de sugestões. O
-                    cadastro dos livros existentes <u>NÃO</u> será apagado. Caso um desses livros
-                    seja editado futuramente, o sistema solicitará a escolha de um nome válido da
-                    lista.
+                    <strong>Atenção:</strong> Ao confirmar a exclusão, esses{' '}
+                    {linkedBooksAlert.length} livro(s) continuarão existindo normalmente no acervo,
+                    mas terão a referência a este autor removida (o campo de autor ficará vazio).
                   </p>
                 </div>
               ) : (
                 <p className="text-xs text-slate-500">
-                  Nenhum livro no acervo está vinculado diretamente a este nome no momento.
+                  Nenhum livro no acervo está vinculado a este nome no momento. A exclusão é segura
+                  e imediata.
                 </p>
               )}
             </div>
@@ -2937,7 +2946,7 @@ export default function Configuracoes() {
             'Tem certeza que deseja excluir?'
           )
         }
-        confirmLabel="Sim, Excluir da Lista"
+        confirmLabel="Sim, Excluir Autor"
         cancelLabel="Cancelar"
         variant="destructive"
         loading={deletingAuthor}

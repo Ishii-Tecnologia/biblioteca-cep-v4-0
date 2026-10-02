@@ -470,15 +470,16 @@ export const TitulosService = {
       normalizedIsbn = null
     }
 
-    const finalAutor = formatAuthorDisplay(
+    const finalAutorDisplay = formatAuthorDisplay(
       updates.autor_espiritual,
       updates.autor_mediunico,
       updates.autor,
     )
+    const finalAutor = finalAutorDisplay ? finalAutorDisplay : null
 
     const updatePayload: any = {
       ...updates,
-      autor: finalAutor,
+      autor: updates.autor !== undefined ? finalAutor : undefined,
       autor_espiritual:
         updates.autor_espiritual !== undefined
           ? updates.autor_espiritual?.trim() || null

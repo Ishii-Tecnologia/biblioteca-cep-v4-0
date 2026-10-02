@@ -161,14 +161,51 @@ export const AuthorsService = {
   },
 
   /**
-   * Atualiza o nome de um autor/médium/espírito
+   * Atualiza o nome de um autor/médium/espírito e reflete a alteração em cascata em todos os livros cadastrados
    */
-  async update(id: string, name: string): Promise<Author> {
+  async update(
+    id: string,
+    name: string,
+    type?: AuthorType,
+  ): Promise<{ author: Author; updatedBooksCount: number }> {
     const trimmed = name.trim()
     if (!trimmed) {
       throw new Error('O nome não pode ficar vazio.')
     }
 
+    // Tentar executar via RPC segura update_author_cascade
+    const { data: rpcData, error: rpcError } = await (supabase.rpc as any)(
+      'update_author_cascade',
+      {
+        p_author_id: id,
+        p_new_name: trimmed,
+        p_new_type: type || null,
+      },
+    )
+
+    if (!rpcError && rpcData) {
+      const res = rpcData as any
+      if (res.success === false) {
+        throw new Error(res.error || 'Erro ao atualizar autor em cascata.')
+      }
+
+      // Buscar autor atualizado
+      const { data: updatedAuthor, error: fetchErr } = await (
+        supabase.from('authors' as any) as any
+      )
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (fetchErr) throw fetchErr
+
+      return {
+        author: updatedAuthor as Author,
+        updatedBooksCount: res.updated_books_count ?? 0,
+      }
+    }
+
+    // Fallback caso RPC não esteja disponível por algum motivo
     const { data, error } = await (supabase.from('authors' as any) as any)
       .update({ name: trimmed })
       .eq('id', id)
@@ -176,7 +213,10 @@ export const AuthorsService = {
       .single()
 
     if (error) throw error
-    return data as Author
+    return {
+      author: data as Author,
+      updatedBooksCount: 0,
+    }
   },
 
   /**
@@ -235,13 +275,38 @@ export const AuthorsService = {
   },
 
   /**
-   * Exclui um autor da lista de autores gerenciada.
-   * Não apaga o nome do cadastro dos livros existentes.
+   * Exclui um autor da lista gerenciada e desvincula os livros correspondentes (deixando o campo autor vazio/null).
+   * Retorna a quantidade de livros afetados.
    */
-  async delete(id: string): Promise<void> {
-    const { error } = await (supabase.from('authors' as any) as any).delete().eq('id', id)
+  async delete(id: string): Promise<{ affectedBooksCount: number; deletedAuthorName: string }> {
+    // Executa via RPC segura delete_author_cascade
+    const { data: rpcData, error: rpcError } = await (supabase.rpc as any)(
+      'delete_author_cascade',
+      {
+        p_author_id: id,
+      },
+    )
 
+    if (!rpcError && rpcData) {
+      const res = rpcData as any
+      if (res.success === false) {
+        throw new Error(res.error || 'Erro ao excluir autor.')
+      }
+
+      return {
+        affectedBooksCount: res.affected_books_count ?? 0,
+        deletedAuthorName: res.deleted_author_name ?? '',
+      }
+    }
+
+    // Fallback caso RPC falhe
+    const { error } = await (supabase.from('authors' as any) as any).delete().eq('id', id)
     if (error) throw error
+
+    return {
+      affectedBooksCount: 0,
+      deletedAuthorName: '',
+    }
   },
 
   /**
