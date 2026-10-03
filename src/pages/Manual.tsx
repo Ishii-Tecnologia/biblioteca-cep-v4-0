@@ -531,6 +531,94 @@ export default function Manual() {
       },
     },
     {
+      id: 'op-acervo-sem-autor',
+      shortTitle: 'Localizar Livros Sem Autor',
+      title: 'Localização de Títulos Sem Autor e Avisos na Exclusão',
+      profile: 'operador',
+      category: 'Acervo e Exemplares',
+      icon: AlertTriangle,
+      screenUrl: '/acervo?autor_filtro=sem_autor',
+      screenButtonText: 'Abrir Livros Sem Autor',
+      summary:
+        'Como identificar rapidamente no Acervo livros que ficaram sem autoria por exclusão equivocada de autor em Configurações ou inconsistência de cadastro, além de entender a proteção preventiva e o atalho na confirmação de exclusão.',
+      prerequisites: [
+        'Estar conectado como Operador ou Administrador para editar ou reatribuir autores.',
+      ],
+      steps: [
+        {
+          number: 1,
+          title: 'Acessar o Seletor de Autoria no Acervo',
+          detail:
+            'Na barra de busca e filtros do Acervo (/acervo), localize o seletor "Autoria" (ao lado do seletor "Todos os Status").',
+        },
+        {
+          number: 2,
+          title: 'Selecionar o Filtro Desejado',
+          detail:
+            'O seletor disponibiliza três opções de refinamento: "⚠️ Sem autor (alerta)" (localiza obras com ausência total de autor, espírito e médium), "Sem autor espiritual" (obras sem espírito psicográfico cadastrado) e "Sem médium (convencionais)" (obras sem médium vinculado, com nota explicativa de que livros convencionais de autor encarnado naturalmente não possuem médium psicógrafo).',
+          tip: 'Você também pode abrir diretamente o filtro de alerta digitando ou salvando nos favoritos a URL /acervo?autor_filtro=sem_autor.',
+        },
+        {
+          number: 3,
+          title: 'Interpretar o Banner Informativo e a Contagem',
+          detail:
+            'Ao selecionar "⚠️ Sem autor (alerta)", um banner âmbar em destaque informa a quantidade exata de títulos encontrados com ausência total de autoria e explica a ação recomendada. Um pill de filtro ativo com o botão "×" permite limpar o filtro rapidamente.',
+        },
+        {
+          number: 4,
+          title: 'Identificar o Badge de Destaque no Card do Livro',
+          detail:
+            'Cada obra sem nenhuma autoria exibe nos cards o selo de destaque "Sem autor (revisar)" acompanhado de um ícone de alerta âmbar. Esse badge também permanece visível durante buscas normais fora do filtro, facilitando a identificação imediata.',
+        },
+        {
+          number: 5,
+          title: 'Editar a Obra e Vincular o Autor Correto',
+          detail:
+            'No card do livro identificado, clique no ícone de lápis ("Editar livro") para abrir o formulário. Selecione a estrutura de autoria desejada (Espírito + Médium ou Autor Convencional) e vincule o autor correspondente para regularizar o cadastro.',
+        },
+        {
+          number: 6,
+          title: 'Aviso Preventivo na Exclusão de Autores (Configurações)',
+          detail:
+            'Em Configurações → Autores e Médiuns, ao tentar excluir um autor ou espírito, o sistema realiza uma verificação prévia no acervo. O modal de confirmação lista todos os livros afetados, o texto de alerta detalha quantos títulos ficarão sem autor e o botão de confirmação indica explicitamente o impacto: "Sim, Excluir Autor (X livro(s) afetado(s))".',
+        },
+        {
+          number: 7,
+          title: 'Atalho Direto para o Acervo no Toast de Confirmação',
+          detail:
+            'Se a exclusão for confirmada e houver livros afetados, a notificação (toast) informa a quantidade de obras que perderam o autor e exibe o botão de ação "Ver no Acervo". Ao clicar nesse botão, o sistema abre imediatamente a tela de Acervo já com o filtro /acervo?autor_filtro=sem_autor ativado.',
+        },
+      ],
+      rules: [
+        'A ausência total de autor ocorre principalmente quando um autor ou médium cadastrado em Configurações é excluído equivocadamente; os livros vinculados são preservados integralmente no catálogo, mas seus campos de autoria passam a ficar vazios.',
+        'O filtro "Sem médium (convencionais)" exibe uma nota informativa destacando que livros de autor convencional (encarnado) naturalmente não contam com médium, o que representa um comportamento normal do acervo espírita.',
+        'O badge "Sem autor (revisar)" nos cards é calculado em tempo real com base no preenchimento dos campos autor convencional, autor espiritual e médium psicográfico.',
+        'O link direto /acervo?autor_filtro=sem_autor pode ser compartilhado entre operadores ou acionado diretamente pela notificação de exclusão de autores.',
+      ],
+      example: {
+        title: 'Exemplo: Recuperação de obras após exclusão equivocada do autor Allan Kardec',
+        context:
+          'Um operador excluiu por engano o autor Allan Kardec da lista em Configurações. As obras da Codificação Espiritual continuaram cadastradas, porém sem autor atribuído.',
+        action:
+          'Na notificação de exclusão (ou acessando /acervo?autor_filtro=sem_autor), o operador clica no botão "Ver no Acervo". A listagem exibe todos os títulos sem autor com o badge "Sem autor (revisar)". O operador recadastra Allan Kardec em Configurações e clica em Editar em cada título afetado ("O Livro dos Espíritos", "O Livro dos Médiuns", etc.) para revincular o autor.',
+        result:
+          'Todas as obras da Codificação voltam a exibir Allan Kardec como autor convencional e o filtro "Sem autor" passa a indicar zero registros pendentes.',
+        type: 'warning',
+      },
+      systemMessages: [
+        {
+          text: 'Sim, Excluir Autor (X livro(s) afetado(s))',
+          meaning:
+            'Rótulo do botão de confirmação informando com clareza o número exato de títulos do acervo que perderão a vinculação com este autor.',
+        },
+        {
+          text: 'Autor excluído com sucesso — Ver no Acervo',
+          meaning:
+            'Notificação após exclusão com atalho que direciona imediatamente para o Acervo com o filtro de livros sem autor já aplicado.',
+        },
+      ],
+    },
+    {
       id: 'op-emprestimos-ciclo',
       shortTitle: 'Ciclo do Empréstimo e PENDENTE_RETIRADA',
       title: 'Ciclo Completo: Aguardando Retirada, Ativação e Devolução',

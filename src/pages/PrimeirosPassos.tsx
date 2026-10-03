@@ -374,6 +374,15 @@ export default function PrimeirosPassos() {
                   validação prévia.
                 </div>
               </li>
+              <li className="flex items-start gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                <ArrowRight className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong>Filtro e Alerta de Livros Sem Autor:</strong> No seletor "Autoria" da
+                  barra de filtros, use a opção <em>"⚠️ Sem autor (alerta)"</em> para localizar de
+                  imediato títulos que ficaram sem autor atribuído por exclusão acidental ou
+                  inconsistência.
+                </div>
+              </li>
             </ul>
           </div>
         </section>
