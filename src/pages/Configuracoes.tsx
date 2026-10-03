@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
@@ -35,6 +36,7 @@ import {
   CheckCircle2,
   History,
   BookmarkCheck,
+  ExternalLink,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -42,6 +44,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { ConfirmModal } from '@/components/ConfirmModal'
+import { ToastAction } from '@/components/ui/toast'
 import { CategoriasService, Categoria } from '@/services/categorias'
 import { CursosService, Curso } from '@/services/cursos'
 import {
@@ -182,6 +185,7 @@ const DEFAULT_PARAMS = {
 }
 
 export default function Configuracoes() {
+  const navigate = useNavigate()
   const { isAdmin } = useAuth()
   const { toast } = useToast()
 
@@ -912,13 +916,26 @@ export default function Configuracoes() {
     try {
       const result = await AuthorsService.delete(targetAuthor.id)
       const count = result.affectedBooksCount
-      toast({
-        title: 'Autor excluído com sucesso',
-        description:
-          count > 0
-            ? `"${targetAuthor.name}" foi excluído. ${count} livro(s) que tinham esse autor vinculado ficaram sem autor (campo vazio).`
-            : `"${targetAuthor.name}" foi excluído da lista de autores.`,
-      })
+      if (count > 0) {
+        toast({
+          title: 'Autor excluído com sucesso',
+          description: `"${targetAuthor.name}" foi excluído. ${count} livro(s) que tinham esse autor vinculado ficaram sem autor (campo vazio).`,
+          action: (
+            <ToastAction
+              altText="Ver livros sem autor no Acervo"
+              onClick={() => navigate('/acervo?autor_filtro=sem_autor')}
+              className="border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"
+            >
+              Ver no Acervo
+            </ToastAction>
+          ),
+        })
+      } else {
+        toast({
+          title: 'Autor excluído com sucesso',
+          description: `"${targetAuthor.name}" foi excluído da lista de autores.`,
+        })
+      }
       setDeleteAuthorModalOpen(false)
       setAuthorToDelete(null)
       setLinkedBooksAlert([])
@@ -2975,14 +2992,18 @@ export default function Configuracoes() {
                   </div>
                   <p className="text-[11px] text-amber-800 leading-tight">
                     <strong>Atenção:</strong> Ao confirmar a exclusão, esses{' '}
-                    {linkedBooksAlert.length} livro(s) continuarão existindo normalmente no acervo,
-                    mas terão a referência a este autor removida (o campo de autor ficará vazio).
+                    <strong className="text-amber-950 font-bold">
+                      {linkedBooksAlert.length} livro(s)
+                    </strong>{' '}
+                    continuarão existindo normalmente no acervo, mas ficarão totalmente sem autor
+                    (campo de autor vazio). Você poderá localizá-los a qualquer momento no{' '}
+                    <strong>Acervo</strong> usando o filtro <em>"Sem autor"</em>.
                   </p>
                 </div>
               ) : (
                 <p className="text-xs text-slate-500">
-                  Nenhum livro no acervo está vinculado a este nome no momento. A exclusão é segura
-                  e imediata.
+                  Nenhum livro no acervo está vinculado a este nome no momento (0 livros afetados).
+                  A exclusão é segura e imediata.
                 </p>
               )}
             </div>
@@ -2990,7 +3011,11 @@ export default function Configuracoes() {
             'Tem certeza que deseja excluir?'
           )
         }
-        confirmLabel="Sim, Excluir Autor"
+        confirmLabel={
+          linkedBooksAlert.length > 0
+            ? `Sim, Excluir Autor (${linkedBooksAlert.length} livro(s) afetado(s))`
+            : 'Sim, Excluir Autor'
+        }
         cancelLabel="Cancelar"
         variant="destructive"
         loading={deletingAuthor}

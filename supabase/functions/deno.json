@@ -1,10 +1,10 @@
 {
   "_versions": {
-    "admin_reset_password": 316,
-    "auditoria_mensal_expurgo": 186,
-    "admin_create_user": 157,
-    "send_access_email": 89,
-    "validate-email-domain": 78,
-    "process-expirations": 64
+    "admin_reset_password": 318,
+    "auditoria_mensal_expurgo": 188,
+    "admin_create_user": 159,
+    "send_access_email": 91,
+    "validate-email-domain": 80,
+    "process-expirations": 66
   }
 }

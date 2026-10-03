@@ -51,6 +51,7 @@ export const TitulosService = {
     onlyActive = true,
     statusFilter?: string,
     colecao?: 'geral' | 'diretoria' | 'all',
+    authorFilter?: 'all' | 'sem_autor' | 'sem_espiritual' | 'sem_medium' | string,
   ) {
     let query = supabase
       .from('titulo')
@@ -144,6 +145,30 @@ export const TitulosService = {
         formatted = formatted.filter((t) => t.exemplares_disponiveis > 0)
       } else if (statusFilter === 'emprestado' || statusFilter === 'Emprestado') {
         formatted = formatted.filter((t) => t.exemplares_emprestados > 0)
+      }
+    }
+
+    if (authorFilter && authorFilter !== 'all') {
+      if (authorFilter === 'sem_autor') {
+        // Títulos sem NENHUM autor preenchido (autor, autor_espiritual e autor_mediunico todos vazios)
+        formatted = formatted.filter((t) => {
+          const hasAutor = !!(t.autor && t.autor.trim())
+          const hasEsp = !!(t.autor_espiritual && t.autor_espiritual.trim())
+          const hasMed = !!(t.autor_mediunico && t.autor_mediunico.trim())
+          return !hasAutor && !hasEsp && !hasMed
+        })
+      } else if (authorFilter === 'sem_espiritual') {
+        // Títulos sem autor espiritual (útil para revisar livros que deveriam ter espírito)
+        formatted = formatted.filter((t) => {
+          const hasEsp = !!(t.autor_espiritual && t.autor_espiritual.trim())
+          return !hasEsp
+        })
+      } else if (authorFilter === 'sem_medium') {
+        // Títulos sem autor médium (livros convencionais naturalmente não têm médium)
+        formatted = formatted.filter((t) => {
+          const hasMed = !!(t.autor_mediunico && t.autor_mediunico.trim())
+          return !hasMed
+        })
       }
     }
 

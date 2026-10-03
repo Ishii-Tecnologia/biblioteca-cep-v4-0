@@ -35,6 +35,8 @@ import {
   Library,
   Layers2,
   Sparkles,
+  Info,
+  AlertTriangle,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import * as TooltipPrimitive from '@radix-ui/react-tooltip'
@@ -120,6 +122,14 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
   const [searchParams, setSearchParams] = useSearchParams()
   const initialQuery = searchParams.get('q') || ''
   const initialStatus = searchParams.get('status') || 'all'
+  const initialAuthorFilter = (() => {
+    const raw = searchParams.get('autor_filtro')
+    if (raw) return raw
+    if (searchParams.get('semAutor') === '1' || searchParams.get('sem_autor') === '1') {
+      return 'sem_autor'
+    }
+    return 'all'
+  })()
 
   const { isOperadorOrAdmin, isDiretoriaOrAdmin, isAdmin, user, profile } = useAuth()
   const canManage = isDiretoria ? isDiretoriaOrAdmin : isOperadorOrAdmin
@@ -134,6 +144,7 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
   const [searchQuery, setSearchQuery] = useState(initialQuery)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>(initialStatus)
+  const [selectedAuthorFilter, setSelectedAuthorFilter] = useState<string>(initialAuthorFilter)
 
   // Modals state
   const [bookModalOpen, setBookModalOpen] = useState(false)
@@ -175,7 +186,14 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
     setLoading(true)
     try {
       const [booksData, catsData, totaisData] = await Promise.all([
-        TitulosService.getAll(searchQuery, selectedCategory, true, selectedStatus, colecao),
+        TitulosService.getAll(
+          searchQuery,
+          selectedCategory,
+          true,
+          selectedStatus,
+          colecao,
+          selectedAuthorFilter,
+        ),
         TitulosService.getCategories(),
         TitulosService.getTotais(colecao),
       ])
@@ -198,40 +216,64 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
   useEffect(() => {
     const q = searchParams.get('q') || ''
     const s = searchParams.get('status') || 'all'
+    const a = (() => {
+      const raw = searchParams.get('autor_filtro')
+      if (raw) return raw
+      if (searchParams.get('semAutor') === '1' || searchParams.get('sem_autor') === '1') {
+        return 'sem_autor'
+      }
+      return 'all'
+    })()
     setSearchQuery(q)
     setSelectedStatus(s)
+    setSelectedAuthorFilter(a)
   }, [searchParams])
 
   useEffect(() => {
     loadBooks()
-  }, [selectedCategory, selectedStatus, colecao])
+  }, [selectedCategory, selectedStatus, selectedAuthorFilter, colecao])
 
-  const updateFiltersUrl = (newQuery?: string, newCategory?: string, newStatus?: string) => {
+  const updateFiltersUrl = (
+    newQuery?: string,
+    newCategory?: string,
+    newStatus?: string,
+    newAuthorFilter?: string,
+  ) => {
     const nextParams: Record<string, string> = {}
     const finalQ = newQuery !== undefined ? newQuery : searchQuery
     const finalS = newStatus !== undefined ? newStatus : selectedStatus
+    const finalA = newAuthorFilter !== undefined ? newAuthorFilter : selectedAuthorFilter
 
     if (finalQ.trim()) nextParams.q = finalQ.trim()
     if (finalS && finalS !== 'all') nextParams.status = finalS
+    if (finalA && finalA !== 'all') {
+      nextParams.autor_filtro = finalA
+    }
 
     setSearchParams(nextParams)
   }
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    updateFiltersUrl(searchQuery, selectedCategory, selectedStatus)
+    updateFiltersUrl(searchQuery, selectedCategory, selectedStatus, selectedAuthorFilter)
     loadBooks()
   }
 
   const handleStatusChange = (status: string) => {
     setSelectedStatus(status)
-    updateFiltersUrl(undefined, undefined, status)
+    updateFiltersUrl(undefined, undefined, status, undefined)
+  }
+
+  const handleAuthorFilterChange = (authorFilter: string) => {
+    setSelectedAuthorFilter(authorFilter)
+    updateFiltersUrl(undefined, undefined, undefined, authorFilter)
   }
 
   const handleClearFilters = () => {
     setSearchQuery('')
     setSelectedCategory('all')
     setSelectedStatus('all')
+    setSelectedAuthorFilter('all')
     setSearchParams({})
   }
 
@@ -522,6 +564,38 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
               </Select>
             </div>
 
+            {/* Filtro de Autoria / Sem Autor */}
+            <div className="w-full sm:w-48">
+              <Select value={selectedAuthorFilter} onValueChange={handleAuthorFilterChange}>
+                <SelectTrigger
+                  className={`text-xs ${
+                    selectedAuthorFilter === 'sem_autor'
+                      ? 'border-amber-400 bg-amber-50/60 font-medium text-amber-950 ring-1 ring-amber-300'
+                      : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 text-slate-700 truncate">
+                    <AlertCircle
+                      className={`w-3.5 h-3.5 shrink-0 ${
+                        selectedAuthorFilter === 'sem_autor'
+                          ? 'text-amber-600 font-bold'
+                          : 'text-slate-500'
+                      }`}
+                    />
+                    <SelectValue placeholder="Autoria" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as Autorias</SelectItem>
+                  <SelectItem value="sem_autor" className="text-amber-900 font-medium">
+                    ⚠️ Sem autor (alerta)
+                  </SelectItem>
+                  <SelectItem value="sem_espiritual">Sem autor espiritual</SelectItem>
+                  <SelectItem value="sem_medium">Sem médium (convencionais)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="flex items-center gap-2">
               <Button
                 type="submit"
@@ -531,7 +605,10 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
                 Pesquisar
               </Button>
 
-              {(searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all') && (
+              {(searchQuery ||
+                selectedCategory !== 'all' ||
+                selectedStatus !== 'all' ||
+                selectedAuthorFilter !== 'all') && (
                 <Button
                   type="button"
                   variant="ghost"
@@ -545,9 +622,32 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
           </form>
 
           {/* Active filter tags/pills */}
-          {(selectedStatus !== 'all' || selectedCategory !== 'all' || searchQuery) && (
+          {(selectedStatus !== 'all' ||
+            selectedCategory !== 'all' ||
+            selectedAuthorFilter !== 'all' ||
+            searchQuery) && (
             <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-100 text-xs">
               <span className="text-slate-500 font-medium text-[11px]">Filtros ativos:</span>
+              {selectedAuthorFilter !== 'all' && (
+                <Badge
+                  variant="outline"
+                  className={`gap-1 font-medium cursor-pointer ${
+                    selectedAuthorFilter === 'sem_autor'
+                      ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200'
+                      : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                  }`}
+                  onClick={() => handleAuthorFilterChange('all')}
+                  title="Clique para remover este filtro de autoria"
+                >
+                  <AlertCircle className="w-3 h-3 text-amber-600" />
+                  {selectedAuthorFilter === 'sem_autor'
+                    ? 'Autoria: Sem autor (total)'
+                    : selectedAuthorFilter === 'sem_espiritual'
+                      ? 'Autoria: Sem autor espiritual'
+                      : 'Autoria: Sem médium'}
+                  <span className="ml-1 text-amber-700 font-bold hover:text-amber-950">×</span>
+                </Badge>
+              )}
               {selectedStatus !== 'all' && (
                 <Badge
                   variant="outline"
@@ -577,13 +677,40 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
                   className="bg-slate-100 text-slate-700 border-slate-200 gap-1 font-medium cursor-pointer"
                   onClick={() => {
                     setSearchQuery('')
-                    updateFiltersUrl('', undefined, undefined)
+                    updateFiltersUrl('', undefined, undefined, undefined)
                   }}
                 >
                   Busca: "{searchQuery}"
                   <span className="ml-1 text-slate-400 font-bold hover:text-slate-900">×</span>
                 </Badge>
               )}
+            </div>
+          )}
+
+          {/* Banner explicativo quando filtro "sem_autor" estiver ativo */}
+          {selectedAuthorFilter === 'sem_autor' && (
+            <div className="mt-3 p-2.5 bg-amber-50/90 border border-amber-200 rounded-lg text-amber-900 text-xs flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  Exibindo títulos com <strong>ausência total de autor</strong> (campos autor,
+                  espírito e médium vazios). Use a edição para vincular o autor correto.
+                </span>
+              </div>
+              <span className="text-[11px] font-semibold text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded shrink-0">
+                {books.length} {books.length === 1 ? 'título' : 'títulos'}
+              </span>
+            </div>
+          )}
+
+          {/* Banner explicativo quando filtro "sem_medium" estiver ativo */}
+          {selectedAuthorFilter === 'sem_medium' && (
+            <div className="mt-3 p-2.5 bg-blue-50/80 border border-blue-200 rounded-lg text-blue-900 text-xs flex items-center gap-2">
+              <Info className="w-4 h-4 text-blue-600 shrink-0" />
+              <span>
+                <strong>Nota:</strong> Obras de autor convencional (encarnado) naturalmente não
+                possuem médium vinculado, o que é um comportamento esperado.
+              </span>
             </div>
           )}
         </CardContent>
@@ -711,7 +838,26 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
                         {book.autor_espiritual && (
                           <Sparkles className="w-3 h-3 text-amber-500 shrink-0 inline" />
                         )}
-                        <span>{book.autor_formatado || book.autor || 'Autor não informado'}</span>
+                        {(() => {
+                          const hasAnyAuthor = !!(
+                            (book.autor && book.autor.trim()) ||
+                            (book.autor_espiritual && book.autor_espiritual.trim()) ||
+                            (book.autor_mediunico && book.autor_mediunico.trim())
+                          )
+                          if (!hasAnyAuthor) {
+                            return (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-900 border border-amber-300">
+                                <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" />
+                                Sem autor (revisar)
+                              </span>
+                            )
+                          }
+                          return (
+                            <span>
+                              {book.autor_formatado || book.autor || 'Autor não informado'}
+                            </span>
+                          )
+                        })()}
                       </p>
 
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400 mt-2">
