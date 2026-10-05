@@ -469,10 +469,10 @@ export function UserModal({ open, onOpenChange, onSuccess }: UserModalProps) {
       }
     }
 
-    if (!password || password.length < 6) {
+    if (!password || password.length < 8) {
       toast({
         title: 'Senha muito curta',
-        description: 'A senha provisória deve conter no mínimo 6 caracteres.',
+        description: 'A senha deve conter no mínimo 8 caracteres.',
         variant: 'destructive',
       })
       return
@@ -959,19 +959,19 @@ export function UserModal({ open, onOpenChange, onSuccess }: UserModalProps) {
             {/* Senha */}
             <div>
               <Label htmlFor="user-password" className="text-xs font-semibold text-slate-700">
-                Senha Inicial * (mínimo 6 caracteres)
+                Senha Inicial * (mínimo 8 caracteres)
               </Label>
               <div className="relative mt-1">
                 <Input
                   id="user-password"
                   type={showPassword ? 'text' : 'password'}
                   required
-                  placeholder="******"
+                  placeholder="Mínimo 8 caracteres"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="pr-10"
+                  className={`pr-10 ${formData.password && formData.password.length < 8 ? 'border-amber-400 focus-visible:ring-amber-400' : ''}`}
                   disabled={loading}
-                  minLength={6}
+                  minLength={8}
                 />
                 <button
                   type="button"
@@ -983,9 +983,15 @@ export function UserModal({ open, onOpenChange, onSuccess }: UserModalProps) {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              <p className="text-[11px] text-slate-500 mt-1">
-                O usuário poderá utilizar esta senha para acessar o painel.
-              </p>
+              {formData.password && formData.password.length < 8 ? (
+                <p className="text-[11px] text-amber-700 font-medium mt-1">
+                  A senha deve conter no mínimo 8 caracteres.
+                </p>
+              ) : (
+                <p className="text-[11px] text-slate-500 mt-1">
+                  O usuário poderá utilizar esta senha para acessar o painel (mínimo 8 caracteres).
+                </p>
+              )}
             </div>
 
             {/* Papel */}
@@ -1039,7 +1045,7 @@ export function UserModal({ open, onOpenChange, onSuccess }: UserModalProps) {
             <Button
               type="submit"
               className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
-              disabled={loading}
+              disabled={loading || !formData.password || formData.password.length < 8}
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               <UserPlus className="w-4 h-4" />

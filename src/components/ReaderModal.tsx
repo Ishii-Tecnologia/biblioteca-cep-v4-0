@@ -509,20 +509,20 @@ export function ReaderModal({
     if (!readerToEdit) {
       const cleanPass = firstAccessPassword.trim()
       if (!cleanPass) {
-        setSenhaError('Defina a senha para o primeiro acesso')
+        setSenhaError('A senha deve conter no mínimo 8 caracteres.')
         toast({
           title: 'Senha de acesso obrigatória',
           description:
-            'Ao cadastrar um novo leitor, defina a senha para o primeiro acesso ao sistema (mínimo 6 caracteres).',
+            'Ao cadastrar um novo leitor, defina a senha para o primeiro acesso ao sistema (mínimo 8 caracteres).',
           variant: 'destructive',
         })
         return
       }
-      if (cleanPass.length < 6) {
-        setSenhaError('A senha deve ter no mínimo 6 caracteres')
+      if (cleanPass.length < 8) {
+        setSenhaError('A senha deve conter no mínimo 8 caracteres.')
         toast({
           title: 'Senha muito curta',
-          description: 'A senha de acesso do leitor deve conter no mínimo 6 caracteres.',
+          description: 'A senha deve conter no mínimo 8 caracteres.',
           variant: 'destructive',
         })
         return
@@ -1257,14 +1257,14 @@ export function ReaderModal({
                       htmlFor="first_password"
                       className="text-[11px] font-semibold text-slate-700"
                     >
-                      Senha Provisória * (mínimo 6 dígitos)
+                      Senha Provisória * (mínimo 8 caracteres)
                     </Label>
                     <div className="relative">
                       <Input
                         id="first_password"
                         type={showPassword ? 'text' : 'password'}
                         placeholder="••••••••"
-                        minLength={6}
+                        minLength={8}
                         required
                         value={firstAccessPassword}
                         onChange={(e) => {
@@ -1299,7 +1299,7 @@ export function ReaderModal({
                       id="confirm_first_password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
-                      minLength={6}
+                      minLength={8}
                       required
                       value={confirmPassword}
                       onChange={(e) => {
@@ -1341,7 +1341,12 @@ export function ReaderModal({
               <Button
                 type="submit"
                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                disabled={loading}
+                disabled={
+                  loading ||
+                  (!readerToEdit &&
+                    (firstAccessPassword.trim().length < 8 ||
+                      firstAccessPassword.trim() !== confirmPassword.trim()))
+                }
               >
                 {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {readerToEdit ? 'Salvar Alterações' : 'Salvar Cadastro'}

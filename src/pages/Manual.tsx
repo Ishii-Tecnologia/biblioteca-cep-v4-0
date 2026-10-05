@@ -7,6 +7,7 @@ import {
   BookmarkCheck,
   Settings,
   Shield,
+  ShieldCheck,
   Search,
   CheckCircle2,
   AlertTriangle,
@@ -136,7 +137,7 @@ export default function Manual() {
           number: 5,
           title: 'Definir Senha Inicial e Permissão de Diretoria',
           detail:
-            'Informe a senha provisória de primeiro acesso (mínimo 6 caracteres). Se o leitor for membro da Diretoria Executiva da CEP ou frequentador do Centro de Estudos da CEP, marque a caixa "Permitir empréstimos da Coleção Diretoria (Biblioteca Rino Curti)".',
+            'Informe a senha provisória de primeiro acesso (mínimo 8 caracteres). Se o leitor for membro da Diretoria Executiva da CEP ou frequentador do Centro de Estudos da CEP, marque a caixa "Permitir empréstimos da Coleção Diretoria (Biblioteca Rino Curti)".',
         },
         {
           number: 6,
@@ -828,6 +829,91 @@ export default function Manual() {
         type: 'info',
       },
     },
+    {
+      id: 'op-seguranca-papeis-dados',
+      shortTitle: 'Segurança e Papéis Internos',
+      title: 'Segurança Operacional, Papéis Internos e Proteção de Dados',
+      profile: 'operador',
+      category: 'Administração e Sistema',
+      icon: ShieldCheck,
+      screenUrl: '/usuarios',
+      screenButtonText: 'Abrir Gestão de Usuários',
+      summary:
+        'Como funciona a segurança do sistema na rotina diária: credenciais de acesso, estrutura de papéis internos e leitor, comandos administrativos sensíveis, requisitos de senha e boas práticas de dados pessoais.',
+      prerequisites: [
+        'Estar conectado com credenciais válidas de um dos papéis internos (Administrador, Operador de Diretoria ou Operador).',
+      ],
+      steps: [
+        {
+          number: 1,
+          title: 'Acesso Protegido por Login e Senha',
+          detail:
+            'Todo acesso às áreas administrativas e aos registros da biblioteca exige login prévio com e-mail e senha. As sessões contam com autenticação criptografada e controle automático contra acessos indevidos.',
+        },
+        {
+          number: 2,
+          title: 'Estrutura dos 4 Papéis do Sistema (Papéis Internos vs. Leitor)',
+          detail:
+            'O sistema distingue claramente quem opera a biblioteca de quem a utiliza. Os papéis internos são três: (1) Administrador (admin): papel interno pleno, com acesso total a configurações, gestão de usuários/papéis, acervos e exclusões; (2) Operador de Diretoria (operador_diretoria): papel interno com acesso a todas as rotinas de circulação, acervo geral e ao acervo especial restrito da Biblioteca Rino Curti (Diretoria); (3) Operador (operador): papel interno padrão para circulação, atendimento de balcão e acervo geral da Biblioteca Cecília Braga, sem acesso aos acervos restritos de diretoria. O quarto papel é o Leitor (leitor): perfil do usuário comum para consultar o catálogo, fazer reservas e acompanhar seus empréstimos — não é um papel interno e não possui acesso a telas de gestão.',
+          tip: 'Papéis internos = Administrador, Operador de Diretoria e Operador.',
+        },
+        {
+          number: 3,
+          title: 'Proteção de Comandos Sensíveis (Exclusividade do Administrador)',
+          detail:
+            'Para preservar a integridade da casa e evitar alterações acidentais, comandos críticos são blindados e restritos ao Administrador: criação de novos operadores/usuários com papéis internos, redefinição de senha de outro usuário no painel e rotinas manuais de expurgo de auditoria. Tentativas de disparar essas operações sem privilégio de administrador são rejeitadas pelo sistema com aviso de permissão negada.',
+        },
+        {
+          number: 4,
+          title: 'Política de Senha Segura (Mínimo de 8 Caracteres)',
+          detail:
+            'Todas as senhas cadastradas no sistema — seja na criação de novos usuários, cadastro de leitores, primeiro acesso ou redefinição pessoal de senha — exigem o comprimento mínimo obrigatório de 8 caracteres. Os botões de envio permanecem bloqueados enquanto a exigência de 8 caracteres não for satisfeita.',
+        },
+        {
+          number: 5,
+          title: 'Boas Práticas de Dados Pessoais e Privacidade',
+          detail:
+            'A Biblioteca CEP adota o princípio da minimização de dados: são coletados apenas Nome Completo, E-mail, Telefones (celular/fixo), cursos frequentados na CEP e foto voluntária de identificação. Número de CPF NÃO é coletado em nenhuma tela nem armazenado em banco de dados.',
+          tip: 'A ausência intencional de CPF simplifica o atendimento no balcão e resguarda a privacidade dos frequentadores.',
+        },
+        {
+          number: 6,
+          title: 'Trilha de Auditoria e Expurgo Mensal Automatizado',
+          detail:
+            'Todas as transições relevantes de estado (criação de usuários, alterações de papel, concessão de acesso à diretoria, movimentações de acervo e devoluções) registram uma trilha de auditoria contendo o operador responsável, data/hora e o estado anterior e novo do registro. Para evitar acúmulo desnecessário de dados históricos e manter a base leve, o sistema conta com uma rotina mensal automatizada de expurgo dos registros mais antigos.',
+        },
+      ],
+      rules: [
+        'Papéis internos são estritamente: Administrador, Operador e Operador de Diretoria.',
+        'O perfil de Leitor não tem acesso às ferramentas operacionais ou telas de gestão.',
+        'A criação de qualquer usuário com papel interno é permitida exclusivamente a administradores.',
+        'CPF nunca é solicitado aos leitores ou à equipe em formulários do sistema.',
+        'Todas as senhas sem exceção exigem comprimento mínimo de 8 caracteres.',
+        'Registros da trilha de auditoria preservam quem realizou cada transição com histórico de estado anterior e novo.',
+      ],
+      example: {
+        title: 'Exemplo: Operador tentando criar novo usuário interno',
+        context:
+          'Um voluntário logado como Operador acessa as configurações e tenta criar uma conta com papel Operador de Diretoria.',
+        action:
+          'O sistema bloqueia a ação e informa que a criação de papéis internos é exclusiva do Administrador.',
+        result:
+          'A tentativa não é processada, preservando a governança e o controle de acesso do centro espírita.',
+        type: 'warning',
+      },
+      systemMessages: [
+        {
+          text: 'Acesso negado: a criação de usuários com papel interno é restrita exclusivamente ao papel Administrador.',
+          meaning:
+            'Apenas administradores podem conceder ou criar novos papéis internos no sistema.',
+        },
+        {
+          text: 'A senha deve conter no mínimo 8 caracteres.',
+          meaning:
+            'A senha digitada não atende à política mínima de 8 dígitos/caracteres do sistema.',
+        },
+      ],
+    },
   ]
 
   // Lista de tópicos para Leitores
@@ -928,7 +1014,7 @@ export default function Manual() {
           number: 3,
           title: 'Criar sua Senha Definitiva',
           detail:
-            'Você será direcionado para a página "Primeiro Acesso — Defina sua Senha". Digite sua senha pessoal de no mínimo 6 dígitos e confirme.',
+            'Você será direcionado para a página "Primeiro Acesso — Defina sua Senha". Digite sua senha pessoal de no mínimo 8 caracteres e confirme.',
         },
         {
           number: 4,

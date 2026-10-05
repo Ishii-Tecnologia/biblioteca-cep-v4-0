@@ -7,6 +7,14 @@ export const RATE_LIMIT_USER_MESSAGE =
 
 export const RATE_LIMIT_WINDOW_SECONDS = 60 // 60 segundos de cooldown entre reenvios
 
+/** Política global de senha mínima do sistema */
+export const MIN_PASSWORD_LENGTH = 8
+export const PASSWORD_MIN_LENGTH_MESSAGE = 'A senha deve conter no mínimo 8 caracteres.'
+
+export function isPasswordValidLength(password: string | null | undefined): boolean {
+  return typeof password === 'string' && password.trim().length >= MIN_PASSWORD_LENGTH
+}
+
 /**
  * Detecta se um erro retornado pelo Supabase Auth é de limite de taxa/rate limit (429 / "rate limit").
  */

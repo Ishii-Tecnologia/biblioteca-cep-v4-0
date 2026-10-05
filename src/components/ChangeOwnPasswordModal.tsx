@@ -71,8 +71,8 @@ export function ChangeOwnPasswordModal({
       return
     }
 
-    if (newPassword.length < 6) {
-      setErrorMsg('A nova senha deve ter no mínimo 6 caracteres.')
+    if (newPassword.length < 8) {
+      setErrorMsg('A senha deve conter no mínimo 8 caracteres.')
       return
     }
 
@@ -185,7 +185,7 @@ export function ChangeOwnPasswordModal({
               {/* Campo Nova Senha */}
               <div className="space-y-1.5">
                 <Label htmlFor="own-new-password" className="text-xs font-semibold text-slate-700">
-                  Nova Senha * (mínimo 6 caracteres)
+                  Nova Senha * (mínimo 8 caracteres)
                 </Label>
                 <div className="relative">
                   <Input
@@ -197,7 +197,7 @@ export function ChangeOwnPasswordModal({
                       setNewPassword(e.target.value)
                       if (errorMsg) setErrorMsg(null)
                     }}
-                    minLength={6}
+                    minLength={8}
                     required
                     disabled={loading}
                     className="pr-10 text-sm"
@@ -232,7 +232,7 @@ export function ChangeOwnPasswordModal({
                       setConfirmPassword(e.target.value)
                       if (errorMsg) setErrorMsg(null)
                     }}
-                    minLength={6}
+                    minLength={8}
                     required
                     disabled={loading}
                     className="pr-10 text-sm"
@@ -259,11 +259,11 @@ export function ChangeOwnPasswordModal({
               <div className="flex items-center gap-1.5">
                 <CheckCircle2
                   className={`w-3.5 h-3.5 ${
-                    newPassword.length >= 6 ? 'text-emerald-600' : 'text-slate-300'
+                    newPassword.length >= 8 ? 'text-emerald-600' : 'text-slate-300'
                   }`}
                 />
-                <span className={newPassword.length >= 6 ? 'text-emerald-700 font-medium' : ''}>
-                  Mínimo de 6 caracteres na nova senha
+                <span className={newPassword.length >= 8 ? 'text-emerald-700 font-medium' : ''}>
+                  A senha deve conter no mínimo 8 caracteres.
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -302,7 +302,7 @@ export function ChangeOwnPasswordModal({
               disabled={
                 loading ||
                 !currentPassword ||
-                newPassword.length < 6 ||
+                newPassword.length < 8 ||
                 newPassword !== confirmPassword
               }
               className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 text-xs shadow-xs"

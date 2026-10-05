@@ -275,8 +275,9 @@ export default function PrimeirosPassos() {
                 </span>
                 <p className="text-xs text-slate-600">
                   Clique em <strong>"Cadastrar Novo Leitor"</strong> em Leitores. Preencha nome
-                  (mín. 3 letras), e-mail único, telefone celular com DDD e vincule o(s) curso(s)
-                  frequentados na CEP (ex: Curso Básico, Educação Mediúnica).
+                  (mín. 3 letras), e-mail único, telefone celular com DDD, senha inicial (mínimo de
+                  8 caracteres) e vincule o(s) curso(s) frequentados na CEP (ex: Curso Básico,
+                  Educação Mediúnica).
                 </p>
               </div>
 
@@ -575,11 +576,13 @@ export default function PrimeirosPassos() {
               <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
                 <span className="font-bold text-slate-900 flex items-center gap-1.5 text-xs">
                   <Settings className="w-3.5 h-3.5 text-emerald-600" />
-                  Parâmetros Rígidos
+                  Parâmetros e Papéis Internos
                 </span>
                 <p className="text-xs text-slate-600">
                   Ajuste o prazo de retirada (4 dias), fila de reservas (2), limites por leitor (4)
-                  e prazo de empréstimo (15 dias).
+                  e prazo de empréstimo (15 dias). A gestão de papéis internos (Administrador,
+                  Operador de Diretoria e Operador) com senhas de no mínimo 8 caracteres também é
+                  controlada aqui.
                 </p>
               </div>
 
