@@ -1,233 +1,255 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import { authenticateCaller, checkRateLimit, extractClientIp } from '../_shared/auth.ts'
 
-interface DomainValidationCacheEntry {
-  valid: boolean
-  reason?: string
-  expiresAt: number
+interface RequestPayload {
+  domain?: string
+  email?: string
 }
 
-// Cache em memória (TTL: 24 horas)
-const domainCache = new Map<string, DomainValidationCacheEntry>()
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24 horas
-const DNS_TIMEOUT_MS = 3500 // 3.5 segundos de timeout
+interface DnsRecord {
+  name: string
+  type: number
+  TTL: number
+  data: string
+}
 
-function cleanExpiredCache(): void {
-  const now = Date.now()
-  for (const [key, entry] of domainCache.entries()) {
-    if (entry.expiresAt < now) {
-      domainCache.delete(key)
+interface DnsResponse {
+  Status: number
+  TC: boolean
+  RD: boolean
+  RA: boolean
+  AD: boolean
+  CD: boolean
+  Question?: Array<{ name: string; type: number }>
+  Answer?: DnsRecord[]
+  Authority?: DnsRecord[]
+  Comment?: string
+}
+
+const COMMON_FREE_PROVIDERS = new Set([
+  'gmail.com',
+  'googlemail.com',
+  'outlook.com',
+  'hotmail.com',
+  'live.com',
+  'msn.com',
+  'yahoo.com',
+  'yahoo.com.br',
+  'icloud.com',
+  'me.com',
+  'mac.com',
+  'proton.me',
+  'protonmail.com',
+  'uol.com.br',
+  'bol.com.br',
+  'terra.com.br',
+  'ig.com.br',
+])
+
+const DISPOSABLE_PATTERNS = [
+  'tempmail',
+  'guerrillamail',
+  '10minutemail',
+  'mailinator',
+  'throwaway',
+  'yopmail',
+  'sharklasers',
+  'dispostable',
+  'trashmail',
+  'getairmail',
+  'crazymailing',
+  'mytempemail',
+]
+
+function extractDomain(input: string): string {
+  const clean = input.trim().toLowerCase()
+  if (clean.includes('@')) {
+    const parts = clean.split('@')
+    return parts[parts.length - 1].trim()
+  }
+  return clean
+    .replace(/^https?:\/\//, '')
+    .replace(/\/.*$/, '')
+    .trim()
+}
+
+async function queryDnsOverHttps(name: string, type: string): Promise<DnsResponse | null> {
+  const endpoints = [
+    `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`,
+    `https://dns.google/resolve?name=${encodeURIComponent(name)}&type=${type}`,
+  ]
+
+  for (const url of endpoints) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          accept: 'application/dns-json',
+          'user-agent': 'cep-library-validator/1.0',
+        },
+        signal: AbortSignal.timeout(3000),
+      })
+      if (res.ok) {
+        return (await res.json()) as DnsResponse
+      }
+    } catch {
+      // Tenta próximo endpoint
     }
   }
-}
-
-/**
- * Resolve DNS com timeout estrito.
- * Se o timeout estourar ou ocorrer erro de rede desconhecido, lança para tratamento fail-open.
- */
-async function resolveDnsWithTimeout(
-  domain: string,
-  recordType: 'MX' | 'A' | 'AAAA',
-  timeoutMs: number,
-): Promise<any[]> {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeoutMs)
-
-  try {
-    const promise = (Deno as any).resolveDns(domain, recordType)
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      controller.signal.addEventListener('abort', () => {
-        reject(
-          new Error(
-            `DNS_TIMEOUT: Timeout de ${timeoutMs}ms ao resolver ${recordType} para ${domain}`,
-          ),
-        )
-      })
-    })
-
-    const result = await Promise.race([promise, timeoutPromise])
-    return Array.isArray(result) ? result : []
-  } finally {
-    clearTimeout(timer)
-  }
+  return null
 }
 
 Deno.serve(async (req: Request) => {
-  // CORS Preflight
+  // Preflight CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Método não permitido. Utilize POST.' }), {
-      status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
-
   try {
-    let body: any
-    try {
-      body = await req.json()
-    } catch {
-      return new Response(JSON.stringify({ error: 'Corpo JSON inválido.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+    // 1. Blindagem OWASP: Exigir token de usuário autenticado
+    // Esta função é chamada no cadastro de leitores e usuários (portanto exige usuário autenticado no sistema)
+    const authResult = await authenticateCaller(req, {
+      requireStaff: false, // aceita qualquer usuário com conta ativa autenticada
+      requireAdmin: false,
+    })
+
+    if ('response' in authResult) {
+      return authResult.response
     }
 
-    const rawDomain = typeof body?.domain === 'string' ? body.domain : ''
-    const rawEmail = typeof body?.email === 'string' ? body.email : ''
+    const { caller } = authResult
 
-    let domain = rawDomain.trim().toLowerCase()
-    if (!domain && rawEmail) {
-      const parts = rawEmail.trim().toLowerCase().split('@')
-      if (parts.length === 2) {
-        domain = parts[1]
-      }
-    }
+    // 2. Rate Limiting: máx. 30 consultas por minuto por usuário / IP
+    const clientIp = extractClientIp(req)
+    const rateKey = `validate_email_domain:${caller.userId}:${clientIp}`
+    const rateCheck = checkRateLimit(rateKey, 30, 60_000)
 
-    // Normalizar removendo caracteres inválidos ou espaços
-    domain = domain.replace(/^@/, '').trim()
-
-    if (!domain || domain.length < 3 || !domain.includes('.')) {
-      return new Response(
-        JSON.stringify({
-          valid: false,
-          reason: 'Domínio de e-mail inválido ou incompleto.',
-          cached: false,
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        },
-      )
-    }
-
-    // Limpar cache periodicamente se crescer muito
-    if (domainCache.size > 2000) {
-      cleanExpiredCache()
-    }
-
-    // Verificar cache em memória
-    const cached = domainCache.get(domain)
-    const now = Date.now()
-    if (cached && cached.expiresAt > now) {
-      return new Response(
-        JSON.stringify({
-          valid: cached.valid,
-          reason: cached.reason,
-          domain,
-          cached: true,
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        },
-      )
-    }
-
-    // 1. Tentar resolver registros MX
-    let hasMx = false
-    let dnsResolutionFailed = false
-    let failReason = ''
-
-    try {
-      const mxRecords = await resolveDnsWithTimeout(domain, 'MX', DNS_TIMEOUT_MS)
-      if (mxRecords && mxRecords.length > 0) {
-        hasMx = true
-      }
-    } catch (mxErr: any) {
-      const msg = mxErr?.message || String(mxErr)
-      if (msg.includes('DNS_TIMEOUT') || msg.includes('network') || msg.includes('timed out')) {
-        dnsResolutionFailed = true
-        failReason = 'timeout'
-        console.warn(
-          `[validate-email-domain] Timeout/erro de rede ao resolver MX para ${domain}:`,
-          msg,
-        )
-      } else {
-        // Erro específico de DNS (ex: NotFound, NameResolution, etc.)
-        // Segue para fallback checando registro A
-      }
-    }
-
-    // 2. Se não encontrou MX e não foi erro de rede/timeout, tentar registros A / AAAA como fallback
-    let hasA = false
-    if (!hasMx && !dnsResolutionFailed) {
-      try {
-        const aRecords = await resolveDnsWithTimeout(domain, 'A', DNS_TIMEOUT_MS)
-        if (aRecords && aRecords.length > 0) {
-          hasA = true
-        }
-      } catch (aErr: any) {
-        const msg = aErr?.message || String(aErr)
-        if (msg.includes('DNS_TIMEOUT') || msg.includes('network') || msg.includes('timed out')) {
-          dnsResolutionFailed = true
-          failReason = 'timeout'
-          console.warn(
-            `[validate-email-domain] Timeout/erro de rede ao resolver A para ${domain}:`,
-            msg,
-          )
-        }
-      }
-    }
-
-    // Se houve erro de timeout / falha de rede do servidor DNS:
-    // FALHAR ABERTO (fail-open) para não bloquear cadastros legítimos
-    if (dnsResolutionFailed) {
-      console.warn(
-        `[validate-email-domain] Fail-open acionado para ${domain} devido a ${failReason}. Permitindo e-mail.`,
-      )
+    if (!rateCheck.allowed) {
       return new Response(
         JSON.stringify({
           valid: true,
-          reason: 'Verificação DNS indisponível no momento. Permitido por tolerância.',
-          domain,
-          cached: false,
-          failOpen: true,
+          reachable: true,
+          error: 'Limite de validações de e-mail excedido temporariamente.',
+          code: 'TOO_MANY_REQUESTS',
+          retryAfterSeconds: rateCheck.resetInSeconds,
         }),
         {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Retry-After': String(rateCheck.resetInSeconds),
+          },
         },
       )
     }
 
-    const isValid = hasMx || hasA
-    const responsePayload = {
-      valid: isValid,
-      reason: isValid
-        ? undefined
-        : `O domínio "@${domain}" não possui registros de e-mail (MX) válidos na internet e não pode receber mensagens.`,
-      domain,
-      cached: false,
+    const body: RequestPayload = await req.json().catch(() => ({}))
+    const rawInput = body.domain || body.email || ''
+
+    if (!rawInput) {
+      return new Response(
+        JSON.stringify({
+          valid: false,
+          error: 'Nenhum domínio ou e-mail fornecido.',
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
     }
 
-    // Salvar no cache com TTL de 24h
-    domainCache.set(domain, {
-      valid: isValid,
-      reason: responsePayload.reason,
-      expiresAt: now + CACHE_TTL_MS,
-    })
+    const domain = extractDomain(rawInput)
 
-    return new Response(JSON.stringify(responsePayload), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  } catch (err: any) {
-    console.error('[validate-email-domain] Erro inesperado:', err)
-    // Fail-open em caso de erro inesperado na Edge Function
+    const domainRegex =
+      /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/i
+    if (!domain || !domainRegex.test(domain) || domain.length > 253) {
+      return new Response(
+        JSON.stringify({
+          valid: false,
+          domain,
+          reachable: false,
+          mxFound: false,
+          aFound: false,
+          disposable: false,
+          isCommonProvider: false,
+          reason: 'Formato de domínio inválido.',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const isDisposable = DISPOSABLE_PATTERNS.some((pattern) => domain.includes(pattern))
+    if (isDisposable) {
+      return new Response(
+        JSON.stringify({
+          valid: false,
+          domain,
+          reachable: false,
+          mxFound: false,
+          aFound: false,
+          disposable: true,
+          isCommonProvider: false,
+          reason: 'Domínio descartável / temporário não permitido.',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const isCommon = COMMON_FREE_PROVIDERS.has(domain)
+    if (isCommon) {
+      return new Response(
+        JSON.stringify({
+          valid: true,
+          domain,
+          reachable: true,
+          mxFound: true,
+          aFound: true,
+          disposable: false,
+          isCommonProvider: true,
+          details: 'Provedor conhecido e confiável.',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    // Consulta registros MX (type 15)
+    const mxResp = await queryDnsOverHttps(domain, 'MX')
+    const hasMx = Boolean(
+      mxResp && mxResp.Status === 0 && mxResp.Answer && mxResp.Answer.length > 0,
+    )
+
+    // Se não encontrou MX, consulta registro A (type 1)
+    let hasA = false
+    if (!hasMx) {
+      const aResp = await queryDnsOverHttps(domain, 'A')
+      hasA = Boolean(aResp && aResp.Status === 0 && aResp.Answer && aResp.Answer.length > 0)
+    }
+
+    const domainExists = hasMx || hasA
+
     return new Response(
       JSON.stringify({
-        valid: true,
-        reason: 'Verificação falhou por erro interno. Permitido por tolerância.',
-        failOpen: true,
+        valid: domainExists,
+        domain,
+        reachable: domainExists,
+        mxFound: hasMx,
+        aFound: hasA,
+        disposable: false,
+        isCommonProvider: false,
+        reason: domainExists
+          ? 'Domínio ativo com registros DNS válidos.'
+          : 'Domínio não possui servidores de e-mail (MX) ou registro de host (A).',
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    )
+  } catch (err: any) {
+    return new Response(
+      JSON.stringify({
+        valid: true, // Fail-open para não travar formulário de cadastro em caso de instabilidade DNS
+        reachable: true,
+        error: err.message,
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   }
 })

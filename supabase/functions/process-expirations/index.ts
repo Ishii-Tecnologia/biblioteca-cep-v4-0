@@ -1,140 +1,129 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import {
+  authenticateCaller,
+  checkRateLimit,
+  extractClientIp,
+  logTransicaoAuditoria,
+} from '../_shared/auth.ts'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  const startTime = Date.now()
+  let chamadorInfo = 'serviço agendado ou invocação interna'
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const supabaseServiceKey =
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? ''
 
     if (!supabaseUrl || !supabaseServiceKey) {
       return new Response(
         JSON.stringify({
-          success: false,
-          error: 'SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não configurados.',
+          error: 'Configuração do servidor ausente (SUPABASE_URL / SERVICE_ROLE_KEY)',
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
+    // 1. Blindagem OWASP: Exigir autorização.
+    // Aceita Authorization Bearer token de usuário staff (quando disparado manualmente pelo painel)
+    // OU token de cron/service-role (quando executado via pg_cron / webhook do sistema)
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || ''
+    const match = authHeader.match(/^Bearer\s+(.+)$/i)
+    const token = match ? match[1].trim() : ''
 
-    let body: any = {}
-    try {
-      body = await req.json()
-    } catch {
-      body = {}
+    const cronSecret = Deno.env.get('CRON_SECRET') || ''
+    const isCronAuthorized =
+      (cronSecret && token === cronSecret) || (supabaseServiceKey && token === supabaseServiceKey)
+
+    let callerUser: any = null
+
+    if (!isCronAuthorized) {
+      // Exige autenticação de staff se não for cron token
+      const authResult = await authenticateCaller(req, {
+        requireStaff: true,
+        requireAdmin: false,
+      })
+
+      if ('response' in authResult) {
+        return authResult.response
+      }
+
+      callerUser = authResult.caller
+      chamadorInfo = `Operador ${callerUser.nome || callerUser.email} (${callerUser.papel})`
+
+      // Rate limit: máx 5 chamadas manuais por minuto
+      const clientIp = extractClientIp(req)
+      const rateKey = `process_expirations:${callerUser.userId}:${clientIp}`
+      const rateCheck = checkRateLimit(rateKey, 5, 60_000)
+      if (!rateCheck.allowed) {
+        return new Response(
+          JSON.stringify({
+            error: `Muitas execuções manuais de expiração. Aguarde ${rateCheck.resetInSeconds} segundos.`,
+            code: 'TOO_MANY_REQUESTS',
+          }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+    } else {
+      chamadorInfo = 'Rotina agendada (Cron / Service Role)'
     }
 
-    const operadorNome = body.operador_nome || 'Cron Job / Expiração Automática'
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Chama a RPC transacional com row lock
-    const { data: rpcData, error: rpcErr } = await supabaseAdmin.rpc(
+    // Chama a RPC de banco que processa pré-reservas e reservas expiradas
+    const { data: rpcResult, error: rpcError } = await supabase.rpc(
       'processar_expiracoes_automaticas',
-      {
-        p_operador_nome: operadorNome,
-      },
     )
 
-    if (rpcErr) throw rpcErr
-
-    // Se houve avanço de fila, notificar os contemplados
-    // Notificações: e-mail + SMS conforme Seção 3.3 e 7
-    const detalhes = rpcData?.detalhes || []
-    const notificacoesRealizadas: any[] = []
-
-    // Verificar se NOTIFICAR_EMAIL e NOTIFICAR_SMS estão habilitados na tabela configuracao
-    const { data: configs } = await supabaseAdmin
-      .from('configuracao')
-      .select('chave, valor')
-      .in('chave', ['NOTIFICAR_EMAIL', 'NOTIFICAR_SMS'])
-
-    const configMap = new Map<string, string>()
-    ;(configs || []).forEach((c: { chave: string; valor: string }) => {
-      configMap.set(c.chave, c.valor)
-    })
-
-    const notificarEmail = configMap.get('NOTIFICAR_EMAIL') !== 'false'
-    const notificarSms = configMap.get('NOTIFICAR_SMS') !== 'false'
-
-    for (const item of detalhes) {
-      if (item.proxima_reserva_contemplada && item.novo_leitor_id) {
-        // Obter leitor
-        const { data: leitor } = await supabaseAdmin
-          .from('leitor')
-          .select('id_leitor, nome_do_leitor, email, telefone')
-          .eq('id_leitor', item.novo_leitor_id)
-          .single()
-
-        if (leitor) {
-          // Notificação de E-mail
-          if (notificarEmail && leitor.email) {
-            try {
-              // Dispara envio usando a edge function auditoria_mensal_expurgo com a ação 'enviar_notificacao_reserva'
-              await supabaseAdmin.functions.invoke('auditoria_mensal_expurgo', {
-                body: {
-                  action: 'enviar_notificacao_reserva',
-                  to: [leitor.email],
-                  subject: 'Biblioteca CEP — Seu livro está pronto para retirada!',
-                  body: `Olá, ${leitor.nome_do_leitor}!\n\nSeu livro reservado já está pronto na biblioteca. Você foi contemplado na fila de espera e tem o prazo de 4 dias úteis para realizar a retirada física.\n\nData limite: ${new Date(item.nova_data_limite).toLocaleDateString('pt-BR')}.\n\nAtenciosamente,\nEquipe da Biblioteca CEP`,
-                },
-              })
-            } catch (emailErr) {
-              console.warn('Erro ao disparar e-mail de contemplação:', emailErr)
-            }
-          }
-
-          // Notificação de SMS (Registro de auditoria transparente conforme spec: sem provedor configurado)
-          if (notificarSms && leitor.telefone) {
-            await supabaseAdmin.from('auditoria_transicoes').insert({
-              entidade: 'notificacao_sms',
-              registro_id: `reserva_${item.proxima_reserva_contemplada}`,
-              estado_anterior: 'PENDENTE',
-              estado_novo: 'SIMULADO_SEM_PROVEDOR',
-              operador_id: null,
-              operador_nome: 'SMS Service Stub',
-              motivo: `Tentativa de envio de SMS para ${leitor.telefone} (${leitor.nome_do_leitor}): "Livro contemplado para retirada!". Provedor de SMS não configurado no projeto.`,
-              payload: {
-                telefone: leitor.telefone,
-                leitor_id: leitor.id_leitor,
-                reserva_id: item.proxima_reserva_contemplada,
-              },
-            })
-          }
-
-          notificacoesRealizadas.push({
-            leitor_id: leitor.id_leitor,
-            email: leitor.email,
-            notificado_email: notificarEmail,
-            notificado_sms_auditado: notificarSms,
-          })
-        }
-      }
+    if (rpcError) {
+      console.error('Erro ao executar processar_expiracoes_automaticas:', rpcError)
+      return new Response(
+        JSON.stringify({
+          error: 'Falha ao processar expirações automáticas no banco.',
+          details: rpcError.message,
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
     }
+
+    const elapsed = Date.now() - startTime
+
+    // Registrar em auditoria
+    await logTransicaoAuditoria({
+      supabaseAdmin: supabase,
+      entidade: 'expiracoes_automaticas',
+      registroId: new Date().toISOString(),
+      estadoAnterior: null,
+      estadoNovo: 'executado',
+      operadorId: callerUser?.userId || null,
+      operadorNome: callerUser?.nome || chamadorInfo,
+      motivo: `Execução da rotina de expirações de reservas e pré-reservas (${chamadorInfo})`,
+      payload: {
+        resultado: rpcResult,
+        duracao_ms: elapsed,
+        chamador: chamadorInfo,
+      },
+    })
 
     return new Response(
       JSON.stringify({
         success: true,
-        resultado_expiracao: rpcData,
-        notificacoes: notificacoesRealizadas,
-        mensagem: `Processamento concluído. ${rpcData?.expirados || 0} empréstimo(s) expirado(s) e ${rpcData?.avancados || 0} leitor(es) contemplado(s) na fila.`,
+        duracao_ms: elapsed,
+        resultado: rpcResult,
+        executado_por: chamadorInfo,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   } catch (err: any) {
-    console.error('Erro em process-expirations:', err)
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: err.message || 'Erro ao processar expirações.',
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      JSON.stringify({ error: err.message || 'Erro interno na função process-expirations.' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   }
 })

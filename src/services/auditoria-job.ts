@@ -158,7 +158,11 @@ export const AuditoriaJobService = {
 
   async sendManualReport(): Promise<JobRunResponse> {
     try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData?.session?.access_token
+
       const { data, error } = await supabase.functions.invoke('auditoria_mensal_expurgo', {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: { action: 'enviar_manual', manual: true, force: true },
       })
 
@@ -207,7 +211,11 @@ export const AuditoriaJobService = {
 
   async runJobNow(force: boolean = true): Promise<JobRunResponse> {
     try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData?.session?.access_token
+
       const { data, error } = await supabase.functions.invoke('auditoria_mensal_expurgo', {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: { action: 'executar_job', force },
       })
 

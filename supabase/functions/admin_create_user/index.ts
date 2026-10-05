@@ -1,6 +1,12 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import {
+  authenticateCaller,
+  checkRateLimit,
+  extractClientIp,
+  logTransicaoAuditoria,
+} from '../_shared/auth.ts'
 
 interface CreateUserPayload {
   email: string
@@ -12,7 +18,7 @@ interface CreateUserPayload {
 }
 
 Deno.serve(async (req: Request) => {
-  // Handle CORS preflight requests
+  // Preflight CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -28,6 +34,42 @@ Deno.serve(async (req: Request) => {
           error: 'Configuração do servidor ausente (SUPABASE_URL / SERVICE_ROLE_KEY)',
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    // 1. Blindagem OWASP A01: Exigir JWT de autenticação do chamador
+    // Valida se o usuário chamador tem sessão ativa e papel de staff (admin, operador ou operador_diretoria)
+    const authResult = await authenticateCaller(req, {
+      requireStaff: true,
+      requireAdmin: false,
+    })
+
+    if ('response' in authResult) {
+      return authResult.response
+    }
+
+    const { caller } = authResult
+
+    // 2. Rate Limiting: máx. 5 chamadas por minuto por usuário / IP
+    const clientIp = extractClientIp(req)
+    const rateKey = `admin_create_user:${caller.userId}:${clientIp}`
+    const rateCheck = checkRateLimit(rateKey, 5, 60_000)
+
+    if (!rateCheck.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: `Muitas tentativas de criação de usuário. Limite de 5 chamadas por minuto excedido. Aguarde ${rateCheck.resetInSeconds} segundos antes de tentar novamente.`,
+          code: 'TOO_MANY_REQUESTS',
+          retryAfterSeconds: rateCheck.resetInSeconds,
+        }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Retry-After': String(rateCheck.resetInSeconds),
+          },
+        },
       )
     }
 
@@ -49,10 +91,28 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    if (password.length < 6) {
+    // Política de Senha Mínima: 8 caracteres
+    if (password.length < 8) {
       return new Response(
-        JSON.stringify({ error: 'A senha deve conter no mínimo 6 caracteres.' }),
+        JSON.stringify({ error: 'A senha deve conter no mínimo 8 caracteres.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    // 3. Regra de autorização estrita:
+    // Criação de usuários do sistema interno (admin, operador, operador_diretoria)
+    // ou qualquer atribuição de papel 'admin' é EXCLUSIVA do papel admin (403 para operadores).
+    // Operadores comuns podem cadastrar apenas 'leitor'.
+    const isCreatingStaffRole =
+      papel === 'admin' || papel === 'operador' || papel === 'operador_diretoria'
+    if (isCreatingStaffRole && !caller.isAdmin) {
+      return new Response(
+        JSON.stringify({
+          error:
+            'Acesso negado: a criação de usuários com papel interno (admin, operador ou operador de diretoria) é restrita exclusivamente ao papel Administrador.',
+          code: 'FORBIDDEN_ADMIN_ROLE_REQUIRED',
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
 
@@ -77,7 +137,6 @@ Deno.serve(async (req: Request) => {
           .maybeSingle()
 
         if (!existingLeitor) {
-          // Não tem leitor na tabela leitor. Verificar se tem auth.user órfão
           const { data: listUserData } = await supabaseAdmin.auth.admin.listUsers()
           const orphanUser = listUserData?.users?.find(
             (u) => u.email?.toLowerCase() === normalizedEmail,
@@ -111,7 +170,6 @@ Deno.serve(async (req: Request) => {
     })
 
     if (createError) {
-      // Se deu duplicate email ou already registered, verificar novamente se é órfão
       if (
         papel === 'leitor' &&
         (createError.message.toLowerCase().includes('already registered') ||
@@ -132,7 +190,6 @@ Deno.serve(async (req: Request) => {
             await supabaseAdmin.from('profiles').delete().eq('id', orphanUser.id)
             await supabaseAdmin.auth.admin.deleteUser(orphanUser.id)
 
-            // Tentar novamente a criação
             const retryCreate = await supabaseAdmin.auth.admin.createUser({
               email: normalizedEmail,
               password,
@@ -162,7 +219,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const createdUser = createData.user
+    const createdUser = createData?.user
     if (!createdUser) {
       return new Response(JSON.stringify({ error: 'Falha ao obter dados do usuário criado.' }), {
         status: 500,
@@ -191,6 +248,38 @@ Deno.serve(async (req: Request) => {
         'Aviso ao sincronizar profiles na edge function admin_create_user:',
         profileError,
       )
+    }
+
+    // 3. Registrar na tabela de auditoria_transicoes e historico com identificação de quem chamou
+    await logTransicaoAuditoria({
+      supabaseAdmin,
+      entidade: 'usuario',
+      registroId: createdUser.id,
+      estadoAnterior: null,
+      estadoNovo: papel,
+      operadorId: caller.userId,
+      operadorNome: caller.nome || caller.email,
+      motivo: `Criação de novo usuário com papel "${papel}" via Edge Function segura`,
+      payload: {
+        criado_por_id: caller.userId,
+        criado_por_papel: caller.papel,
+        usuario_criado_id: createdUser.id,
+        usuario_criado_email: normalizedEmail,
+        papel_atribuido: papel,
+      },
+    })
+
+    try {
+      await supabaseAdmin.from('historico').insert({
+        tipo: 'Criação de Usuário',
+        descricao: `Usuário "${nome.trim()}" (${normalizedEmail}) criado com papel "${papel}" pelo operador "${caller.nome || caller.email}" (${caller.papel}).`,
+        entidade_tipo: 'usuario',
+        entidade_id: createdUser.id,
+        usuario_id: caller.userId,
+        observacao: `Operação administrativa autorizada por ${caller.papel}.`,
+      })
+    } catch (histErr) {
+      console.warn('Aviso ao registrar histórico de criação de usuário:', histErr)
     }
 
     return new Response(

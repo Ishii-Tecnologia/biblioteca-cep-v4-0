@@ -19,10 +19,15 @@ export async function adminResetPassword({
   newPassword,
 }: AdminResetPasswordParams): Promise<{ success: boolean; error?: string }> {
   try {
-    // 1. Tentar invocar Edge Function admin_reset_password
+    // 1. Obter token JWT da sessão ativa para autorização explícita
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData?.session?.access_token
+
+    // Tentar invocar Edge Function admin_reset_password
     const { data: funcData, error: funcError } = await supabase.functions.invoke(
       'admin_reset_password',
       {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: {
           user_id: userId,
           new_password: newPassword,
@@ -32,6 +37,21 @@ export async function adminResetPassword({
 
     if (!funcError && funcData && !funcData.error) {
       return { success: true }
+    }
+
+    if (funcError) {
+      let customErr: string | null = null
+      try {
+        const jsonContext = await (funcError as any)?.context?.json?.()
+        if (jsonContext?.error) {
+          customErr = jsonContext.error
+        }
+      } catch {
+        // ignore
+      }
+      if (customErr) {
+        return { success: false, error: customErr }
+      }
     }
 
     // 2. Se a Edge Function retornar erro ou falhar, fallback direto para a RPC admin_reset_password
