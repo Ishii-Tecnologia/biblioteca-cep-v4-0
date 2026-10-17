@@ -345,6 +345,59 @@ export default function Manual() {
       },
     },
     {
+      id: 'op-acervo-busca-consulta',
+      shortTitle: 'Busca e Consulta no Acervo',
+      title: 'Busca Inteligente no Acervo (Busca Automática e Destaque Visual)',
+      profile: 'operador',
+      category: 'Acervo e Exemplares',
+      icon: Search,
+      screenUrl: '/acervo',
+      screenButtonText: 'Abrir Acervo',
+      summary:
+        'Como funciona a pesquisa inteligente nas Bibliotecas Cecília Braga (/acervo) e Rino Curti (/acervo-diretoria): busca automática em tempo real enquanto digita, abrangendo título, autor, espírito, médium, código, ISBN e categoria/assunto, com realce visual dos termos encontrados.',
+      steps: [
+        {
+          number: 1,
+          title: 'Acessar o Campo de Busca do Acervo',
+          detail:
+            'Na barra superior de filtros de qualquer um dos acervos, localize o campo amplo com o placeholder "Buscar por título, autor ou código…".',
+        },
+        {
+          number: 2,
+          title: 'Digitar o Termo Desejado (Busca Automática em Tempo Real)',
+          detail:
+            'Não é necessário pressionar Enter nem clicar em botão de confirmação: a listagem filtra automaticamente após uma breve pausa de 300 ms enquanto você digita. Ao apagar ou limpar o campo, o resultado volta imediatamente.',
+          tip: 'Você pode pesquisar por partes do título, nome do autor, espírito, médium psicógrafo, código do livro (ex: CX-EM001, AK-001, DIR-), ISBN ou categoria/assunto (ex: Doutrina, Filosofia, Romance).',
+        },
+        {
+          number: 3,
+          title: 'Visualizar o Destaque Visual nos Resultados',
+          detail:
+            'As ocorrências do termo digitado são destacadas em amarelo suave diretamente nos cards dos livros (título, autores, código do livro e categoria/assunto), facilitando a identificação imediata do motivo pelo qual a obra foi listada.',
+        },
+        {
+          number: 4,
+          title: 'Combinar com os Filtros Rápidos',
+          detail:
+            'A busca por texto funciona de forma integrada com todos os seletores: Categoria específica, Status (Disponíveis, Emprestados, Em Manutenção), Autoria (alerta de sem autor) e Foto de Capa (sem capa cadastrada).',
+        },
+      ],
+      rules: [
+        'O comportamento da busca em tempo real com destaque é idêntico na Biblioteca Cecília Braga (acervo geral) e na Biblioteca Rino Curti (acervo restrito da diretoria).',
+        'A busca é insensível a maiúsculas/minúsculas e tolerante a acentuação.',
+        'O botão "×" dentro do campo de busca ou o botão "Limpar" removem o termo imediatamente e restauram o catálogo completo.',
+      ],
+      example: {
+        title: 'Exemplo: Localizar obras por categoria ou autor',
+        context:
+          'O operador precisa encontrar todos os livros cadastrados sob a categoria "Romance" ou psicografados por Chico Xavier.',
+        action: 'Digita "romance" ou "chico" no campo de busca.',
+        result:
+          'Em menos de meio segundo os cards correspondentes são filtrados na tela, exibindo o termo destacado visualmente em amarelo na categoria e na autoria.',
+        type: 'success',
+      },
+    },
+    {
       id: 'op-acervo-cadastros',
       shortTitle: 'Cadastrar Livros e Exemplares',
       title: 'Gestão de Acervo: Bibliotecas Cecília Braga e Rino Curti',

@@ -74,7 +74,7 @@ export const TitulosService = {
     if (searchQuery && searchQuery.trim()) {
       const q = `%${searchQuery.trim()}%`
       query = query.or(
-        `titulo_de_livro.ilike.${q},autor.ilike.${q},autor_espiritual.ilike.${q},autor_mediunico.ilike.${q},editora.ilike.${q},isbn.ilike.${q},id_titulo.ilike.${q}`,
+        `titulo_de_livro.ilike.${q},autor.ilike.${q},autor_espiritual.ilike.${q},autor_mediunico.ilike.${q},editora.ilike.${q},isbn.ilike.${q},id_titulo.ilike.${q},categoria.ilike.${q}`,
       )
     }
 

@@ -39,7 +39,9 @@ import {
   AlertTriangle,
   Image as ImageIcon,
   ImageOff,
+  X,
 } from 'lucide-react'
+import { HighlightedText } from '@/components/HighlightedText'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import * as TooltipPrimitive from '@radix-ui/react-tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -152,6 +154,7 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
   const [loading, setLoading] = useState(true)
 
   const [searchQuery, setSearchQuery] = useState(initialQuery)
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>(initialStatus)
   const [selectedAuthorFilter, setSelectedAuthorFilter] = useState<string>(initialAuthorFilter)
@@ -193,12 +196,13 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
   } | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
-  const loadBooks = async () => {
+  const loadBooks = async (queryToUse?: string) => {
     setLoading(true)
+    const activeQuery = queryToUse !== undefined ? queryToUse : debouncedQuery
     try {
       const [booksData, catsData, totaisData] = await Promise.all([
         TitulosService.getAll(
-          searchQuery,
+          activeQuery,
           selectedCategory,
           true,
           selectedStatus,
@@ -224,6 +228,35 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
     }
   }
 
+  // Debounce de ~300ms para busca automática enquanto o usuário digita.
+  // Se o campo for limpo (searchQuery === ''), aplica imediatamente cancelando o debounce.
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setDebouncedQuery('')
+      updateFiltersUrl('', undefined, undefined, undefined, undefined)
+      return
+    }
+
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery)
+      updateFiltersUrl(searchQuery, undefined, undefined, undefined, undefined)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Recarregar livros sempre que debouncedQuery ou qualquer filtro mudar
+  useEffect(() => {
+    loadBooks(debouncedQuery)
+  }, [
+    debouncedQuery,
+    selectedCategory,
+    selectedStatus,
+    selectedAuthorFilter,
+    selectedCoverFilter,
+    colecao,
+  ])
+
   // Sincronizar parâmetros de URL com os estados se mudarem externamente
   useEffect(() => {
     const q = searchParams.get('q') || ''
@@ -244,15 +277,15 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
       }
       return 'all'
     })()
-    setSearchQuery(q)
+
+    if (q !== searchQuery) {
+      setSearchQuery(q)
+      setDebouncedQuery(q)
+    }
     setSelectedStatus(s)
     setSelectedAuthorFilter(a)
     setSelectedCoverFilter(c)
   }, [searchParams])
-
-  useEffect(() => {
-    loadBooks()
-  }, [selectedCategory, selectedStatus, selectedAuthorFilter, selectedCoverFilter, colecao])
 
   const updateFiltersUrl = (
     newQuery?: string,
@@ -276,11 +309,12 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
       nextParams.capa_filtro = finalC
     }
 
-    setSearchParams(nextParams)
+    setSearchParams(nextParams, { replace: true })
   }
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setDebouncedQuery(searchQuery)
     updateFiltersUrl(
       searchQuery,
       selectedCategory,
@@ -288,7 +322,7 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
       selectedAuthorFilter,
       selectedCoverFilter,
     )
-    loadBooks()
+    loadBooks(searchQuery)
   }
 
   const handleStatusChange = (status: string) => {
@@ -308,11 +342,18 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
 
   const handleClearFilters = () => {
     setSearchQuery('')
+    setDebouncedQuery('')
     setSelectedCategory('all')
     setSelectedStatus('all')
     setSelectedAuthorFilter('all')
     setSelectedCoverFilter('all')
-    setSearchParams({})
+    setSearchParams({}, { replace: true })
+  }
+
+  const handleClearSearchOnly = () => {
+    setSearchQuery('')
+    setDebouncedQuery('')
+    updateFiltersUrl('', undefined, undefined, undefined, undefined)
   }
 
   const handleEditBook = (book: TituloWithStats) => {
@@ -555,122 +596,127 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
       {/* Filter and Search Bar */}
       <Card className="border-slate-200 shadow-sm bg-white">
         <CardContent className="p-4">
-          <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <form onSubmit={handleSearchSubmit} className="flex flex-col lg:flex-row gap-3">
+            {/* Campo de busca principal expandido para largura confortável */}
+            <div className="relative flex-1 min-w-0">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <Input
-                placeholder="Buscar por título, autor, espírito, médium, ISBN ou código (Ex: MC-001)..."
+                placeholder="Buscar por título, autor ou código…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 text-xs sm:text-sm"
+                className="pl-9 pr-9 text-xs sm:text-sm h-9 bg-slate-50/40 focus:bg-white"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={handleClearSearchOnly}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition-colors"
+                  title="Limpar busca"
+                  aria-label="Limpar busca"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
-            <div className="w-full sm:w-48">
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="text-xs">
-                  <div className="flex items-center gap-1.5 text-slate-700">
-                    <Filter className="w-3.5 h-3.5 text-emerald-600" />
-                    <SelectValue placeholder="Todas as categorias" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as Categorias</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
+            {/* Grupo de seletores e filtros secundários */}
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 lg:gap-2.5 shrink-0">
+              <div className="w-full sm:w-44">
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="text-xs h-9">
+                    <div className="flex items-center gap-1.5 text-slate-700 truncate">
+                      <Filter className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <SelectValue placeholder="Todas as categorias" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as Categorias</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="w-full sm:w-40">
+                <Select value={selectedStatus} onValueChange={handleStatusChange}>
+                  <SelectTrigger className="text-xs h-9">
+                    <div className="flex items-center gap-1.5 text-slate-700 truncate">
+                      <Wrench className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                      <SelectValue placeholder="Todos os Status" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os Status</SelectItem>
+                    <SelectItem value="Manutencao">Em Manutenção</SelectItem>
+                    <SelectItem value="Disponivel">Disponíveis</SelectItem>
+                    <SelectItem value="Emprestado">Emprestados</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Filtro de Autoria / Sem Autor */}
+              <div className="w-full sm:w-40">
+                <Select value={selectedAuthorFilter} onValueChange={handleAuthorFilterChange}>
+                  <SelectTrigger
+                    className={`text-xs h-9 ${
+                      selectedAuthorFilter === 'sem_autor'
+                        ? 'border-amber-400 bg-amber-50/60 font-medium text-amber-950 ring-1 ring-amber-300'
+                        : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 text-slate-700 truncate">
+                      <AlertCircle
+                        className={`w-3.5 h-3.5 shrink-0 ${
+                          selectedAuthorFilter === 'sem_autor'
+                            ? 'text-amber-600 font-bold'
+                            : 'text-slate-500'
+                        }`}
+                      />
+                      <SelectValue placeholder="Autoria" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as Autorias</SelectItem>
+                    <SelectItem value="sem_autor" className="text-amber-900 font-medium">
+                      ⚠️ Sem autor (alerta)
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                    <SelectItem value="sem_espiritual">Sem autor espiritual</SelectItem>
+                    <SelectItem value="sem_medium">Sem médium (convencionais)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="w-full sm:w-48">
-              <Select value={selectedStatus} onValueChange={handleStatusChange}>
-                <SelectTrigger className="text-xs">
-                  <div className="flex items-center gap-1.5 text-slate-700">
-                    <Wrench className="w-3.5 h-3.5 text-rose-600" />
-                    <SelectValue placeholder="Todos os Status" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os Status</SelectItem>
-                  <SelectItem value="Manutencao">Em Manutenção</SelectItem>
-                  <SelectItem value="Disponivel">Disponíveis</SelectItem>
-                  <SelectItem value="Emprestado">Emprestados</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Filtro de Autoria / Sem Autor */}
-            <div className="w-full sm:w-48">
-              <Select value={selectedAuthorFilter} onValueChange={handleAuthorFilterChange}>
-                <SelectTrigger
-                  className={`text-xs ${
-                    selectedAuthorFilter === 'sem_autor'
-                      ? 'border-amber-400 bg-amber-50/60 font-medium text-amber-950 ring-1 ring-amber-300'
-                      : ''
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 text-slate-700 truncate">
-                    <AlertCircle
-                      className={`w-3.5 h-3.5 shrink-0 ${
-                        selectedAuthorFilter === 'sem_autor'
-                          ? 'text-amber-600 font-bold'
-                          : 'text-slate-500'
-                      }`}
-                    />
-                    <SelectValue placeholder="Autoria" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as Autorias</SelectItem>
-                  <SelectItem value="sem_autor" className="text-amber-900 font-medium">
-                    ⚠️ Sem autor (alerta)
-                  </SelectItem>
-                  <SelectItem value="sem_espiritual">Sem autor espiritual</SelectItem>
-                  <SelectItem value="sem_medium">Sem médium (convencionais)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Filtro de Foto de Capa / Sem Capa */}
-            <div className="w-full sm:w-48">
-              <Select value={selectedCoverFilter} onValueChange={handleCoverFilterChange}>
-                <SelectTrigger
-                  className={`text-xs ${
-                    selectedCoverFilter === 'sem_capa'
-                      ? 'border-amber-400 bg-amber-50/60 font-medium text-amber-950 ring-1 ring-amber-300'
-                      : ''
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 text-slate-700 truncate">
-                    {selectedCoverFilter === 'sem_capa' ? (
-                      <ImageOff className="w-3.5 h-3.5 shrink-0 text-amber-600 font-bold" />
-                    ) : (
-                      <ImageIcon className="w-3.5 h-3.5 shrink-0 text-slate-500" />
-                    )}
-                    <SelectValue placeholder="Foto de Capa" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as Capas</SelectItem>
-                  <SelectItem value="sem_capa" className="text-amber-900 font-medium">
-                    📷 Sem foto de capa
-                  </SelectItem>
-                  <SelectItem value="com_capa">Com foto de capa</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                type="submit"
-                variant="default"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-5"
-              >
-                Pesquisar
-              </Button>
+              {/* Filtro de Foto de Capa / Sem Capa */}
+              <div className="w-full sm:w-40">
+                <Select value={selectedCoverFilter} onValueChange={handleCoverFilterChange}>
+                  <SelectTrigger
+                    className={`text-xs h-9 ${
+                      selectedCoverFilter === 'sem_capa'
+                        ? 'border-amber-400 bg-amber-50/60 font-medium text-amber-950 ring-1 ring-amber-300'
+                        : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 text-slate-700 truncate">
+                      {selectedCoverFilter === 'sem_capa' ? (
+                        <ImageOff className="w-3.5 h-3.5 shrink-0 text-amber-600 font-bold" />
+                      ) : (
+                        <ImageIcon className="w-3.5 h-3.5 shrink-0 text-slate-500" />
+                      )}
+                      <SelectValue placeholder="Foto de Capa" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as Capas</SelectItem>
+                    <SelectItem value="sem_capa" className="text-amber-900 font-medium">
+                      📷 Sem foto de capa
+                    </SelectItem>
+                    <SelectItem value="com_capa">Com foto de capa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
               {(searchQuery ||
                 selectedCategory !== 'all' ||
@@ -681,7 +727,7 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
                   type="button"
                   variant="ghost"
                   onClick={handleClearFilters}
-                  className="text-xs text-slate-500 hover:text-slate-900"
+                  className="text-xs text-slate-500 hover:text-slate-900 h-9 px-3 shrink-0"
                 >
                   Limpar
                 </Button>
@@ -694,7 +740,7 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
             selectedCategory !== 'all' ||
             selectedAuthorFilter !== 'all' ||
             selectedCoverFilter !== 'all' ||
-            searchQuery) && (
+            debouncedQuery) && (
             <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-100 text-xs">
               <span className="text-slate-500 font-medium text-[11px]">Filtros ativos:</span>
               {selectedCoverFilter !== 'all' && (
@@ -762,16 +808,13 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
                   <span className="ml-1 text-slate-400 font-bold hover:text-slate-900">×</span>
                 </Badge>
               )}
-              {searchQuery && (
+              {debouncedQuery && (
                 <Badge
                   variant="outline"
                   className="bg-slate-100 text-slate-700 border-slate-200 gap-1 font-medium cursor-pointer"
-                  onClick={() => {
-                    setSearchQuery('')
-                    updateFiltersUrl('', undefined, undefined, undefined, undefined)
-                  }}
+                  onClick={handleClearSearchOnly}
                 >
-                  Busca: "{searchQuery}"
+                  Busca: "{debouncedQuery}"
                   <span className="ml-1 text-slate-400 font-bold hover:text-slate-900">×</span>
                 </Badge>
               )}
@@ -866,13 +909,13 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
                   {/* Top Bar: Code & Category */}
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-mono text-xs font-bold px-2 py-0.5 bg-slate-100 text-slate-800 rounded border border-slate-200">
-                      {book.id_titulo}
+                      <HighlightedText text={book.id_titulo} search={debouncedQuery} />
                     </span>
                     <Badge
                       variant="secondary"
                       className="text-[11px] font-normal bg-slate-100 text-slate-600"
                     >
-                      {book.categoria || 'Geral'}
+                      <HighlightedText text={book.categoria || 'Geral'} search={debouncedQuery} />
                     </Badge>
                   </div>
 
@@ -936,7 +979,7 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
                           </TooltipProvider>
                         )}
                         <h2 className="font-bold text-slate-900 text-base leading-snug group-hover:text-emerald-700 transition-colors line-clamp-2">
-                          {book.titulo_de_livro}
+                          <HighlightedText text={book.titulo_de_livro} search={debouncedQuery} />
                         </h2>
                       </div>
 
@@ -961,7 +1004,10 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
                           }
                           return (
                             <span>
-                              {book.autor_formatado || book.autor || 'Autor não informado'}
+                              <HighlightedText
+                                text={book.autor_formatado || book.autor || 'Autor não informado'}
+                                search={debouncedQuery}
+                              />
                             </span>
                           )
                         })()}
