@@ -37,6 +37,8 @@ import {
   Sparkles,
   Info,
   AlertTriangle,
+  Image as ImageIcon,
+  ImageOff,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import * as TooltipPrimitive from '@radix-ui/react-tooltip'
@@ -130,6 +132,14 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
     }
     return 'all'
   })()
+  const initialCoverFilter = (() => {
+    const raw = searchParams.get('capa_filtro')
+    if (raw) return raw
+    if (searchParams.get('semCapa') === '1' || searchParams.get('sem_capa') === '1') {
+      return 'sem_capa'
+    }
+    return 'all'
+  })()
 
   const { isOperadorOrAdmin, isDiretoriaOrAdmin, isAdmin, user, profile } = useAuth()
   const canManage = isDiretoria ? isDiretoriaOrAdmin : isOperadorOrAdmin
@@ -145,6 +155,7 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>(initialStatus)
   const [selectedAuthorFilter, setSelectedAuthorFilter] = useState<string>(initialAuthorFilter)
+  const [selectedCoverFilter, setSelectedCoverFilter] = useState<string>(initialCoverFilter)
 
   // Modals state
   const [bookModalOpen, setBookModalOpen] = useState(false)
@@ -193,6 +204,7 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
           selectedStatus,
           colecao,
           selectedAuthorFilter,
+          selectedCoverFilter,
         ),
         TitulosService.getCategories(),
         TitulosService.getTotais(colecao),
@@ -224,30 +236,44 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
       }
       return 'all'
     })()
+    const c = (() => {
+      const raw = searchParams.get('capa_filtro')
+      if (raw) return raw
+      if (searchParams.get('semCapa') === '1' || searchParams.get('sem_capa') === '1') {
+        return 'sem_capa'
+      }
+      return 'all'
+    })()
     setSearchQuery(q)
     setSelectedStatus(s)
     setSelectedAuthorFilter(a)
+    setSelectedCoverFilter(c)
   }, [searchParams])
 
   useEffect(() => {
     loadBooks()
-  }, [selectedCategory, selectedStatus, selectedAuthorFilter, colecao])
+  }, [selectedCategory, selectedStatus, selectedAuthorFilter, selectedCoverFilter, colecao])
 
   const updateFiltersUrl = (
     newQuery?: string,
     newCategory?: string,
     newStatus?: string,
     newAuthorFilter?: string,
+    newCoverFilter?: string,
   ) => {
     const nextParams: Record<string, string> = {}
     const finalQ = newQuery !== undefined ? newQuery : searchQuery
     const finalS = newStatus !== undefined ? newStatus : selectedStatus
     const finalA = newAuthorFilter !== undefined ? newAuthorFilter : selectedAuthorFilter
+    const finalC = newCoverFilter !== undefined ? newCoverFilter : selectedCoverFilter
 
     if (finalQ.trim()) nextParams.q = finalQ.trim()
     if (finalS && finalS !== 'all') nextParams.status = finalS
     if (finalA && finalA !== 'all') {
       nextParams.autor_filtro = finalA
+    }
+    if (finalC && finalC !== 'all') {
+      nextParams.capa_filtro = finalC
     }
 
     setSearchParams(nextParams)
@@ -255,18 +281,29 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    updateFiltersUrl(searchQuery, selectedCategory, selectedStatus, selectedAuthorFilter)
+    updateFiltersUrl(
+      searchQuery,
+      selectedCategory,
+      selectedStatus,
+      selectedAuthorFilter,
+      selectedCoverFilter,
+    )
     loadBooks()
   }
 
   const handleStatusChange = (status: string) => {
     setSelectedStatus(status)
-    updateFiltersUrl(undefined, undefined, status, undefined)
+    updateFiltersUrl(undefined, undefined, status, undefined, undefined)
   }
 
   const handleAuthorFilterChange = (authorFilter: string) => {
     setSelectedAuthorFilter(authorFilter)
-    updateFiltersUrl(undefined, undefined, undefined, authorFilter)
+    updateFiltersUrl(undefined, undefined, undefined, authorFilter, undefined)
+  }
+
+  const handleCoverFilterChange = (coverFilter: string) => {
+    setSelectedCoverFilter(coverFilter)
+    updateFiltersUrl(undefined, undefined, undefined, undefined, coverFilter)
   }
 
   const handleClearFilters = () => {
@@ -274,6 +311,7 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
     setSelectedCategory('all')
     setSelectedStatus('all')
     setSelectedAuthorFilter('all')
+    setSelectedCoverFilter('all')
     setSearchParams({})
   }
 
@@ -596,6 +634,35 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
               </Select>
             </div>
 
+            {/* Filtro de Foto de Capa / Sem Capa */}
+            <div className="w-full sm:w-48">
+              <Select value={selectedCoverFilter} onValueChange={handleCoverFilterChange}>
+                <SelectTrigger
+                  className={`text-xs ${
+                    selectedCoverFilter === 'sem_capa'
+                      ? 'border-amber-400 bg-amber-50/60 font-medium text-amber-950 ring-1 ring-amber-300'
+                      : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 text-slate-700 truncate">
+                    {selectedCoverFilter === 'sem_capa' ? (
+                      <ImageOff className="w-3.5 h-3.5 shrink-0 text-amber-600 font-bold" />
+                    ) : (
+                      <ImageIcon className="w-3.5 h-3.5 shrink-0 text-slate-500" />
+                    )}
+                    <SelectValue placeholder="Foto de Capa" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as Capas</SelectItem>
+                  <SelectItem value="sem_capa" className="text-amber-900 font-medium">
+                    📷 Sem foto de capa
+                  </SelectItem>
+                  <SelectItem value="com_capa">Com foto de capa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="flex items-center gap-2">
               <Button
                 type="submit"
@@ -608,7 +675,8 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
               {(searchQuery ||
                 selectedCategory !== 'all' ||
                 selectedStatus !== 'all' ||
-                selectedAuthorFilter !== 'all') && (
+                selectedAuthorFilter !== 'all' ||
+                selectedCoverFilter !== 'all') && (
                 <Button
                   type="button"
                   variant="ghost"
@@ -625,9 +693,32 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
           {(selectedStatus !== 'all' ||
             selectedCategory !== 'all' ||
             selectedAuthorFilter !== 'all' ||
+            selectedCoverFilter !== 'all' ||
             searchQuery) && (
             <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-100 text-xs">
               <span className="text-slate-500 font-medium text-[11px]">Filtros ativos:</span>
+              {selectedCoverFilter !== 'all' && (
+                <Badge
+                  variant="outline"
+                  className={`gap-1 font-medium cursor-pointer ${
+                    selectedCoverFilter === 'sem_capa'
+                      ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200'
+                      : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                  }`}
+                  onClick={() => handleCoverFilterChange('all')}
+                  title="Clique para remover este filtro de capa"
+                >
+                  {selectedCoverFilter === 'sem_capa' ? (
+                    <ImageOff className="w-3 h-3 text-amber-600" />
+                  ) : (
+                    <ImageIcon className="w-3 h-3 text-slate-600" />
+                  )}
+                  {selectedCoverFilter === 'sem_capa'
+                    ? 'Capa: Sem foto de capa'
+                    : 'Capa: Com foto de capa'}
+                  <span className="ml-1 text-amber-700 font-bold hover:text-amber-950">×</span>
+                </Badge>
+              )}
               {selectedAuthorFilter !== 'all' && (
                 <Badge
                   variant="outline"
@@ -677,13 +768,29 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
                   className="bg-slate-100 text-slate-700 border-slate-200 gap-1 font-medium cursor-pointer"
                   onClick={() => {
                     setSearchQuery('')
-                    updateFiltersUrl('', undefined, undefined, undefined)
+                    updateFiltersUrl('', undefined, undefined, undefined, undefined)
                   }}
                 >
                   Busca: "{searchQuery}"
                   <span className="ml-1 text-slate-400 font-bold hover:text-slate-900">×</span>
                 </Badge>
               )}
+            </div>
+          )}
+
+          {/* Banner explicativo quando filtro "sem_capa" estiver ativo */}
+          {selectedCoverFilter === 'sem_capa' && (
+            <div className="mt-3 p-2.5 bg-amber-50/90 border border-amber-200 rounded-lg text-amber-900 text-xs flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <ImageOff className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  Exibindo livros <strong>sem foto de capa</strong> cadastrada. Use a edição do
+                  livro para anexar ou colar a foto de capa.
+                </span>
+              </div>
+              <span className="text-[11px] font-semibold text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded shrink-0">
+                {books.length} {books.length === 1 ? 'livro' : 'livros'}
+              </span>
             </div>
           )}
 

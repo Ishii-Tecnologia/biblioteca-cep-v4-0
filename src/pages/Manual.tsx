@@ -36,6 +36,7 @@ import {
   Send,
   Eye,
   Printer,
+  ImageOff,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -528,6 +529,63 @@ export default function Manual() {
           'O operador entra na aba "Títulos e Exemplares" do Histórico, filtra Acervo por "Acervo Diretoria", clica em "Colunas na Impressão", desmarca "Códigos / Status" e "Editora", marca a ordenação da coluna "Autor Espiritual" como 1 e da coluna "Título do Livro" como 2, e clica no botão "Imprimir / PDF".',
         result:
           'O navegador abre a prévia diagramada em folha A4 contendo as colunas escolhidas com a classificação desejada e o totalizador da coleção, permitindo salvar o PDF imediatamente.',
+        type: 'success',
+      },
+    },
+    {
+      id: 'op-acervo-sem-capa',
+      shortTitle: 'Localizar Livros Sem Foto de Capa',
+      title: 'Filtro de Livros Sem Foto de Capa (Cecília Braga e Rino Curti)',
+      profile: 'operador',
+      category: 'Acervo e Exemplares',
+      icon: ImageOff,
+      screenUrl: '/acervo?capa_filtro=sem_capa',
+      screenButtonText: 'Abrir Livros Sem Capa',
+      summary:
+        'Como identificar rapidamente no acervo (Biblioteca Cecília Braga e Biblioteca Rino Curti) os livros que ainda não possuem foto de capa cadastrada, facilitando a revisão e inclusão das capas faltantes.',
+      prerequisites: [
+        'Estar conectado como Operador ou Administrador (ou Operador de Diretoria para o acervo Rino Curti).',
+      ],
+      steps: [
+        {
+          number: 1,
+          title: 'Acessar o Seletor de Foto de Capa no Acervo',
+          detail:
+            'Na barra de busca e filtros do acervo da Biblioteca Cecília Braga (/acervo) ou da Biblioteca Rino Curti (/acervo-diretoria), localize o seletor "Foto de Capa" (ao lado do seletor "Autoria").',
+        },
+        {
+          number: 2,
+          title: 'Selecionar a Opção "📷 Sem foto de capa"',
+          detail:
+            'Escolha a opção "📷 Sem foto de capa" para listar imediatamente todas as obras cujo cadastro ainda não possui capa anexada. A opção pode ser combinada normalmente com a busca por texto, categoria ou status.',
+          tip: 'Você também pode acessar diretamente via URL adicionando o parâmetro ?capa_filtro=sem_capa na barra de endereços.',
+        },
+        {
+          number: 3,
+          title: 'Interpretar o Banner Informativo e a Contagem',
+          detail:
+            'Um banner âmbar no topo da listagem exibe a quantidade exata de livros encontrados sem foto de capa. Um pill ativo com o botão "×" permite limpar o filtro rapidamente.',
+        },
+        {
+          number: 4,
+          title: 'Editar o Livro e Incluir a Imagem da Capa',
+          detail:
+            'No card do livro selecionado, clique no botão de edição (ícone de lápis) para abrir o formulário. Você pode colar a imagem diretamente da área de transferência (Ctrl+V), carregar um arquivo ou buscar a capa automaticamente pelo código ISBN.',
+        },
+      ],
+      rules: [
+        'O filtro funciona de maneira idêntica na Biblioteca Cecília Braga (acervo geral) e na Biblioteca Rino Curti (acervo da diretoria).',
+        'Ao clicar em "Limpar" nos filtros, o seletor de foto de capa retorna para "Todas as Capas".',
+        'Livros sem foto de capa exibem o ícone padrão de livro fechado no card e permitem ampliação (zoom) assim que a capa for cadastrada.',
+      ],
+      example: {
+        title: 'Exemplo: Levantamento de capas pendentes na Biblioteca Rino Curti',
+        context:
+          'A equipe da diretoria deseja completar as capas das apostilas e livros da Biblioteca Rino Curti.',
+        action:
+          'O operador entra em /acervo-diretoria, seleciona "📷 Sem foto de capa" no seletor de capa e edita sucessivamente os títulos listados anexando as fotos correspondentes.',
+        result:
+          'Conforme cada capa é salva, o livro deixa de constar no filtro de pendências e passa a exibir a imagem no acervo e na busca.',
         type: 'success',
       },
     },

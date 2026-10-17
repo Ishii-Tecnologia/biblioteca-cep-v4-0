@@ -52,6 +52,7 @@ export const TitulosService = {
     statusFilter?: string,
     colecao?: 'geral' | 'diretoria' | 'all',
     authorFilter?: 'all' | 'sem_autor' | 'sem_espiritual' | 'sem_medium' | string,
+    coverFilter?: 'all' | 'sem_capa' | 'com_capa' | string,
   ) {
     let query = supabase
       .from('titulo')
@@ -169,6 +170,16 @@ export const TitulosService = {
           const hasMed = !!(t.autor_mediunico && t.autor_mediunico.trim())
           return !hasMed
         })
+      }
+    }
+
+    if (coverFilter && coverFilter !== 'all') {
+      if (coverFilter === 'sem_capa') {
+        // Livros que estão sem a foto de capa (campo capa_url vazio, nulo ou só espaços)
+        formatted = formatted.filter((t) => !t.capa_url || !t.capa_url.trim())
+      } else if (coverFilter === 'com_capa') {
+        // Livros que possuem foto de capa
+        formatted = formatted.filter((t) => !!(t.capa_url && t.capa_url.trim()))
       }
     }
 
