@@ -352,10 +352,12 @@ export default function PrimeirosPassos() {
               <li className="flex items-start gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                 <ArrowRight className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
-                  <strong>Busca Automática e Destaque nos Resultados:</strong> Ao digitar no campo
-                  de busca do Acervo, a listagem filtra automaticamente em tempo real (sem precisar
-                  pressionar Enter), buscando por título, autor, espírito, médium, código e
-                  categoria/assunto, com realce visual em amarelo das ocorrências encontradas.
+                  <strong>Busca em Tempo Real Padronizada em Todo o Sistema:</strong> Tanto no
+                  Acervo quanto nas listas de Leitores, Empréstimos e Reservas, a listagem filtra
+                  automaticamente em tempo real enquanto você digita (com debounce de 300 ms, sem
+                  precisar pressionar Enter). Abrange múltiplos campos (nomes, títulos, autores,
+                  e-mails, telefones e códigos), com realce visual em amarelo dos termos e botão "X"
+                  de limpeza instantânea.
                 </div>
               </li>
               <li className="flex items-start gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100">

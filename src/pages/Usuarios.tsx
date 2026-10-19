@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
+import { HighlightedText } from '@/components/HighlightedText'
 import {
   Shield,
   Search,
@@ -15,6 +17,7 @@ import {
   UserPlus,
   Trash2,
   Edit3,
+  X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { UserModal } from '@/components/UserModal'
@@ -69,12 +72,16 @@ function getCacheBusterAvatarUrl(url?: string | null) {
 }
 
 export default function Usuarios() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialQuery = searchParams.get('q') || ''
+
   const { user, isAdmin, refreshProfile } = useAuth()
   const { toast } = useToast()
 
   const [profiles, setProfiles] = useState<ProfileRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
+  const [searchTerm, setSearchTerm] = useState(initialQuery)
+  const [debouncedSearch, setDebouncedSearch] = useState(initialQuery)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [userModalOpen, setUserModalOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
@@ -108,17 +115,54 @@ export default function Usuarios() {
     fetchProfiles()
   }, [])
 
+  // Debounce de ~300ms para busca automática enquanto digita
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setDebouncedSearch('')
+      const nextParams = new URLSearchParams(searchParams)
+      nextParams.delete('q')
+      setSearchParams(nextParams, { replace: true })
+      return
+    }
+
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+      const nextParams = new URLSearchParams(searchParams)
+      nextParams.set('q', searchTerm.trim())
+      setSearchParams(nextParams, { replace: true })
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  // Sincronizar parâmetros de URL
+  useEffect(() => {
+    const q = searchParams.get('q') || ''
+    if (q !== searchTerm) {
+      setSearchTerm(q)
+      setDebouncedSearch(q)
+    }
+  }, [searchParams])
+
   const filteredProfiles = useMemo(() => {
-    const term = searchTerm.toLowerCase().trim()
+    const term = debouncedSearch.toLowerCase().trim()
     if (!term) return profiles
 
     return profiles.filter((p) => {
       const name = (p.nome || p.full_name || '').toLowerCase()
       const email = (p.email || '').toLowerCase()
       const notifEmail = (p.email_notificacoes || '').toLowerCase()
-      return name.includes(term) || email.includes(term) || notifEmail.includes(term)
+      const role = (p.papel || p.role || '').toLowerCase()
+      const phone = (p.telefone || '').toLowerCase()
+      return (
+        name.includes(term) ||
+        email.includes(term) ||
+        notifEmail.includes(term) ||
+        role.includes(term) ||
+        phone.includes(term)
+      )
     })
-  }, [profiles, searchTerm])
+  }, [profiles, debouncedSearch])
 
   const isSelf = (profile: ProfileRecord) => {
     if (!user) return false
@@ -357,28 +401,53 @@ export default function Usuarios() {
 
       {/* Search & Stats Card */}
       <Card className="border-slate-200 bg-white shadow-xs">
-        <CardContent className="pt-6">
+        <CardContent className="pt-6 space-y-3">
           <div className="flex flex-col sm:flex-row items-center gap-3">
-            <div className="relative flex-1 w-full">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <div className="relative flex-1 w-full min-w-0">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <Input
-                placeholder="Buscar usuário por nome ou email..."
+                placeholder="Buscar usuário por nome, email ou papel…"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 text-sm"
+                className="pl-9 pr-9 text-sm h-9 bg-white"
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition-colors"
+                  title="Limpar busca"
+                  aria-label="Limpar busca"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
             {searchTerm && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSearchTerm('')}
-                className="text-xs text-slate-500 hover:text-slate-800"
+                className="text-xs text-slate-500 hover:text-slate-800 h-9 shrink-0"
               >
                 Limpar busca
               </Button>
             )}
           </div>
+
+          {debouncedSearch && (
+            <div className="flex flex-wrap items-center gap-2 pt-1 text-xs border-t border-slate-100">
+              <span className="text-slate-500 font-medium text-[11px]">Filtro ativo:</span>
+              <Badge
+                variant="outline"
+                className="bg-slate-100 text-slate-700 border-slate-200 gap-1 font-medium cursor-pointer"
+                onClick={() => setSearchTerm('')}
+              >
+                Busca: "{debouncedSearch}"
+                <span className="ml-1 text-slate-400 font-bold hover:text-slate-900">×</span>
+              </Badge>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -463,7 +532,7 @@ export default function Usuarios() {
                             </Avatar>
                             <div className="min-w-0">
                               <p className="font-semibold text-xs sm:text-sm text-slate-900 truncate">
-                                {displayName}
+                                <HighlightedText text={displayName} search={debouncedSearch} />
                               </p>
                               {isCurrentUser && (
                                 <span className="inline-block text-[10px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded mt-0.5">
@@ -477,7 +546,9 @@ export default function Usuarios() {
                         {/* Email */}
                         <TableCell className="text-xs text-slate-700">
                           <div className="flex flex-col gap-0.5">
-                            <span className="font-mono text-slate-900">{p.email}</span>
+                            <span className="font-mono text-slate-900">
+                              <HighlightedText text={p.email} search={debouncedSearch} />
+                            </span>
                             {p.email_notificacoes && p.email_notificacoes.trim() && (
                               <span
                                 className="inline-flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-50/80 px-1.5 py-0.5 rounded border border-emerald-200/50 w-fit"
@@ -486,7 +557,12 @@ export default function Usuarios() {
                                 <span className="font-sans font-medium text-emerald-800">
                                   Avisos:
                                 </span>{' '}
-                                <span className="font-mono">{p.email_notificacoes}</span>
+                                <span className="font-mono">
+                                  <HighlightedText
+                                    text={p.email_notificacoes}
+                                    search={debouncedSearch}
+                                  />
+                                </span>
                               </span>
                             )}
                           </div>

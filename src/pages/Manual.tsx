@@ -257,9 +257,9 @@ export default function Manual() {
       steps: [
         {
           number: 1,
-          title: 'Localizar o leitor',
+          title: 'Localizar o leitor com Busca em Tempo Real',
           detail:
-            'Utilize o campo de busca por nome, e-mail ou telefone para achar o cadastro do leitor.',
+            'Utilize o campo amplo de busca por nome, e-mail, telefone ou código (ID). O filtro é aplicado automaticamente em tempo real enquanto você digita (com debounce de 300 ms) e os termos correspondentes são destacados em amarelo na listagem. O botão "X" interno permite limpar a pesquisa instantaneamente.',
         },
         {
           number: 2,
@@ -744,9 +744,9 @@ export default function Manual() {
       steps: [
         {
           number: 1,
-          title: 'Novo Empréstimo Presencial Direto',
+          title: 'Novo Empréstimo Presencial Direto e Busca em Tempo Real',
           detail:
-            'Na página de Empréstimos, clique em "Novo Empréstimo". Selecione o leitor e escolha o exemplar DISPONÍVEL da obra desejada.',
+            'Na página de Empréstimos, clique em "Novo Empréstimo". Para localizar empréstimos já realizados, utilize a barra de busca em tempo real com debounce de 300 ms, pesquisando por nome do leitor, título da obra, autor ou código do exemplar, com destaque visual em amarelo dos termos encontrados e sincronização automática com a URL.',
         },
         {
           number: 2,
@@ -820,9 +820,9 @@ export default function Manual() {
       steps: [
         {
           number: 1,
-          title: 'Visualizar a Fila de Reservas',
+          title: 'Visualizar a Fila de Reservas e Busca em Tempo Real',
           detail:
-            'Na página "Reservas", a aba principal "Fila de Reservas" lista todos os livros com reservas ativas e a ordem de posicionamento dos leitores.',
+            'Na página "Reservas", a aba principal "Fila de Reservas" lista todos os livros com reservas ativas e a ordem de posicionamento dos leitores. O campo de busca em tempo real com debounce de 300 ms permite filtrar instantaneamente por leitor, título da obra, autor ou código de reserva/livro, destacando os termos em amarelo e sincronizando o filtro na URL.',
         },
         {
           number: 2,

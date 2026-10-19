@@ -163,16 +163,24 @@ export const EmprestimosService = {
       result = result.filter((item) => {
         const bookTitle = item.exemplar?.titulo?.titulo_de_livro?.toLowerCase() || ''
         const author = item.exemplar?.titulo?.autor?.toLowerCase() || ''
+        const bookId = item.exemplar?.titulo?.id_titulo?.toLowerCase() || ''
         const readerName = item.leitor?.nome_do_leitor?.toLowerCase() || ''
         const readerEmail = item.leitor?.email?.toLowerCase() || ''
+        const readerPhone = item.leitor?.telefone?.toLowerCase() || ''
         const copyId = item.id_exemplar.toLowerCase()
+        const loanId = String(item.id_emprestimo)
+        const readerId = String(item.id_leitor)
 
         return (
           bookTitle.includes(q) ||
           author.includes(q) ||
+          bookId.includes(q) ||
           readerName.includes(q) ||
           readerEmail.includes(q) ||
-          copyId.includes(q)
+          readerPhone.includes(q) ||
+          copyId.includes(q) ||
+          loanId === q ||
+          readerId === q
         )
       })
     }

@@ -61,7 +61,7 @@ export const ReservasService = {
   /**
    * Busca todas as reservas
    */
-  async getAll(statusFilter = 'Ativa') {
+  async getAll(statusFilter = 'Ativa', searchQuery = '') {
     let query = supabase
       .from('reserva')
       .select(`
@@ -91,7 +91,40 @@ export const ReservasService = {
 
     const { data, error } = await query
     if (error) throw error
-    return ReservasService.enrichReservations((data || []) as unknown as ReservaDetailed[])
+    let enriched = await ReservasService.enrichReservations(
+      (data || []) as unknown as ReservaDetailed[],
+    )
+
+    if (searchQuery && searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim()
+      enriched = enriched.filter((item) => {
+        const bookTitle = item.titulo?.titulo_de_livro?.toLowerCase() || ''
+        const author = item.titulo?.autor?.toLowerCase() || ''
+        const category = item.titulo?.categoria?.toLowerCase() || ''
+        const bookId = item.id_titulo?.toLowerCase() || ''
+        const readerName = item.leitor?.nome_do_leitor?.toLowerCase() || ''
+        const readerEmail = item.leitor?.email?.toLowerCase() || ''
+        const readerPhone = item.leitor?.telefone?.toLowerCase() || ''
+        const copyId = item.exemplar_reservado_id?.toLowerCase() || ''
+        const reservationId = String(item.id_reserva)
+        const readerId = String(item.id_leitor)
+
+        return (
+          bookTitle.includes(q) ||
+          author.includes(q) ||
+          category.includes(q) ||
+          bookId.includes(q) ||
+          readerName.includes(q) ||
+          readerEmail.includes(q) ||
+          readerPhone.includes(q) ||
+          copyId.includes(q) ||
+          reservationId === q ||
+          readerId === q
+        )
+      })
+    }
+
+    return enriched
   },
 
   /**

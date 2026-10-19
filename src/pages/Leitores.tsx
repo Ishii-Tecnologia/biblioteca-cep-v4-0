@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { LeitoresService, LeitorWithStats, Leitor } from '@/services/leitores'
+import { HighlightedText } from '@/components/HighlightedText'
 import {
   isRateLimitError,
   getFriendlyAuthErrorMessage,
@@ -50,17 +52,23 @@ import { useHeaderCounters } from '@/hooks/use-header-counters'
 import { CursosService, Curso } from '@/services/cursos'
 
 export default function Leitores() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialQuery = searchParams.get('q') || ''
+  const initialStatus = (searchParams.get('status') as any) || 'all'
+  const initialCurso = searchParams.get('curso') || 'all'
+
   const { user, profile, isOperadorOrAdmin, isAdmin } = useAuth()
   const { toast } = useToast()
   const { refreshLeitoresPendentes } = useHeaderCounters()
 
   const [readers, setReaders] = useState<LeitorWithStats[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState(initialQuery)
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery)
   const [filterStatus, setFilterStatus] = useState<'all' | 'ativos' | 'bloqueados' | 'pendentes'>(
-    'all',
+    initialStatus,
   )
-  const [selectedCursoId, setSelectedCursoId] = useState<string>('all')
+  const [selectedCursoId, setSelectedCursoId] = useState<string>(initialCurso)
   const [cursosDisponiveis, setCursosDisponiveis] = useState<Curso[]>([])
 
   const [readerModalOpen, setReaderModalOpen] = useState(false)
@@ -122,10 +130,55 @@ export default function Leitores() {
     return name.substring(0, 2).toUpperCase()
   }
 
-  const loadReaders = async () => {
+  const updateFiltersUrl = (newQuery?: string, newStatus?: string, newCurso?: string) => {
+    const nextParams: Record<string, string> = {}
+    const finalQ = newQuery !== undefined ? newQuery : searchQuery
+    const finalS = newStatus !== undefined ? newStatus : filterStatus
+    const finalC = newCurso !== undefined ? newCurso : selectedCursoId
+
+    if (finalQ.trim()) nextParams.q = finalQ.trim()
+    if (finalS && finalS !== 'all') nextParams.status = finalS
+    if (finalC && finalC !== 'all') nextParams.curso = finalC
+
+    setSearchParams(nextParams, { replace: true })
+  }
+
+  // Debounce de ~300ms para busca automática enquanto o usuário digita.
+  // Se o campo for limpo (searchQuery === ''), aplica imediatamente cancelando o debounce.
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setDebouncedQuery('')
+      updateFiltersUrl('', undefined, undefined)
+      return
+    }
+
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery)
+      updateFiltersUrl(searchQuery, undefined, undefined)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Sincronizar parâmetros de URL com os estados se mudarem externamente
+  useEffect(() => {
+    const q = searchParams.get('q') || ''
+    const s = (searchParams.get('status') as any) || 'all'
+    const c = searchParams.get('curso') || 'all'
+
+    if (q !== searchQuery) {
+      setSearchQuery(q)
+      setDebouncedQuery(q)
+    }
+    setFilterStatus(s)
+    setSelectedCursoId(c)
+  }, [searchParams])
+
+  const loadReaders = async (queryToUse?: string) => {
     setLoading(true)
     try {
-      const data = await LeitoresService.getAll(searchQuery, filterStatus, selectedCursoId)
+      const activeQuery = queryToUse !== undefined ? queryToUse : debouncedQuery
+      const data = await LeitoresService.getAll(activeQuery, filterStatus, selectedCursoId)
       if (isOperadorOrAdmin) {
         setReaders(data)
       } else {
@@ -150,12 +203,38 @@ export default function Leitores() {
   }
 
   useEffect(() => {
-    loadReaders()
-  }, [filterStatus, selectedCursoId, isOperadorOrAdmin, user?.id, user?.email])
+    loadReaders(debouncedQuery)
+  }, [debouncedQuery, filterStatus, selectedCursoId, isOperadorOrAdmin, user?.id, user?.email])
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    loadReaders()
+    setDebouncedQuery(searchQuery)
+    updateFiltersUrl(searchQuery, filterStatus, selectedCursoId)
+    loadReaders(searchQuery)
+  }
+
+  const handleStatusChange = (status: 'all' | 'ativos' | 'bloqueados' | 'pendentes') => {
+    setFilterStatus(status)
+    updateFiltersUrl(undefined, status, undefined)
+  }
+
+  const handleCursoChange = (cursoId: string) => {
+    setSelectedCursoId(cursoId)
+    updateFiltersUrl(undefined, undefined, cursoId)
+  }
+
+  const handleClearFilters = () => {
+    setSearchQuery('')
+    setDebouncedQuery('')
+    setFilterStatus('all')
+    setSelectedCursoId('all')
+    setSearchParams({}, { replace: true })
+  }
+
+  const handleClearSearchOnly = () => {
+    setSearchQuery('')
+    setDebouncedQuery('')
+    updateFiltersUrl('', undefined, undefined)
   }
 
   const handleToggleBlock = (reader: LeitorWithStats) => {
@@ -397,32 +476,36 @@ export default function Leitores() {
       {/* Filter and Search Bar (Visível apenas para operador/admin ou quando houver filtros) */}
       {isOperadorOrAdmin ? (
         <div className="flex flex-col gap-3">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <form onSubmit={handleSearchSubmit} className="flex gap-2 flex-1">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="flex flex-col lg:flex-row gap-3">
+            <form onSubmit={handleSearchSubmit} className="flex gap-2 flex-1 min-w-0">
+              <div className="relative flex-1 min-w-0">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 <Input
-                  placeholder="Buscar por nome, e-mail ou telefone..."
+                  placeholder="Buscar por nome, e-mail, telefone ou código…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 text-xs sm:text-sm bg-white"
+                  className="pl-9 pr-9 text-xs sm:text-sm h-9 bg-white"
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={handleClearSearchOnly}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition-colors"
+                    title="Limpar busca"
+                    aria-label="Limpar busca"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
-              <Button
-                type="submit"
-                variant="default"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4"
-              >
-                Buscar
-              </Button>
             </form>
 
-            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg self-start sm:self-auto overflow-x-auto max-w-full">
+            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg self-start sm:self-auto overflow-x-auto max-w-full shrink-0">
               <Button
                 size="sm"
                 variant={filterStatus === 'all' ? 'default' : 'ghost'}
                 className={`h-7 text-xs shrink-0 ${filterStatus === 'all' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600'}`}
-                onClick={() => setFilterStatus('all')}
+                onClick={() => handleStatusChange('all')}
               >
                 Todos
               </Button>
@@ -430,7 +513,7 @@ export default function Leitores() {
                 size="sm"
                 variant={filterStatus === 'ativos' ? 'default' : 'ghost'}
                 className={`h-7 text-xs shrink-0 ${filterStatus === 'ativos' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600'}`}
-                onClick={() => setFilterStatus('ativos')}
+                onClick={() => handleStatusChange('ativos')}
               >
                 Ativos
               </Button>
@@ -438,7 +521,7 @@ export default function Leitores() {
                 size="sm"
                 variant={filterStatus === 'pendentes' ? 'default' : 'ghost'}
                 className={`h-7 text-xs shrink-0 ${filterStatus === 'pendentes' ? 'bg-amber-500 text-white shadow-sm font-semibold hover:bg-amber-600' : 'text-amber-700 hover:bg-amber-50'}`}
-                onClick={() => setFilterStatus('pendentes')}
+                onClick={() => handleStatusChange('pendentes')}
               >
                 Pendentes de Validação
               </Button>
@@ -446,11 +529,22 @@ export default function Leitores() {
                 size="sm"
                 variant={filterStatus === 'bloqueados' ? 'default' : 'ghost'}
                 className={`h-7 text-xs shrink-0 ${filterStatus === 'bloqueados' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600'}`}
-                onClick={() => setFilterStatus('bloqueados')}
+                onClick={() => handleStatusChange('bloqueados')}
               >
                 Bloqueados
               </Button>
             </div>
+
+            {(searchQuery || filterStatus !== 'all' || selectedCursoId !== 'all') && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleClearFilters}
+                className="text-xs text-slate-500 hover:text-slate-900 h-9 px-3 shrink-0"
+              >
+                Limpar
+              </Button>
+            )}
           </div>
 
           {/* Linha de Filtro por Curso Frequentado na CEP */}
@@ -460,7 +554,7 @@ export default function Leitores() {
               <span>Filtrar por Curso:</span>
             </div>
             <div className="w-full sm:w-72">
-              <Select value={selectedCursoId} onValueChange={setSelectedCursoId}>
+              <Select value={selectedCursoId} onValueChange={handleCursoChange}>
                 <SelectTrigger className="h-8 text-xs bg-white border-slate-200">
                   <SelectValue placeholder="Todos os Cursos" />
                 </SelectTrigger>
@@ -482,7 +576,7 @@ export default function Leitores() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => setSelectedCursoId('all')}
+                onClick={() => handleCursoChange('all')}
                 className="h-8 text-xs text-slate-500 hover:text-slate-800 gap-1 px-2"
                 title="Limpar filtro de curso"
               >
@@ -500,6 +594,49 @@ export default function Leitores() {
               </span>
             )}
           </div>
+
+          {/* Active filter tags/pills */}
+          {(filterStatus !== 'all' || selectedCursoId !== 'all' || debouncedQuery) && (
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 text-xs">
+              <span className="text-slate-500 font-medium text-[11px]">Filtros ativos:</span>
+              {debouncedQuery && (
+                <Badge
+                  variant="outline"
+                  className="bg-slate-100 text-slate-700 border-slate-200 gap-1 font-medium cursor-pointer"
+                  onClick={handleClearSearchOnly}
+                >
+                  Busca: "{debouncedQuery}"
+                  <span className="ml-1 text-slate-400 font-bold hover:text-slate-900">×</span>
+                </Badge>
+              )}
+              {filterStatus !== 'all' && (
+                <Badge
+                  variant="outline"
+                  className="bg-emerald-50 text-emerald-800 border-emerald-200 gap-1 font-medium cursor-pointer"
+                  onClick={() => handleStatusChange('all')}
+                >
+                  Status:{' '}
+                  {filterStatus === 'ativos'
+                    ? 'Ativos'
+                    : filterStatus === 'pendentes'
+                      ? 'Pendentes de Validação'
+                      : 'Bloqueados'}
+                  <span className="ml-1 text-emerald-600 font-bold hover:text-emerald-950">×</span>
+                </Badge>
+              )}
+              {selectedCursoId !== 'all' && (
+                <Badge
+                  variant="outline"
+                  className="bg-slate-100 text-slate-700 border-slate-200 gap-1 font-medium cursor-pointer"
+                  onClick={() => handleCursoChange('all')}
+                >
+                  Curso:{' '}
+                  {cursosDisponiveis.find((c) => c.id === selectedCursoId)?.nome || selectedCursoId}
+                  <span className="ml-1 text-slate-400 font-bold hover:text-slate-900">×</span>
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs text-emerald-900 flex items-center justify-between">
@@ -575,7 +712,11 @@ export default function Leitores() {
                       <div className="space-y-0.5 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="font-mono text-[10px] text-slate-400">
-                            ID #{reader.id_leitor}
+                            ID #
+                            <HighlightedText
+                              text={String(reader.id_leitor)}
+                              search={debouncedQuery}
+                            />
                           </span>
                           {isOwner && (
                             <span className="text-[10px] font-semibold bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded">
@@ -584,7 +725,7 @@ export default function Leitores() {
                           )}
                         </div>
                         <h3 className="font-bold text-slate-900 text-base leading-tight line-clamp-1">
-                          {reader.nome_do_leitor}
+                          <HighlightedText text={reader.nome_do_leitor} search={debouncedQuery} />
                         </h3>
                       </div>
                     </div>
@@ -651,14 +792,16 @@ export default function Leitores() {
                   <div className="space-y-1.5 text-xs text-slate-600 pt-1">
                     <div className="flex items-center gap-2">
                       <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate font-mono">{reader.email}</span>
+                      <span className="truncate font-mono">
+                        <HighlightedText text={reader.email} search={debouncedQuery} />
+                      </span>
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         <span>
                           {reader.telefone ? (
-                            <span>{reader.telefone}</span>
+                            <HighlightedText text={reader.telefone} search={debouncedQuery} />
                           ) : (
                             <span className="text-slate-400 italic">Sem celular</span>
                           )}
@@ -667,7 +810,10 @@ export default function Leitores() {
                       {reader.telefone_fixo && (
                         <div className="flex items-center gap-2 text-[11px] text-slate-500">
                           <Phone className="w-3 h-3 text-slate-400 shrink-0" />
-                          <span>Fixo: {reader.telefone_fixo}</span>
+                          <span>
+                            Fixo:{' '}
+                            <HighlightedText text={reader.telefone_fixo} search={debouncedQuery} />
+                          </span>
                         </div>
                       )}
                     </div>

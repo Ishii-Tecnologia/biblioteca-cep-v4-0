@@ -42,9 +42,12 @@ export const LeitoresService = {
     }
 
     if (searchQuery && searchQuery.trim()) {
-      const q = `%${searchQuery.trim()}%`
+      const rawTerm = searchQuery.trim()
+      const q = `%${rawTerm}%`
+      const isNum = /^\d+$/.test(rawTerm)
+      const numCond = isNum ? `,id_leitor.eq.${parseInt(rawTerm, 10)}` : ''
       query = query.or(
-        `nome_do_leitor.ilike.${q},email.ilike.${q},telefone.ilike.${q},telefone_fixo.ilike.${q}`,
+        `nome_do_leitor.ilike.${q},email.ilike.${q},telefone.ilike.${q},telefone_fixo.ilike.${q}${numCond}`,
       )
     }
 

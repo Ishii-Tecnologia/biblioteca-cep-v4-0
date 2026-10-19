@@ -3,7 +3,9 @@ import { useSearchParams, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { useHeaderCounters } from '@/hooks/use-header-counters'
 import { ReservasService, ReservaDetailed } from '@/services/reservas'
+import { HighlightedText } from '@/components/HighlightedText'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -22,6 +24,8 @@ import {
   Bell,
   Mail,
   Hourglass,
+  Search,
+  X,
 } from 'lucide-react'
 import { ReserveModal } from '@/components/ReserveModal'
 import { ConfirmModal } from '@/components/ConfirmModal'
@@ -36,6 +40,7 @@ export default function Reservas() {
   const [searchParams, setSearchParams] = useSearchParams()
   const initialStatus = searchParams.get('status') || 'Ativa'
   const filterMinhas = searchParams.get('minhas') === 'true'
+  const initialQuery = searchParams.get('q') || ''
 
   const { isOperadorOrAdmin, user, profile } = useAuth()
   const { toast } = useToast()
@@ -44,6 +49,8 @@ export default function Reservas() {
   const [reservas, setReservas] = useState<ReservaDetailed[]>([])
   const [loading, setLoading] = useState(true)
   const [statusTab, setStatusTab] = useState<string>(initialStatus)
+  const [searchQuery, setSearchQuery] = useState(initialQuery)
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery)
   const [activeMainTab, setActiveMainTab] = useState<'fila' | 'pre_reservas'>('fila')
   const [pendentesPreReservaCount, setPendentesPreReservaCount] = useState<number>(0)
   const [onlyMyReservas, setOnlyMyReservas] = useState<boolean>(filterMinhas || !isOperadorOrAdmin)
@@ -100,7 +107,55 @@ export default function Reservas() {
     }
   }
 
-  const loadReservas = async () => {
+  const updateFiltersUrl = (newQuery?: string, newStatus?: string, newMinhas?: boolean) => {
+    const nextParams: Record<string, string> = {}
+    const finalQ = newQuery !== undefined ? newQuery : searchQuery
+    const finalS = newStatus !== undefined ? newStatus : statusTab
+    const finalM = newMinhas !== undefined ? newMinhas : onlyMyReservas
+
+    if (finalQ.trim()) nextParams.q = finalQ.trim()
+    if (finalS && finalS !== 'Ativa') nextParams.status = finalS
+    if (finalM) nextParams.minhas = 'true'
+
+    setSearchParams(nextParams, { replace: true })
+  }
+
+  // Debounce de ~300ms para busca automática enquanto o usuário digita.
+  // Se o campo for limpo (searchQuery === ''), cancela o debounce e aplica imediatamente.
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setDebouncedQuery('')
+      updateFiltersUrl('', undefined, undefined)
+      return
+    }
+
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery)
+      updateFiltersUrl(searchQuery, undefined, undefined)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Sincronizar parâmetros de URL com os estados se mudarem externamente
+  useEffect(() => {
+    const q = searchParams.get('q') || ''
+    const s = searchParams.get('status') || 'Ativa'
+    const m = searchParams.get('minhas') === 'true'
+
+    if (q !== searchQuery) {
+      setSearchQuery(q)
+      setDebouncedQuery(q)
+    }
+    if (s !== statusTab) {
+      setStatusTab(s)
+    }
+    if (m !== onlyMyReservas) {
+      setOnlyMyReservas(m || !isOperadorOrAdmin)
+    }
+  }, [searchParams])
+
+  const loadReservas = async (queryToUse?: string) => {
     setLoading(true)
     try {
       // 1. Checar e expirar automaticamente reservas cujo prazo de retirada em dias úteis expirou
@@ -110,13 +165,44 @@ export default function Reservas() {
         console.warn('Erro na checagem de expiração de reservas:', expireErr)
       }
 
+      const activeQuery = queryToUse !== undefined ? queryToUse : debouncedQuery
       let data: ReservaDetailed[] = []
+
       if (!isOperadorOrAdmin || onlyMyReservas) {
         if (profile?.id_leitor) {
-          data = await ReservasService.getByLeitor(profile.id_leitor, statusTab)
+          const raw = await ReservasService.getByLeitor(profile.id_leitor, statusTab)
+          if (activeQuery && activeQuery.trim()) {
+            const q = activeQuery.toLowerCase().trim()
+            data = raw.filter((item) => {
+              const bookTitle = item.titulo?.titulo_de_livro?.toLowerCase() || ''
+              const author = item.titulo?.autor?.toLowerCase() || ''
+              const category = item.titulo?.categoria?.toLowerCase() || ''
+              const bookId = item.id_titulo?.toLowerCase() || ''
+              const readerName = item.leitor?.nome_do_leitor?.toLowerCase() || ''
+              const readerEmail = item.leitor?.email?.toLowerCase() || ''
+              const readerPhone = item.leitor?.telefone?.toLowerCase() || ''
+              const copyId = item.exemplar_reservado_id?.toLowerCase() || ''
+              const reservationId = String(item.id_reserva)
+              const readerId = String(item.id_leitor)
+              return (
+                bookTitle.includes(q) ||
+                author.includes(q) ||
+                category.includes(q) ||
+                bookId.includes(q) ||
+                readerName.includes(q) ||
+                readerEmail.includes(q) ||
+                readerPhone.includes(q) ||
+                copyId.includes(q) ||
+                reservationId === q ||
+                readerId === q
+              )
+            })
+          } else {
+            data = raw
+          }
         } else {
           // Fallback: carregar todas e filtrar por email/id_auth
-          const all = await ReservasService.getAll(statusTab)
+          const all = await ReservasService.getAll(statusTab, activeQuery)
           data = all.filter(
             (r) =>
               r.leitor?.email?.toLowerCase() === user?.email?.toLowerCase() ||
@@ -124,7 +210,7 @@ export default function Reservas() {
           )
         }
       } else {
-        data = await ReservasService.getAll(statusTab)
+        data = await ReservasService.getAll(statusTab, activeQuery)
       }
       setReservas(data)
       refreshCounters()
@@ -145,19 +231,40 @@ export default function Reservas() {
   }, [isOperadorOrAdmin, activeMainTab, profile?.id_leitor])
 
   useEffect(() => {
-    const s = searchParams.get('status')
-    if (s && s !== statusTab) {
-      setStatusTab(s)
-    }
-    const m = searchParams.get('minhas') === 'true'
-    if (m !== onlyMyReservas) {
-      setOnlyMyReservas(m || !isOperadorOrAdmin)
-    }
-  }, [searchParams])
-
-  useEffect(() => {
-    loadReservas()
+    loadReservas(debouncedQuery)
   }, [statusTab, onlyMyReservas, profile?.id_leitor, isOperadorOrAdmin])
+
+  const handleStatusChange = (val: string) => {
+    setStatusTab(val)
+    updateFiltersUrl(undefined, val, undefined)
+  }
+
+  const handleToggleMyReservas = () => {
+    const next = !onlyMyReservas
+    setOnlyMyReservas(next)
+    updateFiltersUrl(undefined, undefined, next)
+  }
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setDebouncedQuery(searchQuery)
+    updateFiltersUrl(searchQuery, statusTab, onlyMyReservas)
+    loadReservas(searchQuery)
+  }
+
+  const handleClearSearchOnly = () => {
+    setSearchQuery('')
+    setDebouncedQuery('')
+    updateFiltersUrl('', undefined, undefined)
+  }
+
+  const handleClearFilters = () => {
+    setSearchQuery('')
+    setDebouncedQuery('')
+    setStatusTab('Ativa')
+    setOnlyMyReservas(!isOperadorOrAdmin)
+    setSearchParams({}, { replace: true })
+  }
 
   const handleFulfill = (res: ReservaDetailed) => {
     setReservaToFulfill(res)
@@ -338,56 +445,129 @@ export default function Reservas() {
         <PreReservasQueueTab />
       ) : (
         <>
-          {/* Tabs and Filter */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <Tabs
-              value={statusTab}
-              onValueChange={(val) => {
-                setStatusTab(val)
-                const nextParams = new URLSearchParams(searchParams)
-                nextParams.set('status', val)
-                setSearchParams(nextParams)
-              }}
-              className="w-full sm:w-auto"
-            >
-              <TabsList className="grid grid-cols-4 w-full sm:w-96 bg-slate-100 p-1">
-                <TabsTrigger value="Ativa" className="text-xs font-semibold">
-                  Ativas na Fila
-                </TabsTrigger>
-                <TabsTrigger value="Atendida" className="text-xs font-semibold">
-                  Atendidas
-                </TabsTrigger>
-                <TabsTrigger value="Cancelada" className="text-xs font-semibold">
-                  Canceladas
-                </TabsTrigger>
-                <TabsTrigger value="all" className="text-xs font-semibold">
-                  Todas
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+          {/* Tabs, Search and Filter */}
+          <div className="space-y-3">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+              <Tabs
+                value={statusTab}
+                onValueChange={handleStatusChange}
+                className="w-full lg:w-auto overflow-x-auto"
+              >
+                <TabsList className="grid grid-cols-4 min-w-[340px] sm:w-96 bg-slate-100 p-1">
+                  <TabsTrigger value="Ativa" className="text-xs font-semibold">
+                    Ativas na Fila
+                  </TabsTrigger>
+                  <TabsTrigger value="Atendida" className="text-xs font-semibold">
+                    Atendidas
+                  </TabsTrigger>
+                  <TabsTrigger value="Cancelada" className="text-xs font-semibold">
+                    Canceladas
+                  </TabsTrigger>
+                  <TabsTrigger value="all" className="text-xs font-semibold">
+                    Todas
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
 
-            {isOperadorOrAdmin && (
-              <div className="flex items-center gap-2 self-start sm:self-auto">
-                <Button
-                  size="sm"
-                  variant={onlyMyReservas ? 'default' : 'outline'}
-                  onClick={() => {
-                    const next = !onlyMyReservas
-                    setOnlyMyReservas(next)
-                    const nextParams = new URLSearchParams(searchParams)
-                    if (next) nextParams.set('minhas', 'true')
-                    else nextParams.delete('minhas')
-                    setSearchParams(nextParams)
-                  }}
-                  className={`h-8 text-xs ${
-                    onlyMyReservas
-                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                      : 'text-slate-600 border-slate-200'
-                  }`}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 lg:justify-end min-w-0">
+                <form
+                  onSubmit={handleSearchSubmit}
+                  className="flex gap-2 flex-1 lg:max-w-md min-w-0"
                 >
-                  <User className="w-3.5 h-3.5 mr-1" />
-                  {onlyMyReservas ? 'Exibindo: Minhas Reservas' : 'Filtrar Minhas Reservas'}
-                </Button>
+                  <div className="relative flex-1 min-w-0">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    <Input
+                      placeholder="Buscar por leitor, título, autor ou código…"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 pr-9 text-xs sm:text-sm h-9 bg-white"
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={handleClearSearchOnly}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition-colors"
+                        title="Limpar busca"
+                        aria-label="Limpar busca"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </form>
+
+                {isOperadorOrAdmin && (
+                  <Button
+                    size="sm"
+                    variant={onlyMyReservas ? 'default' : 'outline'}
+                    onClick={handleToggleMyReservas}
+                    className={`h-9 text-xs shrink-0 ${
+                      onlyMyReservas
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                        : 'text-slate-600 border-slate-200'
+                    }`}
+                  >
+                    <User className="w-3.5 h-3.5 mr-1" />
+                    {onlyMyReservas ? 'Minhas Reservas' : 'Filtrar Minhas'}
+                  </Button>
+                )}
+
+                {(searchQuery ||
+                  statusTab !== 'Ativa' ||
+                  (isOperadorOrAdmin && onlyMyReservas)) && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleClearFilters}
+                    className="text-xs text-slate-500 hover:text-slate-900 h-9 px-3 shrink-0"
+                  >
+                    Limpar
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Active search / filter tag pills */}
+            {(debouncedQuery || statusTab !== 'Ativa' || (isOperadorOrAdmin && onlyMyReservas)) && (
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                <span className="text-slate-500 font-medium text-[11px]">Filtros ativos:</span>
+                {debouncedQuery && (
+                  <Badge
+                    variant="outline"
+                    className="bg-slate-100 text-slate-700 border-slate-200 gap-1 font-medium cursor-pointer"
+                    onClick={handleClearSearchOnly}
+                  >
+                    Busca: "{debouncedQuery}"
+                    <span className="ml-1 text-slate-400 font-bold hover:text-slate-900">×</span>
+                  </Badge>
+                )}
+                {statusTab !== 'Ativa' && (
+                  <Badge
+                    variant="outline"
+                    className="bg-emerald-50 text-emerald-800 border-emerald-200 gap-1 font-medium cursor-pointer"
+                    onClick={() => handleStatusChange('Ativa')}
+                  >
+                    Status:{' '}
+                    {statusTab === 'Atendida'
+                      ? 'Atendidas'
+                      : statusTab === 'Cancelada'
+                        ? 'Canceladas'
+                        : 'Todas'}
+                    <span className="ml-1 text-emerald-600 font-bold hover:text-emerald-950">
+                      ×
+                    </span>
+                  </Badge>
+                )}
+                {isOperadorOrAdmin && onlyMyReservas && (
+                  <Badge
+                    variant="outline"
+                    className="bg-indigo-50 text-indigo-800 border-indigo-200 gap-1 font-medium cursor-pointer"
+                    onClick={handleToggleMyReservas}
+                  >
+                    Somente minhas reservas
+                    <span className="ml-1 text-indigo-600 font-bold hover:text-indigo-950">×</span>
+                  </Badge>
+                )}
               </div>
             )}
           </div>
@@ -539,7 +719,11 @@ export default function Reservas() {
                       <div className="space-y-2 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-xs font-bold px-2 py-0.5 bg-slate-100 text-slate-700 rounded border">
-                            Reserva #{res.id_reserva}
+                            Reserva #
+                            <HighlightedText
+                              text={String(res.id_reserva)}
+                              search={debouncedQuery}
+                            />
                           </span>
                           {res.status_reserva === 'Pronta para Retirada' && (
                             <span className="inline-flex items-center rounded-full border border-emerald-400 bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-900 gap-1 select-none pointer-events-none animate-pulse">
@@ -667,10 +851,20 @@ export default function Reservas() {
                             <Book className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                             <div>
                               <p className="text-xs font-bold text-slate-900 leading-snug">
-                                {res.titulo?.titulo_de_livro}
+                                <HighlightedText
+                                  text={res.titulo?.titulo_de_livro || 'Título não identificado'}
+                                  search={debouncedQuery}
+                                />
                               </p>
                               <p className="text-[11px] text-slate-500">
-                                {res.titulo?.autor} • Código: {res.id_titulo}
+                                {res.titulo?.autor ? (
+                                  <HighlightedText
+                                    text={res.titulo.autor}
+                                    search={debouncedQuery}
+                                  />
+                                ) : null}{' '}
+                                • Código:{' '}
+                                <HighlightedText text={res.id_titulo} search={debouncedQuery} />
                               </p>
                             </div>
                           </div>
@@ -679,11 +873,30 @@ export default function Reservas() {
                             <User className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
                             <div>
                               <p className="text-xs font-bold text-slate-900 leading-snug">
-                                {res.leitor?.nome_do_leitor}
+                                <HighlightedText
+                                  text={res.leitor?.nome_do_leitor || 'Leitor'}
+                                  search={debouncedQuery}
+                                />
                               </p>
                               <p className="text-[11px] text-slate-500">
-                                {res.leitor?.email}{' '}
-                                {res.leitor?.telefone ? `• ${res.leitor?.telefone}` : ''}
+                                {res.leitor?.email ? (
+                                  <HighlightedText
+                                    text={res.leitor.email}
+                                    search={debouncedQuery}
+                                  />
+                                ) : null}
+                                {res.leitor?.telefone ? (
+                                  <>
+                                    {' '}
+                                    •{' '}
+                                    <HighlightedText
+                                      text={res.leitor.telefone}
+                                      search={debouncedQuery}
+                                    />
+                                  </>
+                                ) : (
+                                  ''
+                                )}
                               </p>
                             </div>
                           </div>
