@@ -965,8 +965,8 @@ export default function Manual() {
           number: 2,
           title: 'Estrutura dos 4 Papéis do Sistema (Papéis Internos vs. Leitor)',
           detail:
-            'O sistema distingue claramente quem opera a biblioteca de quem a utiliza. Os papéis internos são três: (1) Administrador (admin): papel interno pleno, com acesso total a configurações, gestão de usuários/papéis, acervos e exclusões; (2) Operador de Diretoria (operador_diretoria): papel interno com acesso a todas as rotinas de circulação, acervo geral e ao acervo especial restrito da Biblioteca Rino Curti (Diretoria); (3) Operador (operador): papel interno padrão para circulação, atendimento de balcão e acervo geral da Biblioteca Cecília Braga, sem acesso aos acervos restritos de diretoria. O quarto papel é o Leitor (leitor): perfil do usuário comum para consultar o catálogo, fazer reservas e acompanhar seus empréstimos — não é um papel interno e não possui acesso a telas de gestão.',
-          tip: 'Papéis internos = Administrador, Operador de Diretoria e Operador.',
+            'O sistema distingue claramente quem opera a biblioteca de quem a utiliza. Os papéis internos são três: (1) Administrador (admin): papel interno pleno, com acesso total a configurações, gestão de usuários/papéis, acervos e exclusões; (2) Operador de Diretoria (operador_diretoria): papel interno com acesso a todas as rotinas de circulação, acervo geral e ao acervo especial restrito da Biblioteca Rino Curti (Diretoria); (3) Operador (operador): papel interno padrão para circulação, atendimento de balcão e acervo geral da Biblioteca Cecília Braga, sem acesso aos acervos restritos de diretoria. O quarto papel é o Leitor (leitor): perfil do usuário comum para consultar o catálogo, fazer reservas e acompanhar seus empréstimos — não é um papel interno e não possui acesso a telas de gestão. A tela de Gestão de Usuários (/usuarios) lista e gerencia exclusivamente os papéis internos.',
+          tip: 'Papéis internos = Administrador, Operador de Diretoria e Operador. Leitores são geridos exclusivamente em Leitores (/leitores).',
         },
         {
           number: 3,
@@ -996,7 +996,8 @@ export default function Manual() {
       ],
       rules: [
         'Papéis internos são estritamente: Administrador, Operador e Operador de Diretoria.',
-        'O perfil de Leitor não tem acesso às ferramentas operacionais ou telas de gestão.',
+        'A listagem de Gestão de Usuários (/usuarios) exibe exclusivamente os papéis internos do sistema.',
+        'O perfil de Leitor é gerido na tela de Leitores (/leitores) e não tem acesso às ferramentas operacionais ou telas de gestão.',
         'A criação de qualquer usuário com papel interno é permitida exclusivamente a administradores.',
         'CPF nunca é solicitado aos leitores ou à equipe em formulários do sistema.',
         'Todas as senhas sem exceção exigem comprimento mínimo de 8 caracteres.',

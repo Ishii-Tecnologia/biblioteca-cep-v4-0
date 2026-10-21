@@ -90,16 +90,28 @@ export default function Usuarios() {
   const [userToDelete, setUserToDelete] = useState<ProfileRecord | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  const INTERNAL_ROLES = ['admin', 'operador', 'operador_diretoria']
+
   const fetchProfiles = async () => {
     setLoading(true)
     try {
+      // Filtrar estritamente por papéis internos (admin, operador, operador_diretoria)
+      // Leitores não devem ser listados na tela de operadores/gestão interna
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
+        .or(
+          'papel.in.(admin,operador,operador_diretoria),role.in.(admin,operador,operador_diretoria)',
+        )
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      setProfiles((data as ProfileRecord[]) || [])
+      // Filtro defensivo adicional no frontend para garantir apenas papéis internos
+      const internalOnly = ((data as ProfileRecord[]) || []).filter((p) => {
+        const papel = (p.papel || p.role || '').toLowerCase()
+        return INTERNAL_ROLES.includes(papel)
+      })
+      setProfiles(internalOnly)
     } catch (err: any) {
       toast({
         title: 'Erro ao carregar usuários',
@@ -145,10 +157,16 @@ export default function Usuarios() {
   }, [searchParams])
 
   const filteredProfiles = useMemo(() => {
-    const term = debouncedSearch.toLowerCase().trim()
-    if (!term) return profiles
+    // Garante que somente papéis internos sejam considerados mesmo após filtros locais
+    const internalList = profiles.filter((p) => {
+      const papel = (p.papel || p.role || '').toLowerCase()
+      return INTERNAL_ROLES.includes(papel)
+    })
 
-    return profiles.filter((p) => {
+    const term = debouncedSearch.toLowerCase().trim()
+    if (!term) return internalList
+
+    return internalList.filter((p) => {
       const name = (p.nome || p.full_name || '').toLowerCase()
       const email = (p.email || '').toLowerCase()
       const notifEmail = (p.email_notificacoes || '').toLowerCase()
@@ -360,8 +378,9 @@ export default function Usuarios() {
             Controle de Usuários
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Gerencie permissões de acesso, papéis (Administrador e Operador) e status de bloqueio
-            dos usuários cadastrados.
+            Gerencie permissões de acesso, papéis internos (Administrador, Operador de Diretoria e
+            Operador) e status de bloqueio dos usuários operadores. A gestão de leitores é realizada
+            exclusivamente na tela de Leitores.
           </p>
         </div>
         <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -457,11 +476,14 @@ export default function Usuarios() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-base font-bold text-slate-900">
-                Usuários Cadastrados
+                Operadores e Usuários com Papéis Internos
               </CardTitle>
               <CardDescription className="text-xs">
                 Total de {filteredProfiles.length}{' '}
-                {filteredProfiles.length === 1 ? 'usuário encontrado' : 'usuários encontrados'}
+                {filteredProfiles.length === 1
+                  ? 'usuário interno encontrado'
+                  : 'usuários internos encontrados'}{' '}
+                (exibe exclusivamente Administrador, Operador de Diretoria e Operador)
               </CardDescription>
             </div>
           </div>

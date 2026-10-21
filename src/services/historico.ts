@@ -450,10 +450,17 @@ export const HistoricoService = {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
+      .or(
+        'papel.in.(admin,operador,operador_diretoria),role.in.(admin,operador,operador_diretoria)',
+      )
       .order('full_name', { ascending: true })
 
     if (error) throw error
-    return data || []
+    const internalRoles = ['admin', 'operador', 'operador_diretoria']
+    return (data || []).filter((u: any) => {
+      const r = (u.papel || u.role || '').toLowerCase()
+      return internalRoles.includes(r)
+    })
   },
 
   async getLeitoresReport() {

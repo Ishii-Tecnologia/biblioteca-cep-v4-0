@@ -722,9 +722,16 @@ export default function Historico() {
     new Set(titulosList.map((t) => t.categoria).filter(Boolean)),
   ).sort()
 
-  // Filter usuarios locally
+  // Filter usuarios locally - somente papéis internos
   const filteredUsuarios = usuariosList.filter((u) => {
-    const matchesRole = roleUsuariosFilter === 'all' || u.role === roleUsuariosFilter
+    const papelReal = (u.papel || u.role || '').toLowerCase()
+    if (!['admin', 'operador', 'operador_diretoria'].includes(papelReal)) {
+      return false
+    }
+    const matchesRole =
+      roleUsuariosFilter === 'all' ||
+      u.role === roleUsuariosFilter ||
+      u.papel === roleUsuariosFilter
     if (!matchesRole) return false
     if (!searchUsuarios) return true
     const q = searchUsuarios.toLowerCase()
@@ -1584,10 +1591,23 @@ export default function Historico() {
           )
         }
         if (colsUsuarios.papel) {
+          const userRole = u.papel || u.role
+          const roleLabel =
+            userRole === 'admin'
+              ? 'Administrador'
+              : userRole === 'operador_diretoria'
+                ? 'Operador (Diretoria)'
+                : 'Operador'
+          const roleBg =
+            userRole === 'admin'
+              ? '#f3e8ff; color: #6b21a8;'
+              : userRole === 'operador_diretoria'
+                ? '#fef3c7; color: #92400e;'
+                : '#e0e7ff; color: #3730a3;'
           tds.push(`
             <td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0;">
-              <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; background-color: ${u.role === 'admin' ? '#f3e8ff; color: #6b21a8;' : '#e0e7ff; color: #3730a3;'}">
-                ${u.role === 'admin' ? 'Administrador' : 'Operador'}
+              <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; background-color: ${roleBg}">
+                ${roleLabel}
               </span>
             </td>
           `)
@@ -1733,14 +1753,23 @@ export default function Historico() {
 
   // Export usuarios CSV
   const handleExportUsuarios = () => {
-    const exportData = filteredUsuarios.map((u) => ({
-      Nome: u.full_name || u.nome || '-',
-      Email: u.email || '-',
-      Telefone: u.phone || u.telefone || '-',
-      Papel: u.role === 'admin' ? 'Administrador' : 'Operador',
-      Status: u.status === 'inativo' || u.bloqueado ? 'Inativo' : 'Ativo',
-      Data_Cadastro: formatDate(u.created_at),
-    }))
+    const exportData = filteredUsuarios.map((u) => {
+      const userRole = u.papel || u.role
+      const roleLabel =
+        userRole === 'admin'
+          ? 'Administrador'
+          : userRole === 'operador_diretoria'
+            ? 'Operador (Diretoria)'
+            : 'Operador'
+      return {
+        Nome: u.full_name || u.nome || '-',
+        Email: u.email || '-',
+        Telefone: u.phone || u.telefone || '-',
+        Papel: roleLabel,
+        Status: u.status === 'inativo' || u.bloqueado ? 'Inativo' : 'Ativo',
+        Data_Cadastro: formatDate(u.created_at),
+      }
+    })
     exportCSV(exportData, 'relatorio_usuarios')
   }
 
@@ -3269,8 +3298,9 @@ export default function Historico() {
                     <SelectValue placeholder="Filtrar por Papel" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos os Papéis</SelectItem>
+                    <SelectItem value="all">Todos os Papéis Internos</SelectItem>
                     <SelectItem value="admin">Administrador</SelectItem>
+                    <SelectItem value="operador_diretoria">Operador (Diretoria)</SelectItem>
                     <SelectItem value="operador">Operador</SelectItem>
                   </SelectContent>
                 </Select>
@@ -3333,10 +3363,15 @@ export default function Historico() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {userItem.role === 'admin' ? (
+                            {userItem.papel === 'admin' || userItem.role === 'admin' ? (
                               <Badge className="bg-purple-100 text-purple-800 border-purple-200 gap-1">
                                 <Shield className="h-3 w-3" />
                                 Administrador
+                              </Badge>
+                            ) : userItem.papel === 'operador_diretoria' ||
+                              userItem.role === 'operador_diretoria' ? (
+                              <Badge className="bg-amber-100 text-amber-900 border-amber-200">
+                                Operador (Diretoria)
                               </Badge>
                             ) : (
                               <Badge variant="outline" className="bg-slate-100 text-slate-800">
