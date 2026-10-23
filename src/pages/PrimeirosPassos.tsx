@@ -234,6 +234,21 @@ export default function PrimeirosPassos() {
                 </p>
               </div>
             </div>
+
+            <div className="p-3 rounded-lg bg-emerald-50/60 border border-emerald-200/90 text-xs text-emerald-950 space-y-1">
+              <div className="font-bold flex items-center gap-1.5 text-emerald-900">
+                <Shield className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Privacidade na Tela Inicial (/)</span>
+              </div>
+              <p className="text-emerald-900/90 leading-relaxed">
+                Visitantes sem login e leitores comuns visualizam apenas o acervo aberto (títulos,
+                disponibilidade, busca e destaques). Os indicadores operacionais —{' '}
+                <strong>Empréstimos Ativos</strong> (com atrasos),{' '}
+                <strong>Leitores Cadastrados</strong> (com reservas pendentes) e os contadores do
+                cabeçalho — são restritos e aparecem unicamente após login com papel interno
+                (operador ou administrador).
+              </p>
+            </div>
           </div>
         </section>
 

@@ -96,6 +96,65 @@ export default function Manual() {
   // Lista de tópicos operacionais
   const operatorTopics: ManualTopic[] = [
     {
+      id: 'op-dashboard-privacidade',
+      shortTitle: 'Tela Inicial e Privacidade',
+      title: 'Tela Inicial (Dashboard): Métricas, Privacidade e Visão Pública',
+      profile: 'operador',
+      category: 'Administração e Sistema',
+      icon: Eye,
+      screenUrl: '/',
+      screenButtonText: 'Ver Tela Inicial',
+      summary:
+        'Como funciona o painel de controle na página inicial: separação entre métricas públicas abertas a qualquer visitante e indicadores confidenciais reservados aos papéis internos.',
+      prerequisites: [
+        'Acesso público: visualização do acervo institucional, pesquisa rápida e títulos disponíveis.',
+        'Acesso restrito: login com perfil interno (Administrador, Operador de Diretoria ou Operador) para visualizar estatísticas operacionais de leitores e circulação.',
+      ],
+      steps: [
+        {
+          number: 1,
+          title: 'Visão Pública do Visitante Anônimo e do Leitor Comum',
+          detail:
+            'Ao acessar a raiz do sistema (/) sem autenticação de operador ou logado como leitor comum, a página inicial exibe apenas as informações institucionais abertas: banner de boas-vindas, cards das coleções públicas, barra de busca rápida no acervo, destaques recentes do catálogo e os dois cards de métricas gerais: "Títulos no Acervo" e "Disponíveis para Empréstimo".',
+          tip: 'Visitantes anônimos e leitores nunca têm acesso à contagem total de usuários nem a dados de empréstimos em andamento na tela inicial.',
+        },
+        {
+          number: 2,
+          title: 'Proteção de Privacidade: Ocultação de Empréstimos e Leitores',
+          detail:
+            'Os cards "Empréstimos Ativos" (com contagem de atrasos), "Leitores Cadastrados" e o subtítulo informativo de "reserva(s) aguardando liberação" são omitidos por completo para quem não possui papel interno. Nenhuma consulta a essas métricas confidenciais é disparada no banco para visitantes deslogados.',
+        },
+        {
+          number: 3,
+          title: 'Visão Operacional Completa após Login Interno',
+          detail:
+            'Quando um Administrador, Operador de Diretoria ou Operador entra no sistema, o grid da tela inicial expande automaticamente para 4 cards, exibindo os dados operacionais em tempo real: Empréstimos Ativos (com alerta de atrasos), Leitores Cadastrados (com total de reservas aguardando liberação), além dos botões de ação rápida "Novo Empréstimo" e "Cadastrar Livro".',
+        },
+        {
+          number: 4,
+          title: 'Contadores do Cabeçalho Superior',
+          detail:
+            'Seguindo a mesma política rígida de privacidade, os badges numéricos do cabeçalho institucional (empréstimos ativos, reservas pendentes e alertas de atraso) não são consultados nem exibidos para visitantes deslogados, sendo carregados unicamente para usuários autenticados com papel interno.',
+        },
+      ],
+      rules: [
+        'Visitante anônimo e perfil Leitor veem apenas: Títulos no Acervo, Disponíveis para Empréstimo, busca e destaques.',
+        'Cards de Empréstimos Ativos, atrasos, Leitores Cadastrados e reservas pendentes exigem papel interno (admin, operador ou operador_diretoria).',
+        'Contadores de badge do menu de navegação superior só são carregados com usuário autenticado com papel interno.',
+        'Membros com papel de Diretoria autenticados também visualizam o card exclusivo e estatísticas da Biblioteca Rino Curti.',
+      ],
+      example: {
+        title: 'Exemplo: Visitante no celular vs Operador no balcão',
+        context:
+          'Um frequentador abre o link da biblioteca no celular durante a palestra dominical. Em paralelo, o voluntário abre o sistema no balcão.',
+        action:
+          'O frequentador acessa "/" sem login. O operador acessa "/" após autenticar seu e-mail e senha de operador.',
+        result:
+          'O frequentador visualiza 2 cards de métricas (títulos e disponibilidade) e pesquisa o acervo livremente sem ver dados da comunidade. O operador visualiza os 4 cards completos com empréstimos ativos, atrasos, leitores cadastrados e botões de atendimento imediato.',
+        type: 'success',
+      },
+    },
+    {
       id: 'op-leitores-cadastro',
       shortTitle: 'Cadastrar Leitor',
       title: 'Gestão de Leitores: Novo Cadastro Completo',
@@ -989,6 +1048,12 @@ export default function Manual() {
         },
         {
           number: 6,
+          title: 'Privacidade na Tela Inicial e Ocultação de Métricas Internas',
+          detail:
+            'Na página inicial do sistema (/), visitantes sem autenticação e leitores comuns visualizam apenas métricas institucionais do acervo (títulos catalogados e disponibilidade física) e a pesquisa rápida. Indicadores de circulação — "Empréstimos Ativos", contagem de atrasos, "Leitores Cadastrados", reservas aguardando liberação e os badges numéricos do cabeçalho — são estritamente ocultados para visitantes e leitores, sendo carregados e exibidos unicamente após login de um papel interno (admin, operador ou operador_diretoria).',
+        },
+        {
+          number: 7,
           title: 'Trilha de Auditoria e Expurgo Mensal Automatizado',
           detail:
             'Todas as transições relevantes de estado (criação de usuários, alterações de papel, concessão de acesso à diretoria, movimentações de acervo e devoluções) registram uma trilha de auditoria contendo o operador responsável, data/hora e o estado anterior e novo do registro. Para evitar acúmulo desnecessário de dados históricos e manter a base leve, o sistema conta com uma rotina mensal automatizada de expurgo dos registros mais antigos.',
@@ -996,6 +1061,7 @@ export default function Manual() {
       ],
       rules: [
         'Papéis internos são estritamente: Administrador, Operador e Operador de Diretoria.',
+        'Na tela inicial (/), contadores de empréstimos, leitores e reservas pendentes só aparecem para papéis internos autenticados; visitantes veem somente acervo público.',
         'A listagem de Gestão de Usuários (/usuarios) exibe exclusivamente os papéis internos do sistema.',
         'O perfil de Leitor é gerido na tela de Leitores (/leitores) e não tem acesso às ferramentas operacionais ou telas de gestão.',
         'A criação de qualquer usuário com papel interno é permitida exclusivamente a administradores.',
@@ -1212,28 +1278,37 @@ export default function Manual() {
       screenUrl: '/',
       screenButtonText: 'Ver Página Inicial',
       summary:
-        'Como identificar as duas bibliotecas mantidas pela CEP e saber quais títulos você pode consultar e retirar.',
+        'Como navegar pela página inicial da biblioteca, entender os dados públicos do acervo e identificar as coleções disponíveis na CEP.',
       steps: [
         {
           number: 1,
-          title: 'Acessar a Página Inicial',
+          title: 'Acessar a Página Inicial e Métricas Abertas',
           detail:
-            'Na página inicial, role até a seção de destaque "Nossas Bibliotecas e Coleções".',
+            'Na página inicial, qualquer visitante ou leitor tem acesso aberto às informações da casa: banner institucional com prazo de empréstimos (15 dias), barra de pesquisa rápida no acervo, destaques recentes e aos indicadores públicos "Títulos no Acervo" e "Disponíveis para Empréstimo".',
         },
         {
           number: 2,
+          title: 'Privacidade de Leitores e Empréstimos na Tela Inicial',
+          detail:
+            'Para proteger a privacidade da comunidade e dos frequentadores da CEP, as informações operacionais de circulação (empréstimos ativos, atrasos, leitores cadastrados e reservas aguardando liberação) não são exibidas publicamente na tela inicial nem para leitores comuns — esses cards aparecem exclusivamente para a equipe interna de atendimento (operadores e administradores) após efetuarem login.',
+          tip: 'Seus próprios empréstimos e reservas particulares continuam visíveis na sua área pessoal em "Empréstimos" e "Reservas".',
+        },
+        {
+          number: 3,
           title: 'Biblioteca Cecília Braga (Acervo Geral)',
           detail:
             'Reúne obras da Doutrina Espírita, romances, estudos, mediunidade, obras básicas de Allan Kardec, obras de Chico Xavier, Divaldo Franco e literatura infantojuvenil. Disponível para TODOS os leitores cadastrados.',
         },
         {
-          number: 3,
+          number: 4,
           title: 'Biblioteca Rino Curti (Acervo Restrito)',
           detail:
             'Acervo especial de obras históricas, documentos da casa e títulos sob guarda da Diretoria Executiva da CEP. Acesso sinalizado por Etiqueta especial e permitido para membros autorizados.',
         },
       ],
       rules: [
+        'Visitantes sem login e leitores comuns visualizam apenas as métricas públicas do acervo (títulos totais e exemplares disponíveis), além da busca e destaques.',
+        'Dados globais de leitores cadastrados e empréstimos em andamento são reservados à equipe operacional.',
         'Leitores comuns podem visualizar os títulos de ambas as bibliotecas, mas a solicitação de obras da Coleção Diretoria requer permissão específica no cadastro.',
       ],
     },
