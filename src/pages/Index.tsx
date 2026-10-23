@@ -64,8 +64,9 @@ export default function Index() {
   const loadData = async () => {
     setLoading(true)
     try {
+      // Visitantes anônimos não carregam métricas de leitores e empréstimos
       const [dashboardStats, colStats, books, prazo, maxRenov, prazoRenov] = await Promise.all([
-        EmprestimosService.getDashboardMetrics(),
+        EmprestimosService.getDashboardMetrics(Boolean(isOperadorOrAdmin)),
         TitulosService.getTotaisDetalhadosPorColecao().catch(() => null),
         TitulosService.getAll('', 'all', true),
         getPrazoEmprestimoDias(),
@@ -89,7 +90,7 @@ export default function Index() {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [isOperadorOrAdmin])
 
   return (
     <div className="space-y-8 pb-10">
@@ -263,7 +264,13 @@ export default function Index() {
       </div>
 
       {/* Metric Cards Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div
+        className={
+          isOperadorOrAdmin
+            ? 'grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4'
+            : 'grid grid-cols-1 sm:grid-cols-2 gap-4'
+        }
+      >
         <Card className="border-slate-200/80 shadow-sm hover:shadow transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
@@ -338,46 +345,50 @@ export default function Index() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200/80 shadow-sm hover:shadow transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Empréstimos Ativos
-            </CardTitle>
-            <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
-              <Repeat className="w-4 h-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-700">{stats.emprestimosAtivos}</div>
-            <div className="text-xs mt-1 flex items-center gap-1.5">
-              {stats.emprestimosAtrasados > 0 ? (
-                <span className="text-rose-600 font-semibold flex items-center gap-0.5">
-                  <AlertTriangle className="w-3 h-3" />
-                  {stats.emprestimosAtrasados} com atraso
-                </span>
-              ) : (
-                <span className="text-emerald-600 font-medium">Todos em dia</span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        {isOperadorOrAdmin && (
+          <>
+            <Card className="border-slate-200/80 shadow-sm hover:shadow transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Empréstimos Ativos
+                </CardTitle>
+                <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
+                  <Repeat className="w-4 h-4" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-700">{stats.emprestimosAtivos}</div>
+                <div className="text-xs mt-1 flex items-center gap-1.5">
+                  {stats.emprestimosAtrasados > 0 ? (
+                    <span className="text-rose-600 font-semibold flex items-center gap-0.5">
+                      <AlertTriangle className="w-3 h-3" />
+                      {stats.emprestimosAtrasados} com atraso
+                    </span>
+                  ) : (
+                    <span className="text-emerald-600 font-medium">Todos em dia</span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="border-slate-200/80 shadow-sm hover:shadow transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Leitores Cadastrados
-            </CardTitle>
-            <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
-              <Users className="w-4 h-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-900">{stats.totalLeitores}</div>
-            <p className="text-xs text-slate-500 mt-1">
-              {stats.reservasAtivas} reserva(s) aguardando liberação
-            </p>
-          </CardContent>
-        </Card>
+            <Card className="border-slate-200/80 shadow-sm hover:shadow transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Leitores Cadastrados
+                </CardTitle>
+                <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+                  <Users className="w-4 h-4" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-slate-900">{stats.totalLeitores}</div>
+                <p className="text-xs text-slate-500 mt-1">
+                  {stats.reservasAtivas} reserva(s) aguardando liberação
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Quick Search & Filter Area */}

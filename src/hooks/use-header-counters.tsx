@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { EmprestimosService } from '@/services/emprestimos'
 import { ReservasService } from '@/services/reservas'
+import { useAuth } from '@/hooks/use-auth'
 
 interface HeaderCountersContextType {
   emprestimosAtivos: number
@@ -30,6 +31,7 @@ const QUEUE_SNAPSHOT_KEY = 'cep_library_queue_snapshot'
 const QUEUE_ALERT_DISMISSED_KEY = 'cep_library_queue_alert_dismissed'
 
 export function HeaderCountersProvider({ children }: { children: React.ReactNode }) {
+  const { user, isOperadorOrAdmin } = useAuth()
   const [emprestimosAtivos, setEmprestimosAtivos] = useState(0)
   const [reservasAtivas, setReservasAtivas] = useState(0)
   const [leitoresPendentesCount, setLeitoresPendentesCount] = useState(0)
@@ -48,6 +50,10 @@ export function HeaderCountersProvider({ children }: { children: React.ReactNode
   }, [])
 
   const refreshLeitoresPendentes = useCallback(async (): Promise<number> => {
+    if (!user || !isOperadorOrAdmin) {
+      setLeitoresPendentesCount(0)
+      return 0
+    }
     try {
       const { supabase } = await import('@/lib/supabase/client')
       const { count, error } = await supabase
@@ -66,14 +72,23 @@ export function HeaderCountersProvider({ children }: { children: React.ReactNode
       console.debug('Erro ao checar cadastros pendentes:', err)
       return 0
     }
-  }, [])
+  }, [user, isOperadorOrAdmin])
 
   const refreshCounters = useCallback(async () => {
+    if (!user) {
+      setEmprestimosAtivos(0)
+      setReservasAtivas(0)
+      setLeitoresPendentesCount(0)
+      setHasQueueChangeAlert(false)
+      setHasReadyForPickupAlert(false)
+      return
+    }
+
     try {
       const [loansCount, reservesCount, allReservas] = await Promise.all([
-        EmprestimosService.countActive(),
-        ReservasService.countActive(),
-        ReservasService.getAll('all').catch(() => []),
+        isOperadorOrAdmin ? EmprestimosService.countActive() : Promise.resolve(0),
+        isOperadorOrAdmin ? ReservasService.countActive() : Promise.resolve(0),
+        isOperadorOrAdmin ? ReservasService.getAll('all').catch(() => []) : Promise.resolve([]),
         refreshLeitoresPendentes(),
       ])
       setEmprestimosAtivos(loansCount)
@@ -128,10 +143,11 @@ export function HeaderCountersProvider({ children }: { children: React.ReactNode
 
   useEffect(() => {
     refreshCounters()
-    // Atualização periódica leve a cada 30 segundos
+    // Atualização periódica leve a cada 30 segundos apenas se houver usuário
+    if (!user) return
     const interval = setInterval(refreshCounters, 30000)
     return () => clearInterval(interval)
-  }, [refreshCounters])
+  }, [refreshCounters, user])
 
   return (
     <HeaderCountersContext.Provider

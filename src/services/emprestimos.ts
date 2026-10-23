@@ -188,7 +188,7 @@ export const EmprestimosService = {
     return result
   },
 
-  async getDashboardMetrics() {
+  async getDashboardMetrics(includePrivateMetrics: boolean = true) {
     // 1. Total books and available copies
     const { data: exemplares } = await supabase.from('exemplar').select('status')
     const totalExemplares = exemplares?.length || 0
@@ -207,7 +207,29 @@ export const EmprestimosService = {
         )
       }).length || 0
 
-    // 2. Active readers
+    // 2. Titles count (público)
+    const { count: totalTitulos } = await supabase
+      .from('titulo')
+      .select('*', { count: 'exact', head: true })
+      .eq('ativo', true)
+
+    if (!includePrivateMetrics) {
+      return {
+        totalTitulos: totalTitulos || 0,
+        totalExemplares,
+        exemplaresDisponiveis: disponiveis,
+        exemplaresEmprestados: emprestados,
+        exemplaresManutencao: manutencao,
+        totalLeitores: 0,
+        leitoresBloqueados: 0,
+        emprestimosAtivos: 0,
+        emprestimosAtrasados: 0,
+        reservasAtivas: 0,
+      }
+    }
+
+    // Métricas privadas (apenas com login e permissão de operador/admin)
+    // 3. Active readers
     const { count: totalLeitores } = await supabase
       .from('leitor')
       .select('*', { count: 'exact', head: true })
@@ -215,12 +237,6 @@ export const EmprestimosService = {
       .from('leitor')
       .select('*', { count: 'exact', head: true })
       .eq('bloqueado', true)
-
-    // 3. Titles count
-    const { count: totalTitulos } = await supabase
-      .from('titulo')
-      .select('*', { count: 'exact', head: true })
-      .eq('ativo', true)
 
     // 4. Active & Overdue Loans
     const { data: activeLoans } = await supabase
