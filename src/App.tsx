@@ -19,6 +19,7 @@ import Login from './pages/Login'
 import RedefinirSenha from './pages/RedefinirSenha'
 import Manual from './pages/Manual'
 import PrimeirosPassos from './pages/PrimeirosPassos'
+import EspecificacoesTecnicas from './pages/EspecificacoesTecnicas'
 import NotFound from './pages/NotFound'
 
 const App = () => (
@@ -114,6 +115,14 @@ const App = () => (
                 element={
                   <ProtectedRoute requireOperator>
                     <PrimeirosPassos />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/especificacoes-tecnicas"
+                element={
+                  <ProtectedRoute requireOperator>
+                    <EspecificacoesTecnicas />
                   </ProtectedRoute>
                 }
               />

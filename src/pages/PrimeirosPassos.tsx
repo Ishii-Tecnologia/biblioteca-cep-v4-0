@@ -650,7 +650,7 @@ export default function PrimeirosPassos() {
             e regras completas de funcionamento do sistema.
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <Button
             asChild
             size="sm"
@@ -658,6 +658,17 @@ export default function PrimeirosPassos() {
           >
             <Link to="/manual">
               <span>Ir para Manual Completo</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </Button>
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="bg-transparent border-white/30 text-white hover:bg-white/10 hover:text-white text-xs font-semibold gap-1.5 shadow-sm"
+          >
+            <Link to="/especificacoes-tecnicas">
+              <span>Especificações Técnicas</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </Button>

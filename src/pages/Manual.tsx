@@ -37,6 +37,7 @@ import {
   Eye,
   Printer,
   ImageOff,
+  FileCode,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -1468,7 +1469,7 @@ export default function Manual() {
             </span>
           </div>
 
-          <div className="pt-2">
+          <div className="pt-2 flex flex-wrap gap-2">
             <Button
               asChild
               size="sm"
@@ -1477,6 +1478,18 @@ export default function Manual() {
               <Link to="/primeiros-passos">
                 <Sparkles className="w-3.5 h-3.5 text-amber-800" />
                 <span>Novo Operador? Ver Guia de 1 Página (Primeiros Passos)</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </Button>
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="bg-transparent border-white/30 text-white hover:bg-white/10 hover:text-white font-semibold text-xs gap-1.5 shadow-sm"
+            >
+              <Link to="/especificacoes-tecnicas">
+                <FileCode className="w-3.5 h-3.5" />
+                <span>Especificações Técnicas e Segurança (LGPD)</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </Button>
