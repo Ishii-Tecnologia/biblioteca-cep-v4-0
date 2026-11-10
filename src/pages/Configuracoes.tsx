@@ -555,7 +555,7 @@ export default function Configuracoes() {
 
     try {
       const data = await TitulosService.getAllForCsvExport(colecao)
-      const nomeColecao = colecao === 'geral' ? 'Acervo Geral' : 'Acervo da Diretoria'
+      const nomeColecao = colecao === 'geral' ? 'Biblioteca Cecília Braga' : 'Biblioteca Rino Curti'
       const filename =
         colecao === 'geral'
           ? 'cadastro_livros_acervo_geral.csv'
@@ -564,7 +564,7 @@ export default function Configuracoes() {
       if (!data || data.length === 0) {
         toast({
           title: 'Acervo vazio',
-          description: `Não há títulos cadastrados no ${nomeColecao.toLowerCase()} para exportação.`,
+          description: `Não há títulos cadastrados na ${nomeColecao} para exportação.`,
           variant: 'destructive',
         })
       } else {
@@ -579,7 +579,9 @@ export default function Configuracoes() {
         title: 'Erro na exportação',
         description:
           err.message ||
-          `Não foi possível gerar a exportação do ${colecao === 'geral' ? 'acervo geral' : 'acervo da diretoria'}.`,
+          `Não foi possível gerar a exportação da ${
+            colecao === 'geral' ? 'Biblioteca Cecília Braga' : 'Biblioteca Rino Curti'
+          }.`,
         variant: 'destructive',
       })
     } finally {
@@ -1431,8 +1433,8 @@ export default function Configuracoes() {
                             cadastro_livros_acervo_geral.csv / cadastro_livros_acervo_diretoria.csv
                           </p>
                           <p className="text-[11px] text-slate-500 leading-snug">
-                            Baixe os dados do Acervo Geral ou do Acervo da Diretoria separadamente
-                            no formato oficial do modelo CSV.
+                            Baixe os dados da Biblioteca Cecília Braga ou da Biblioteca Rino Curti
+                            separadamente no formato oficial do modelo CSV.
                           </p>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1449,7 +1451,7 @@ export default function Configuracoes() {
                             ) : (
                               <Download className="w-3.5 h-3.5" />
                             )}
-                            {exportingGeralCsv ? 'Exportando...' : 'Acervo Geral'}
+                            {exportingGeralCsv ? 'Exportando...' : 'Biblioteca Cecília Braga'}
                           </Button>
                           <Button
                             type="button"
@@ -1464,7 +1466,7 @@ export default function Configuracoes() {
                             ) : (
                               <Download className="w-3.5 h-3.5" />
                             )}
-                            {exportingDiretoriaCsv ? 'Exportando...' : 'Acervo da Diretoria'}
+                            {exportingDiretoriaCsv ? 'Exportando...' : 'Biblioteca Rino Curti'}
                           </Button>
                         </div>
                       </div>
