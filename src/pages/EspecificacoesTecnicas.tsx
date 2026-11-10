@@ -390,7 +390,7 @@ const SECTIONS: SpecSection[] = [
         kind: 'list',
         title: 'Pendências organizacionais conhecidas (transparência)',
         items: [
-          'Aviso de privacidade formal na interface e um fluxo dedicado ao atendimento de direitos do titular (acesso, correção, eliminação) ainda não foram implementados como telas — hoje esses direitos são atendidos pelo canal presencial/da equipe.',
+          'Aviso de privacidade publicado em /politica-de-privacidade e fluxo de atendimento de direitos do titular descrito no Manual do Sistema. O sistema não possui tela dedicada para registrar pedidos do titular: o registro é feito pela equipe, fora do sistema.',
           'Parâmetros do provedor de autenticação ("Minimum password length" e "Leaked password protection") dependem de ajuste manual no painel do Supabase (ver seção 5).',
         ],
       },

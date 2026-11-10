@@ -20,6 +20,7 @@ import RedefinirSenha from './pages/RedefinirSenha'
 import Manual from './pages/Manual'
 import PrimeirosPassos from './pages/PrimeirosPassos'
 import EspecificacoesTecnicas from './pages/EspecificacoesTecnicas'
+import PoliticaPrivacidade from './pages/PoliticaPrivacidade'
 import NotFound from './pages/NotFound'
 
 const App = () => (
@@ -44,6 +45,7 @@ const App = () => (
               />
               <Route path="/login" element={<Login />} />
               <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+              <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
 
               {/* Rotas Autenticadas */}
               <Route

@@ -905,6 +905,12 @@ export default function Layout({ children }: LayoutProps) {
                 <span>Manual do Sistema</span>
               </Link>
             )}
+            <Link
+              to="/politica-de-privacidade"
+              className="hover:text-emerald-700 transition-colors font-medium"
+            >
+              Política de Privacidade
+            </Link>
             <span>Versão 4.0</span>
           </div>
         </div>

@@ -45,6 +45,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 
 interface ReaderSelfRegisterModalProps {
   open: boolean
@@ -90,6 +91,9 @@ export function ReaderSelfRegisterModal({
   const [cursoToAdd, setCursoToAdd] = useState<string>('')
   const [loadingCursos, setLoadingCursos] = useState<boolean>(false)
 
+  // Concordância obrigatória com a Política de Privacidade (LGPD)
+  const [aceitePolitica, setAceitePolitica] = useState<boolean>(false)
+
   useEffect(() => {
     if (open) {
       setSubmittedSuccess(false)
@@ -109,6 +113,7 @@ export function ReaderSelfRegisterModal({
       setPhotoPreview(null)
       setSelectedCursoIds([])
       setCursoToAdd('')
+      setAceitePolitica(false)
       if (emailDebounceTimerRef.current) {
         clearTimeout(emailDebounceTimerRef.current)
       }
@@ -269,6 +274,17 @@ export function ReaderSelfRegisterModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!aceitePolitica) {
+      toast({
+        title: 'Concordância obrigatória',
+        description:
+          'Para concluir o cadastro, marque que você leu e concorda com a Política de Privacidade.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setEmailError(null)
     setCelularError(null)
     setTelefoneFixoError(null)
@@ -884,6 +900,33 @@ export function ReaderSelfRegisterModal({
               </div>
             </div>
 
+            {/* Concordância com a Política de Privacidade (obrigatória) */}
+            <div className="flex items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50/80 p-3.5">
+              <Checkbox
+                id="auto_aceite_politica"
+                checked={aceitePolitica}
+                onCheckedChange={(checked) => setAceitePolitica(checked === true)}
+                disabled={loading}
+                className="mt-0.5"
+              />
+              <Label
+                htmlFor="auto_aceite_politica"
+                className="text-xs font-normal text-slate-700 leading-relaxed cursor-pointer"
+              >
+                Li e concordo com a{' '}
+                <a
+                  href="/politica-de-privacidade"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-emerald-800 underline underline-offset-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Política de Privacidade
+                </a>{' '}
+                da biblioteca. <span className="text-rose-600 font-semibold">*</span>
+              </Label>
+            </div>
+
             <DialogFooter className="gap-2 sm:justify-end pt-3 border-t border-slate-100">
               <Button
                 type="button"
@@ -896,7 +939,7 @@ export function ReaderSelfRegisterModal({
               <Button
                 type="submit"
                 className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
-                disabled={loading}
+                disabled={loading || !aceitePolitica}
               >
                 {loading ? (
                   <>

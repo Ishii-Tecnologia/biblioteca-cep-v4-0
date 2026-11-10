@@ -52,6 +52,7 @@ import {
 } from '@/components/ui/accordion'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Link } from 'react-router-dom'
+import { ManualResponseTemplate } from '@/components/ManualResponseTemplate'
 
 interface StepItem {
   number: number
@@ -83,6 +84,7 @@ interface ManualTopic {
   rules?: string[]
   screenUrl?: string
   screenButtonText?: string
+  responseTemplate?: string
 }
 
 export default function Manual() {
@@ -1093,6 +1095,112 @@ export default function Manual() {
         },
       ],
     },
+    {
+      id: 'op-direitos-titular-lgpd',
+      shortTitle: 'Fluxo de Direitos do Titular (LGPD)',
+      title: 'Fluxo de Direitos do Titular (LGPD)',
+      profile: 'operador',
+      category: 'Administração e Sistema',
+      icon: ShieldCheck,
+      screenUrl: '/leitores',
+      screenButtonText: 'Abrir Leitores',
+      summary:
+        'Como a equipe atende um pedido do leitor (titular dos dados): identificar quem pede, localizar o cadastro, atender cada direito na tela certa do sistema, cumprir os prazos e registrar a demanda.',
+      prerequisites: [
+        'Estar conectado com um papel interno (Administrador, Operador de Diretoria ou Operador).',
+        'Ter lido a Política de Privacidade publicada pela biblioteca.',
+      ],
+      steps: [
+        {
+          number: 1,
+          title: 'Identificar o titular',
+          detail:
+            'Confirme quem está pedindo antes de mostrar ou alterar qualquer dado. Peça nome completo e o e-mail cadastrado, ou faça a conferência presencial com documento de identificação no balcão. Não solicite CPF: ele não é coletado pela biblioteca. Pedidos feitos por terceiros só são atendidos com procuração ou representação legal comprovada.',
+        },
+        {
+          number: 2,
+          title: 'Localizar o cadastro em Leitores',
+          detail:
+            'Abra a tela Leitores (/leitores) e busque pelo nome ou pelo e-mail. Confira se o cadastro encontrado é mesmo do titular (nome, e-mail e telefone). Havendo homônimos, use o e-mail para diferenciar.',
+          tip: 'Nunca comente dados de um cadastro com quem não é o titular, nem por telefone ou balcão.',
+        },
+        {
+          number: 3,
+          title: 'Acesso: confirmar e entregar a cópia dos dados',
+          detail:
+            'Abra o cadastro do leitor para conferir os dados pessoais existentes (nome, e-mail, telefones, cursos e foto, se houver) e o histórico de empréstimos e reservas pelo botão de histórico do próprio leitor. Para uma cópia formal, use a exportação da base em Configurações, que gera o arquivo com os dados cadastrados, e entregue ao titular apenas as informações que dizem respeito a ele.',
+        },
+        {
+          number: 4,
+          title: 'Correção: editar o cadastro',
+          detail:
+            'Se o titular apontar dado incompleto, incorreto ou desatualizado, corrija-o na edição do cadastro em Leitores. Cada alteração fica registrada na trilha de auditoria com o responsável e a data. Confirme ao titular quais campos foram alterados.',
+        },
+        {
+          number: 5,
+          title: 'Informação sobre compartilhamento',
+          detail:
+            'Explique ao titular, com base na Política de Privacidade, que os dados não são vendidos nem cedidos para fins comerciais e que são tratados apenas pelos serviços técnicos de infraestrutura que mantêm o sistema e pelas equipes internas com papel no sistema.',
+        },
+        {
+          number: 6,
+          title: 'Eliminação: exclusão restrita ao administrador',
+          detail:
+            'Pedidos de eliminação são atendidos pelo Administrador, em Leitores, com a exclusão do cadastro. Operadores encaminham o pedido ao Administrador e não excluem cadastros. Antes de excluir, verifique se há registros que a lei exija manter; esses casos devem ser justificados no registro da demanda.',
+          tip: 'Se houver empréstimo em aberto, resolva a devolução antes de concluir a eliminação.',
+        },
+        {
+          number: 7,
+          title: 'Revogação do consentimento',
+          detail:
+            'Se o titular revogar o consentimento dado no cadastro, registre o pedido e desative o cadastro de leitor em Leitores, sem perder o registro da revogação. Informe ao titular as consequências para empréstimos e reservas.',
+        },
+        {
+          number: 8,
+          title: 'Conferir movimentações em Histórico',
+          detail:
+            'A tela Histórico (/historico) mostra as movimentações registradas no sistema, como empréstimos, devoluções e alterações. Use-a para conferir o que já aconteceu com o cadastro antes de responder ao titular.',
+        },
+        {
+          number: 9,
+          title: 'Prazo e registro da demanda',
+          detail:
+            'Recomendamos responder em até 15 dias corridos a partir do recebimento do pedido. Registre o número do protocolo, a data de recebimento, a forma de confirmação de identidade, a ação tomada, a data da resposta e o responsável, em registro próprio da biblioteca. O sistema não possui módulo específico de pedidos do titular.',
+          tip: 'Guarde o modelo de resposta enviado junto com o protocolo, para comprovar o atendimento.',
+        },
+      ],
+      rules: [
+        'O atendimento de um pedido começa pela identificação do titular; CPF não é solicitado.',
+        'Dados de leitores são consultados e corrigidos somente na tela Leitores (/leitores).',
+        'A exclusão de cadastro de leitor é exclusiva do Administrador.',
+        'Toda correção fica registrada na trilha de auditoria com responsável e data.',
+        'Pedidos devem ser respondidos em até 15 dias corridos, com protocolo e registro da demanda.',
+      ],
+      responseTemplate: `Assunto: Resposta ao seu pedido sobre dados pessoais - Biblioteca [Cecília Braga / Rino Curti]
+
+Olá, [nome do titular].
+
+Recebemos o seu pedido em [data] e confirmamos a sua identidade por [forma de confirmação]. O número do seu protocolo é [protocolo].
+
+Segue a resposta a cada direito solicitado:
+
+1. Confirmação e cópia dos seus dados: seus dados cadastrados foram localizados na biblioteca. A cópia é gerada pela exportação de dados do sistema e foi enviada por [forma de envio].
+
+2. Correção de dados: os campos [lista de campos] foram corrigidos em [data], na ficha do seu cadastro.
+
+3. Compartilhamento: seus dados não são vendidos nem cedidos a terceiros. São tratados apenas pelos serviços técnicos que mantêm o sistema da biblioteca e pelas pessoas com papel interno na biblioteca, conforme a Política de Privacidade.
+
+4. Eliminação: o seu cadastro foi excluído em [data] pelo administrador do sistema. [Ou: o pedido de eliminação está em análise e será respondido até [data], pois há registros que devemos manter por exigência legal: (descrever).]
+
+5. Revogação do consentimento: registrada em [data]. Seu cadastro de leitor foi desativado e os empréstimos e reservas em aberto foram informados a você.
+
+Se tiver dúvidas, responda a este e-mail ou procure a equipe da biblioteca, citando o seu protocolo.
+
+Atenciosamente,
+[nome e função de quem responde]
+Biblioteca [Cecília Braga / Rino Curti]
+Coligação Espírita Progressista (CEP)`,
+    },
   ]
 
   // Lista de tópicos para Leitores
@@ -1854,6 +1962,10 @@ export default function Manual() {
                           </div>
                         </div>
                       </div>
+                    )}
+
+                    {topic.responseTemplate && (
+                      <ManualResponseTemplate text={topic.responseTemplate} />
                     )}
 
                     {/* Regras e Mensagens Reais do Sistema */}
