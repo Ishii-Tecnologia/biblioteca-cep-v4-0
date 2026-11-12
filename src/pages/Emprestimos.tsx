@@ -351,7 +351,7 @@ export default function Emprestimos() {
             className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium gap-2 shadow-sm"
           >
             <PlusCircle className="w-4 h-4" />
-            Novo Empréstimo
+            Registrar Novo Empréstimo
           </Button>
         )}
       </div>

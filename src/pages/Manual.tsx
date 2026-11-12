@@ -877,9 +877,9 @@ export default function Manual() {
       steps: [
         {
           number: 1,
-          title: 'Novo Empréstimo Presencial Direto e Busca em Tempo Real',
+          title: 'Registrar Novo Empréstimo Presencial Direto e Busca em Tempo Real',
           detail:
-            'Na página de Empréstimos, clique em "Novo Empréstimo". Para localizar empréstimos já realizados, utilize a barra de busca em tempo real com debounce de 300 ms, pesquisando por nome do leitor, título da obra, autor ou código do exemplar, com destaque visual em amarelo dos termos encontrados e sincronização automática com a URL.',
+            'Na página de Empréstimos, clique em "Registrar Novo Empréstimo" — o botão fica no topo direito da tela e é exibido apenas aos papéis internos (Administrador, Operador de Diretoria e Operador). Para localizar empréstimos já realizados, utilize a barra de busca em tempo real com debounce de 300 ms, pesquisando por nome do leitor, título da obra, autor ou código do exemplar, com destaque visual em amarelo dos termos encontrados e sincronização automática com a URL.',
         },
         {
           number: 2,
@@ -904,7 +904,7 @@ export default function Manual() {
           number: 5,
           title: 'Devolução do Exemplar',
           detail:
-            'Na devolução do livro, o operador localiza o empréstimo ativo e clica no botão "Devolver". Confirma as condições do exemplar.',
+            'Na devolução do livro, o operador localiza o empréstimo ativo e clica no botão "Registrar Devolução". Confirma as condições do exemplar.',
         },
         {
           number: 6,
