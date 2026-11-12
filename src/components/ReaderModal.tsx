@@ -73,8 +73,9 @@ export function ReaderModal({
   isSelfEdit = false,
   onSuccess,
   onViewHistory,
+  onRequestPromote,
 }: ReaderModalProps) {
-  const { isOperadorOrAdmin, refreshProfile } = useAuth()
+  const { isOperadorOrAdmin, isAdmin, refreshProfile } = useAuth()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -1313,6 +1314,36 @@ export function ReaderModal({
               </div>
             )}
           </div>
+
+          {/* Promoção de leitor a operador — exibida SOMENTE para o admin */}
+          {readerToEdit && isAdmin && !isSelfEdit && onRequestPromote && (
+            <div className="p-3 bg-indigo-50/60 rounded-lg border border-indigo-200 space-y-2">
+              <div className="flex items-start gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-semibold text-indigo-950">
+                    Papel interno — Transformar em Operador
+                  </Label>
+                  <p className="text-[11px] text-indigo-900/80 leading-relaxed">
+                    Promove <strong>{readerToEdit.nome_do_leitor}</strong> ao papel interno
+                    <strong> operador</strong>, mantendo a mesma conta de acesso (e-mail e senha). O
+                    cadastro como leitor será desativado e o histórico de empréstimos preservado.
+                    Ação exclusiva do administrador.
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => onRequestPromote(readerToEdit)}
+                disabled={loading}
+                className="w-full h-8 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Promover {readerToEdit.nome_do_leitor.split(' ')[0]} a Operador
+              </Button>
+            </div>
+          )}
 
           <DialogFooter className="gap-2 sm:justify-between pt-3 border-t border-slate-100">
             {readerToEdit && onViewHistory ? (

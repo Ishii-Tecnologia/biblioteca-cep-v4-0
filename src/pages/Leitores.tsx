@@ -987,6 +987,13 @@ export default function Leitores() {
         readerToEdit={readerToEdit}
         isSelfEdit={isSelfEdit}
         onSuccess={loadReaders}
+        onRequestPromote={(reader) => {
+          if (!isAdmin) return
+          const found = readers.find((r) => r.id_leitor === reader.id_leitor) || null
+          setReaderToPromote(found || (reader as LeitorWithStats))
+          setReaderModalOpen(false)
+          setPromoteConfirmOpen(true)
+        }}
         onViewHistory={() => {
           if (readerToEdit) {
             setReaderForHistory(readerToEdit as any)
