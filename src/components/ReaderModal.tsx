@@ -64,6 +64,10 @@ interface ReaderModalProps {
   isSelfEdit?: boolean
   onSuccess: () => void
   onViewHistory?: () => void
+  /** Disparado quando o admin aciona a promoção do leitor a operador (papel interno). */
+  onRequestPromote?: (
+    reader: Leitor & { telefone_fixo?: string | null; cursos_ids?: string[] },
+  ) => void
 }
 
 export function ReaderModal({

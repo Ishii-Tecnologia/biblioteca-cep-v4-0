@@ -26,7 +26,9 @@ Deno.serve(async (req: Request) => {
 
     if (!supabaseUrl || !supabaseServiceKey) {
       return new Response(
-        JSON.stringify({ error: 'Configuração do servidor ausente (SUPABASE_URL / SERVICE_ROLE_KEY)' }),
+        JSON.stringify({
+          error: 'Configuração do servidor ausente (SUPABASE_URL / SERVICE_ROLE_KEY)',
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
@@ -127,21 +129,20 @@ Deno.serve(async (req: Request) => {
       .eq('id', authUserId)
       .maybeSingle()
 
-    const papelAtual = (
-      (perfilAtual as any)?.papel ||
-      (perfilAtual as any)?.role ||
-      ''
-    )
+    const papelAtual = ((perfilAtual as any)?.papel || (perfilAtual as any)?.role || '')
       .toString()
       .toLowerCase()
 
-    if (papelAtual === 'admin' || papelAtual === 'operador' || papelAtual === 'operador_diretoria') {
+    if (
+      papelAtual === 'admin' ||
+      papelAtual === 'operador' ||
+      papelAtual === 'operador_diretoria'
+    ) {
       return new Response(
         JSON.stringify({
           error: 'Este usuário já possui um papel interno e não pode ser promovido novamente.',
         }),
         { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      }
       )
     }
 
@@ -155,7 +156,7 @@ Deno.serve(async (req: Request) => {
     const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(authUserId, {
       user_metadata: {
         // mantém demais metadados existentes
-        ...(((leitor as any) as any) && {}),
+        ...((leitor as any as any) && {}),
         nome: nomeFinal,
         full_name: nomeFinal,
         papel: 'operador',
@@ -189,7 +190,10 @@ Deno.serve(async (req: Request) => {
           error:
             'Não foi possível atualizar o papel do usuário no banco de dados. Tente novamente.',
         }),
-        { status: 500, ...({ headers: { ...corsHeaders, 'Content-Type': 'application/json' } } as any) },
+        {
+          status: 500,
+          ...({ headers: { ...corsHeaders, 'Content-Type': 'application/json' } } as any),
+        },
       )
     }
 

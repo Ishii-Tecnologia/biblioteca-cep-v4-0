@@ -5,6 +5,7 @@
     "admin_create_user": 175,
     "send_access_email": 107,
     "validate-email-domain": 96,
-    "process-expirations": 82
+    "process-expirations": 82,
+    "promover_leitor_operador": 1
   }
 }

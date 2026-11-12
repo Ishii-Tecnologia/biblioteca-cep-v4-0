@@ -407,6 +407,77 @@ export default function Manual() {
       },
     },
     {
+      id: 'op-leitores-promocao-operador',
+      shortTitle: 'Promover Leitor a Operador',
+      title: 'Promoção de Leitor para o Papel Interno de Operador (Exclusiva do Administrador)',
+      profile: 'operador',
+      category: 'Gestão de Leitores',
+      icon: ShieldCheck,
+      screenUrl: '/leitores',
+      screenButtonText: 'Abrir Leitores',
+      summary:
+        'Como o Administrador transforma um cadastro de leitor no papel interno de operador, pelo próprio modal do leitor em Leitores, mantendo a mesma conta de acesso e preservando o histórico de empréstimos.',
+      prerequisites: [
+        'Estar conectado com o papel interno Administrador — operador, operador de diretoria e leitor não veem esta opção.',
+        'Ter o cadastro do leitor aprovado e sem pendências (a conta de acesso do leitor já deve existir).',
+      ],
+      steps: [
+        {
+          number: 1,
+          title: 'Abrir o cadastro do leitor em Leitores (/leitores)',
+          detail:
+            'Na tela Leitores, localize o leitor que será promovido e abra o modal de edição do cadastro (botão de edição do card). O bloco "Papel interno — Transformar em Operador" aparece no formulário apenas para o Administrador.',
+        },
+        {
+          number: 2,
+          title: 'Clicar em "Promover [nome] a Operador"',
+          detail:
+            'Dentro do bloco de papel interno do modal, clique no botão de promoção. O modal do leitor é fechado e uma janela de confirmação resume o que acontecerá: mesma conta de acesso (e-mail e senha), cadastro como leitor desativado e histórico de empréstimos preservado.',
+        },
+        {
+          number: 3,
+          title: 'Confirmar a promoção',
+          detail:
+            'Clique em "Sim, Promover a Operador". Ao concluir, o sistema exibe "Leitor promovido a operador": a pessoa passa a entrar com o mesmo e-mail e senha e passa a atuar no papel interno de operador, com acesso às rotinas de circulação e atendimento de balcão do acervo geral.',
+          tip: 'A pessoa promovida deve recarregar a página (ou refazer o login) para que o novo papel e os menus internos apareçam.',
+        },
+        {
+          number: 4,
+          title: 'Conferir o novo papel interno',
+          detail:
+            'O novo operador passa a constar entre os papéis internos na Gestão de Usuários (/usuarios) e deixa de aparecer como leitor na listagem de Leitores. Se necessário, ajuste os detalhes do acesso na Gestão de Usuários.',
+        },
+      ],
+      rules: [
+        'A transformação leitor → operador é EXCLUSIVA do Administrador: operador, operador de diretoria e leitor não veem o botão nem o bloco de promoção no modal.',
+        'A promoção NUNCA cria uma conta nova: o mesmo e-mail e a mesma senha do leitor continuam válidos.',
+        'O histórico de empréstimos e reservas do cadastro é preservado; apenas o cadastro como leitor é desativado.',
+        'A operação é registrada na trilha de auditoria com o administrador responsável, data/hora e os estados anterior e novo.',
+      ],
+      example: {
+        title: 'Exemplo: Voluntária do balcão que já era leitora',
+        context:
+          'Ana participa da biblioteca como leitora e passa a ajudar no atendimento de sábado no balcão.',
+        action:
+          'O Administrador abre o cadastro de Ana em Leitores e usa o bloco "Papel interno — Transformar em Operador", confirmando a promoção.',
+        result:
+          'Ana entra com o mesmo e-mail e senha e passa a ver as telas internas de atendimento; seu histórico de leitura permanece registrado.',
+        type: 'success',
+      },
+      systemMessages: [
+        {
+          text: 'Leitor promovido a operador',
+          meaning:
+            'A transformação foi concluída: a pessoa agora atua no papel interno de operador com a mesma conta de acesso.',
+        },
+        {
+          text: 'Erro ao promover leitor',
+          meaning:
+            'A operação não foi concluída. Verifique sua conexão e tente novamente; se persistir, confirme com o Administrador — somente ele pode promover.',
+        },
+      ],
+    },
+    {
       id: 'op-acervo-busca-consulta',
       shortTitle: 'Busca e Consulta no Acervo',
       title: 'Busca Inteligente no Acervo (Busca Automática e Destaque Visual)',
@@ -1034,7 +1105,7 @@ export default function Manual() {
           number: 3,
           title: 'Proteção de Comandos Sensíveis (Exclusividade do Administrador)',
           detail:
-            'Para preservar a integridade da casa e evitar alterações acidentais, comandos críticos são blindados e restritos ao Administrador: criação de novos operadores/usuários com papéis internos, redefinição de senha de outro usuário no painel e rotinas manuais de expurgo de auditoria. Tentativas de disparar essas operações sem privilégio de administrador são rejeitadas pelo sistema com aviso de permissão negada.',
+            'Para preservar a integridade da casa e evitar alterações acidentais, comandos críticos são blindados e restritos ao Administrador: criação de novos operadores/usuários com papéis internos, promoção de um leitor ao papel interno de operador (pelo modal do leitor em Leitores), redefinição de senha de outro usuário no painel e rotinas manuais de expurgo de auditoria. Tentativas de disparar essas operações sem privilégio de administrador são rejeitadas pelo sistema com aviso de permissão negada.',
         },
         {
           number: 4,
@@ -1068,6 +1139,7 @@ export default function Manual() {
         'A listagem de Gestão de Usuários (/usuarios) exibe exclusivamente os papéis internos do sistema.',
         'O perfil de Leitor é gerido na tela de Leitores (/leitores) e não tem acesso às ferramentas operacionais ou telas de gestão.',
         'A criação de qualquer usuário com papel interno é permitida exclusivamente a administradores.',
+        'A promoção de um leitor ao papel interno de operador é exclusiva do Administrador e mantém a mesma conta de acesso, preservando o histórico de empréstimos.',
         'CPF nunca é solicitado aos leitores ou à equipe em formulários do sistema.',
         'Todas as senhas sem exceção exigem comprimento mínimo de 8 caracteres.',
         'Registros da trilha de auditoria preservam quem realizou cada transição com histórico de estado anterior e novo.',

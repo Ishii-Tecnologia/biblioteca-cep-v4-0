@@ -57,7 +57,7 @@ export default function Leitores() {
   const initialStatus = (searchParams.get('status') as any) || 'all'
   const initialCurso = searchParams.get('curso') || 'all'
 
-  const { user, profile, isOperadorOrAdmin, isAdmin } = useAuth()
+  const { user, profile, isOperadorOrAdmin, isAdmin, refreshProfile } = useAuth()
   const { toast } = useToast()
   const { refreshLeitoresPendentes } = useHeaderCounters()
 
@@ -440,6 +440,40 @@ export default function Leitores() {
   const handleOpenHistory = (reader: LeitorWithStats) => {
     setReaderForHistory(reader)
     setHistoryModalOpen(true)
+  }
+
+  // Promoção de leitor a operador (papel interno) — ação EXCLUSIVA do administrador
+  const [readerToPromote, setReaderToPromote] = useState<LeitorWithStats | null>(null)
+  const [promoteConfirmOpen, setPromoteConfirmOpen] = useState(false)
+  const [promoteLoading, setPromoteLoading] = useState(false)
+
+  const executePromote = async () => {
+    if (!readerToPromote) return
+    setPromoteLoading(true)
+    try {
+      const res = await LeitoresService.promoverParaOperador(
+        readerToPromote.id_leitor,
+        readerToPromote.nome_do_leitor,
+      )
+      if (!res.success) {
+        throw new Error(res.error || 'Falha ao promover o leitor.')
+      }
+      toast({
+        title: 'Leitor promovido a operador',
+        description: `${readerToPromote.nome_do_leitor} agora atua no papel interno de operador, mantendo a mesma conta de acesso. O histórico de empréstimos foi preservado.`,
+      })
+      setPromoteConfirmOpen(false)
+      setReaderToPromote(null)
+      await Promise.all([loadReaders(), refreshProfile()])
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao promover leitor',
+        description: err.message || 'Não foi possível concluir a promoção.',
+        variant: 'destructive',
+      })
+    } finally {
+      setPromoteLoading(false)
+    }
   }
 
   return (
@@ -1000,6 +1034,32 @@ export default function Leitores() {
             setHistoryModalOpen(true)
           }
         }}
+      />
+
+      <ConfirmModal
+        open={promoteConfirmOpen}
+        onOpenChange={setPromoteConfirmOpen}
+        title="Transformar Leitor em Operador"
+        description={
+          readerToPromote ? (
+            <div className="space-y-2">
+              <p>
+                Deseja promover <strong>{readerToPromote.nome_do_leitor}</strong> (
+                {readerToPromote.email}) ao papel interno de <strong>operador</strong>?
+              </p>
+              <div className="bg-indigo-50 border border-indigo-200 rounded p-2.5 text-xs text-indigo-900">
+                A mesma conta de acesso (e-mail e senha) será mantida. O cadastro como leitor será
+                desativado e o histórico de empréstimos preservado. Ação exclusiva do administrador.
+              </div>
+            </div>
+          ) : (
+            'Deseja promover este leitor ao papel interno de operador?'
+          )
+        }
+        confirmLabel="Sim, Promover a Operador"
+        variant="primary"
+        loading={promoteLoading}
+        onConfirm={executePromote}
       />
 
       <ConfirmModal

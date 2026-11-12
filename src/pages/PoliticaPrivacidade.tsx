@@ -74,7 +74,7 @@ const SECTIONS: PoliticaSection[] = [
     id: 'compartilhamento',
     title: '7. Com quem os dados são compartilhados',
     paragraphs: [
-      'Não vendemos nem cedemos dados pessoais para fins comerciais. Os dados podem ser processados apenas pelos serviços técnicos de infraestrutura que mantêm o sistema (armazenamento do banco de dados, arquivos e envio de comunicações por e-mail), sempre para as finalidades descritas nesta política.',
+      'Não vendemos nem cedemos dados pessoais em hipótese alguma, independente da finalidade. Os dados podem ser processados apenas pelos serviços técnicos de infraestrutura que mantêm o sistema (armazenamento do banco de dados, arquivos e envio de comunicações por e-mail), sempre para as finalidades descritas nesta política.',
     ],
   },
   {

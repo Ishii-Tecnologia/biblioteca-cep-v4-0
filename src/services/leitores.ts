@@ -18,6 +18,14 @@ export interface LeitorWithStats extends Leitor {
   cursos_ids?: string[]
 }
 
+/** Resultado da promoção de um leitor ao papel interno de operador. */
+export interface PromocaoLeitorResult {
+  success: boolean
+  error?: string
+  user_id?: string
+  novo_papel?: string
+}
+
 export const LeitoresService = {
   async getAll(
     searchQuery?: string,
@@ -575,6 +583,62 @@ export const LeitoresService = {
     return data
   },
 
+  /**
+   * Promove um leitor ao papel interno de operador (ação EXCLUSIVA do administrador).
+   * Mantém a mesma conta de acesso Supabase (nunca cria usuário novo), atualiza o papel
+   * em profiles/user_metadata e marca o cadastro de leitor como promovido, preservando
+   * o histórico de empréstimos. Executada por edge function com validação de admin
+   * no servidor; em caso de indisponibilidade, usa a RPC promover_leitor_para_operador.
+   */
+  async promoverParaOperador(
+    id_leitor: number,
+    nome_do_leitor?: string,
+  ): Promise<PromocaoLeitorResult> {
+    try {
+      // 1. Caminho principal: edge function com guarda de admin + rate limit + auditoria
+      const { data: funcData, error: funcError } = await supabase.functions.invoke(
+        'promover_leitor_operador',
+        { body: { id_leitor, nome_do_leitor } },
+      )
+
+      if (!funcError && funcData?.success) {
+        return { success: true, user_id: funcData.user_id, novo_papel: funcData.novo_papel }
+      }
+
+      const funcMsg = funcError?.message || funcData?.error || ''
+      console.warn('Aviso na promoção via edge function:', funcMsg)
+
+      // 2. Fallback: RPC SECURITY DEFINER com validação de admin no servidor
+      const { data: rpcData, error: rpcError } = await (supabase.rpc as any)(
+        'promover_leitor_para_operador',
+        { p_id_leitor: id_leitor, p_nome_do_leitor: nome_do_leitor ?? null },
+      )
+
+      if (rpcError) {
+        return {
+          success: false,
+          error: rpcError.message || funcMsg || 'Erro ao promover o leitor a operador.',
+        }
+      }
+
+      const result = (rpcData || {}) as PromocaoLeitorResult
+      if (!result.success) {
+        return { success: false, error: result.error || 'Não foi possível promover o leitor.' }
+      }
+
+      return {
+        success: true,
+        user_id: result.user_id,
+        novo_papel: result.novo_papel || 'operador',
+      }
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err?.message || 'Erro inesperado ao promover o leitor a operador.',
+      }
+    }
+  },
+
   async delete(id_leitor: number) {
     // 1. Contagem total de empréstimos vinculados ao leitor (ativos + históricos)
     const { count: totalCount, error: countError } = await supabase
@@ -638,7 +702,6 @@ export const LeitoresService = {
     if (deleteResError) throw deleteResError
 
     await supabase.from('leitor_curso').delete().eq('id_leitor', id_leitor)
-
     const { error } = await supabase.from('leitor').delete().eq('id_leitor', id_leitor)
     if (error) throw error
   },
