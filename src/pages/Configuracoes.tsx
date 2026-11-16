@@ -902,7 +902,7 @@ export default function Configuracoes() {
     setDeleteAuthorModalOpen(true)
 
     try {
-      const books = await AuthorsService.getLinkedBooks(author.name, author.type)
+      const books = await AuthorsService.getLinkedBooks(author.id, author.name, author.type)
       setLinkedBooksAlert(books)
     } catch (err) {
       console.warn('Erro ao verificar livros vinculados:', err)

@@ -293,41 +293,65 @@ export const AuthorsService = {
    * Verifica se o autor/médium/espírito está sendo usado por livros no catálogo
    * Retorna a lista de livros que utilizam esse nome
    */
-  async getLinkedBooks(authorName: string, type: AuthorType): Promise<LinkedBook[]> {
-    const trimmed = authorName.trim().toLowerCase()
-    if (!trimmed) return []
+  async getLinkedBooks(
+    authorId: string,
+    authorName: string,
+    type: AuthorType,
+  ): Promise<LinkedBook[]> {
+    const trimmed = authorName.trim()
+    const normalized = normalizeAuthorName(trimmed)
+    if (!normalized) return []
 
     // Buscar títulos que possuem esse nome nos campos correspondentes
     const { data, error } = await supabase
       .from('titulo')
-      .select('id_titulo, titulo_de_livro, autor, autor_espiritual, autor_mediunico')
+      .select('id_titulo, titulo_de_livro, autor, autor_espiritual, autor_mediunico, author_id')
 
     if (error || !data) return []
+
+    // Padrão estruturado do campo unificado "autor" para espíritos psicografados:
+    // "<Espírito>, por <Médium>" — o nome do espírito é PREFIXO exato seguido de ", por ".
+    // Isso NÃO é substring genérico: exige fronteira exata do padrão composto.
+    const composedPrefix = type === 'ESPIRITO' && trimmed ? `${trimmed}, por ` : null
 
     const linked: LinkedBook[] = []
 
     for (const book of data) {
+      // Vínculo estrutural por id tem prioridade
+      if (authorId && book.author_id === authorId) {
+        linked.push({
+          id_titulo: book.id_titulo,
+          titulo_de_livro: book.titulo_de_livro,
+          autor: book.autor,
+          autor_espiritual: book.autor_espiritual,
+          autor_mediunico: book.autor_mediunico,
+        })
+        continue
+      }
+
       let isMatch = false
-      const bAutor = (book.autor || '').toLowerCase()
-      const bEspirito = (book.autor_espiritual || '').toLowerCase()
-      const bMedium = (book.autor_mediunico || '').toLowerCase()
+      const bAutor = normalizeAuthorName(book.autor || '')
+      const bEspirito = normalizeAuthorName(book.autor_espiritual || '')
+      const bMedium = normalizeAuthorName(book.autor_mediunico || '')
 
       if (type === 'ESPIRITO') {
-        if (bEspirito === trimmed || bEspirito.includes(trimmed)) {
-          isMatch = true
-        }
+        isMatch = bEspirito === normalized
       } else if (type === 'MEDIUM') {
-        if (bMedium === trimmed || bMedium.includes(trimmed)) {
-          isMatch = true
-        }
+        isMatch = bMedium === normalized
       } else if (type === 'ENCARNADO') {
-        if (bAutor === trimmed || bAutor.includes(trimmed) || bMedium === trimmed) {
-          isMatch = true
-        }
+        isMatch = bAutor === normalized
       } else {
-        if (bAutor.includes(trimmed) || bEspirito.includes(trimmed) || bMedium.includes(trimmed)) {
-          isMatch = true
-        }
+        isMatch = bAutor === normalized || bEspirito === normalized || bMedium === normalized
+      }
+
+      // Espírito citado no início do campo "autor" composto ("<Espírito>, por <Médium>")
+      if (
+        !isMatch &&
+        type === 'ESPIRITO' &&
+        composedPrefix &&
+        (book.autor || '').toLowerCase().startsWith(composedPrefix.toLowerCase())
+      ) {
+        isMatch = true
       }
 
       if (isMatch) {

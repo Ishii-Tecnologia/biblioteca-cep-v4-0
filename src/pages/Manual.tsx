@@ -825,7 +825,7 @@ export default function Manual() {
           number: 6,
           title: 'Aviso Preventivo na Exclusão de Autores (Configurações)',
           detail:
-            'Em Configurações → Autores e Médiuns, ao tentar excluir um autor ou espírito, o sistema realiza uma verificação prévia no acervo. O modal de confirmação lista todos os livros afetados, o texto de alerta detalha quantos títulos ficarão sem autor e o botão de confirmação indica explicitamente o impacto: "Sim, Excluir Autor (X livro(s) afetado(s))".',
+            'Em Configurações → Autores e Médiuns, ao tentar excluir um autor ou espírito, o sistema realiza uma verificação prévia no acervo considerando apenas a vinculação EXATA do nome (ignorando maiúsculas/minúsculas e acentos) — nomes parecidos, mas diferentes, não são contabilizados. O modal de confirmação lista todos os livros afetados, o texto de alerta detalha quantos títulos ficarão sem autor e o botão de confirmação indica explicitamente o impacto: "Sim, Excluir Autor (X livro(s) afetado(s))". Se nenhum livro estiver vinculado, o modal informa "Nenhum livro no acervo está vinculado a este nome no momento (0 livros afetados)" e a exclusão é imediata.',
         },
         {
           number: 7,
