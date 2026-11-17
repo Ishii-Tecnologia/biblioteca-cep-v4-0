@@ -222,7 +222,7 @@ export default function Layout({ children }: LayoutProps) {
                       variant="secondary"
                       className="text-[10px] font-medium bg-emerald-50 text-emerald-700 border-emerald-200"
                     >
-                      v4.0
+                      v4.1
                     </Badge>
                   </div>
                   <p className="text-[11px] text-slate-500 leading-none">
