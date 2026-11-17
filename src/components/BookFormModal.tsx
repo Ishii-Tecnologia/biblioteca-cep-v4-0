@@ -45,6 +45,9 @@ import { uploadImageToStorage } from '@/lib/image-upload'
 import { BookMetadata } from '@/services/isbn'
 import { ParametrosService } from '@/services/parametros'
 
+// Categoria padrão para novos cadastros (deve existir na tabela `categorias`)
+const CATEGORIA_PADRAO_NOVO_LIVRO = 'Literatura Espírita'
+
 interface BookFormModalProps {
   isOpen: boolean
   onClose: () => void
@@ -180,8 +183,7 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
       setAuthorStructure('ESPIRITO_MEDIUM')
       setEditora('')
       setAnoPublicacao('')
-      const defaultCat = availableCategories.length > 0 ? availableCategories[0] : ''
-      setCategoria(defaultCat)
+      setCategoria(CATEGORIA_PADRAO_NOVO_LIVRO)
       setSinopse('')
       setCapaUrl('')
       setVol('')
@@ -195,10 +197,10 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
     setImageLoadError(false)
   }, [bookToEdit, isOpen])
 
-  // Se for novo cadastro e categoria estiver vazia quando as categorias carregarem, define a primeira categoria cadastrada
+  // Se for novo cadastro e categoria estiver vazia, aplica a categoria padrão
   useEffect(() => {
-    if (!bookToEdit && isOpen && !categoria && availableCategories.length > 0) {
-      setCategoria(availableCategories[0])
+    if (!bookToEdit && isOpen && !categoria) {
+      setCategoria(CATEGORIA_PADRAO_NOVO_LIVRO)
     }
   }, [availableCategories, bookToEdit, isOpen, categoria])
 
@@ -249,7 +251,7 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
     setAuthorStructure('ESPIRITO_MEDIUM')
     setEditora('')
     setAnoPublicacao('')
-    setCategoria(availableCategories.length > 0 ? availableCategories[0] : '')
+    setCategoria(CATEGORIA_PADRAO_NOVO_LIVRO)
     setSinopse('')
     setCapaUrl('')
     setVol('')
