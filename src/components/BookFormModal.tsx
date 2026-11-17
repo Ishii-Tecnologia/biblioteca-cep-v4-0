@@ -990,7 +990,8 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
 
                   <p className="text-[11px] text-slate-500">
                     A capa é preenchida automaticamente com o ISBN. Você também pode colar com{' '}
-                    <strong>Ctrl+V</strong>, colar uma URL ou fazer upload.
+                    <strong>Ctrl+V</strong>, colar uma URL ou fazer upload. Para fotografar a capa
+                    com a câmera do dispositivo, use o botão Câmera — preferencialmente com celular.
                   </p>
 
                   <div className="flex flex-col sm:flex-row gap-2">
@@ -1020,7 +1021,7 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
                       <Label
                         htmlFor="cover-camera-top"
                         className="cursor-pointer inline-flex items-center justify-center gap-1 px-2.5 h-8 text-xs border border-slate-300 rounded-md bg-white hover:bg-slate-100 text-slate-700 shrink-0"
-                        title="Fotografar capa com a câmera do dispositivo"
+                        title="Fotografar capa com a câmera do dispositivo. Preferencialmente com celular."
                       >
                         {uploadingImage ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
