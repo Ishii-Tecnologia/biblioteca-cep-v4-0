@@ -756,7 +756,7 @@ export default function Manual() {
           number: 4,
           title: 'Editar o Livro e Incluir a Imagem da Capa',
           detail:
-            'No card do livro selecionado, clique no botão de edição (ícone de lápis) para abrir o formulário. Você pode colar a imagem diretamente da área de transferência (Ctrl+V), carregar um arquivo ou buscar a capa automaticamente pelo código ISBN.',
+            'No card do livro selecionado, clique no botão de edição (ícone de lápis) para abrir o formulário. Você pode colar a imagem diretamente da área de transferência (Ctrl+V), carregar um arquivo ou buscar a capa automaticamente pelo código ISBN. A câmera para fotografar a capa dos livros deverá ser usada "Preferencialmente pelo celular".',
         },
       ],
       rules: [
