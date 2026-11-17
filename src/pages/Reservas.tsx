@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { useHeaderCounters } from '@/hooks/use-header-counters'
 import { ReservasService, ReservaDetailed } from '@/services/reservas'
+import { executarLiberacaoAutomatica } from '@/services/liberacao-automatica'
 import { HighlightedText } from '@/components/HighlightedText'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -158,11 +159,14 @@ export default function Reservas() {
   const loadReservas = async (queryToUse?: string) => {
     setLoading(true)
     try {
-      // 1. Checar e expirar automaticamente reservas cujo prazo de retirada em dias úteis expirou
-      try {
-        await ReservasService.checkAndExpirePickupDeadlines(profile?.full_name || 'Sistema')
-      } catch (expireErr) {
-        console.warn('Erro na checagem de expiração de reservas:', expireErr)
+      // 1. Liberar automaticamente empréstimos/reservas não retirados no prazo
+      //    (data limite + 1 dia útil). Idempotente; registrado em public.historico.
+      if (isOperadorOrAdmin) {
+        try {
+          await executarLiberacaoAutomatica(profile?.full_name || 'Sistema')
+        } catch (libErr) {
+          console.warn('Erro na liberação automática de itens não retirados:', libErr)
+        }
       }
 
       const activeQuery = queryToUse !== undefined ? queryToUse : debouncedQuery
@@ -757,6 +761,12 @@ export default function Reservas() {
                               Cancelada
                             </span>
                           )}
+                          {res.status_reserva === 'Expirada' && (
+                            <span className="inline-flex items-center rounded-full border border-orange-400 bg-orange-100 px-2.5 py-0.5 text-[11px] font-bold text-orange-900 gap-1 select-none pointer-events-none">
+                              <XCircle className="w-3 h-3 text-orange-600" />
+                              Liberada Automaticamente (não retirada no prazo)
+                            </span>
+                          )}
                         </div>
 
                         {/* Bloco de Reserva Garantida (Pronta para Retirada) */}
@@ -827,6 +837,23 @@ export default function Reservas() {
                               <p className="text-[11px] text-emerald-800 leading-relaxed">
                                 {res.historico_evento?.descricao ||
                                   `A reserva #${res.id_reserva} foi atendida com sucesso e convertida em empréstimo para retirada na biblioteca.`}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {res.status_reserva === 'Expirada' && (
+                          <div className="bg-orange-50 border border-orange-200/90 rounded-lg p-2.5 text-xs text-orange-900 flex items-start gap-2.5 mt-1">
+                            <XCircle className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
+                            <div className="space-y-0.5">
+                              <p className="font-semibold text-orange-950">
+                                Liberada automaticamente por não retirada no prazo
+                              </p>
+                              <p className="text-[11px] text-orange-800 leading-relaxed">
+                                O prazo "Reserva Garantida até" (
+                                {formatDate(res.data_limite_retirada)}) venceu e a retirada não foi
+                                concluída em até 1 dia útil. O livro voltou a ficar disponível na
+                                biblioteca (ou foi oferecido ao próximo da fila).
                               </p>
                             </div>
                           </div>

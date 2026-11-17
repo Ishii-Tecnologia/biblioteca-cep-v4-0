@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { useHeaderCounters } from '@/hooks/use-header-counters'
 import { EmprestimosService, EmprestimoDetailed } from '@/services/emprestimos'
+import { executarLiberacaoAutomatica } from '@/services/liberacao-automatica'
 import { getPrazoRenovacaoDias } from '@/services/parametros'
 import { PreReservasService } from '@/services/pre-reservas'
 import { HighlightedText } from '@/components/HighlightedText'
@@ -135,6 +136,7 @@ export default function Emprestimos() {
         EmprestimosService.getAll(statusTab, activeQuery),
         getPrazoRenovacaoDias(),
         loadMinhasPreReservas(),
+        isOperadorOrAdmin ? executarLiberacaoAutomatica() : Promise.resolve(null),
       ])
       setLoans(data)
       setPrazoRenovacaoDias(prazoRenovacao)
@@ -341,7 +343,8 @@ export default function Emprestimos() {
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
             Acompanhamento de prazos, histórico de renovações (+{prazoRenovacaoDias}d) e registro de
-            devoluções.
+            devoluções. Itens não retirados são liberados automaticamente 1 dia útil após a data
+            limite de retirada.
           </p>
         </div>
 
@@ -565,25 +568,29 @@ export default function Emprestimos() {
         <div className="space-y-3">
           {loans.map((loan) => {
             const isReturned = !!loan.data_devolucao_real
+            const isLiberadoAuto = loan.status === 'EXPIRADO' && !isReturned
             const isPendenteRetirada =
               !isReturned &&
+              !isLiberadoAuto &&
               (loan.status === 'PENDENTE_RETIRADA' ||
                 loan.status === 'AGENDADO' ||
                 (loan.data_limite_retirada && !loan.data_retirada_real))
-            const isOverdue = !isReturned && !isPendenteRetirada && loan.atraso
+            const isOverdue = !isReturned && !isPendenteRetirada && !isLiberadoAuto && loan.atraso
             const isLoadingThis = actionLoadingId === loan.id_emprestimo
 
             return (
               <Card
                 key={loan.id_emprestimo}
                 className={`overflow-hidden border transition-all ${
-                  isPendenteRetirada
-                    ? 'border-blue-300 bg-blue-50/20'
-                    : isOverdue
-                      ? 'border-rose-300 bg-rose-50/20'
-                      : isReturned
-                        ? 'border-slate-200 bg-white opacity-80'
-                        : 'border-slate-200 bg-white hover:border-emerald-300 shadow-sm'
+                  isLiberadoAuto
+                    ? 'border-orange-300 bg-orange-50/20'
+                    : isPendenteRetirada
+                      ? 'border-blue-300 bg-blue-50/20'
+                      : isOverdue
+                        ? 'border-rose-300 bg-rose-50/20'
+                        : isReturned
+                          ? 'border-slate-200 bg-white opacity-80'
+                          : 'border-slate-200 bg-white hover:border-emerald-300 shadow-sm'
                 }`}
               >
                 <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -619,6 +626,11 @@ export default function Emprestimos() {
                         <Badge className="bg-slate-100 text-slate-700 border-slate-300 gap-1 text-[11px] shadow-none select-none">
                           <CheckCircle2 className="w-3 h-3 text-slate-500" />
                           Devolvido em {formatDate(loan.data_devolucao_real)}
+                        </Badge>
+                      ) : isLiberadoAuto ? (
+                        <Badge className="bg-orange-100 text-orange-900 border-orange-300 gap-1 text-[11px] font-bold shadow-none select-none">
+                          <XCircle className="w-3 h-3 text-orange-600" />
+                          Liberado Automaticamente (não retirado no prazo)
                         </Badge>
                       ) : isPendenteRetirada ? (
                         <Badge className="bg-blue-100 text-blue-900 border-blue-300 gap-1 text-[11px] font-bold shadow-none select-none">
@@ -723,7 +735,11 @@ export default function Emprestimos() {
                     <div className="space-y-0.5">
                       <span className="text-[10px] text-slate-400 uppercase font-semibold flex items-center gap-1">
                         <Clock className="w-3 h-3" />{' '}
-                        {isPendenteRetirada ? 'Limite Retirada' : 'Prazo Previsto'}
+                        {isLiberadoAuto
+                          ? 'Data Limite Vencida'
+                          : isPendenteRetirada
+                            ? 'Limite Retirada'
+                            : 'Prazo Previsto'}
                       </span>
                       <p
                         className={`font-bold ${
@@ -746,7 +762,7 @@ export default function Emprestimos() {
                   {/* Right Actions */}
                   {!isReturned && isOperadorOrAdmin && (
                     <div className="flex items-center gap-2 self-end lg:self-center shrink-0">
-                      {isPendenteRetirada ? (
+                      {isLiberadoAuto ? null : isPendenteRetirada ? (
                         <Button
                           size="sm"
                           disabled={isLoadingThis}
@@ -785,6 +801,11 @@ export default function Emprestimos() {
                         disabled={isLoadingThis}
                         onClick={() => handleReturn(loan)}
                         className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium gap-1.5 shadow-sm"
+                        title={
+                          isLiberadoAuto
+                            ? 'Registrar devolução manual (caso o livro tenha sido retirado sem registro no sistema)'
+                            : undefined
+                        }
                       >
                         {isLoadingThis ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />

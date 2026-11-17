@@ -912,6 +912,12 @@ export default function Manual() {
           detail:
             'Se houver outros leitores na fila de espera daquela obra, o sistema contempla automaticamente o 1º leitor da fila de reserva. A reserva dele é atendida, o exemplar permanece BLOQUEADO e gera um novo empréstimo PENDENTE_RETIRADA com 4 dias úteis para o novo contemplado.',
         },
+        {
+          number: 7,
+          title: 'Liberação Automática por Não Retirada (1 dia útil após o limite)',
+          detail:
+            'Se o leitor não retirar o livro até a "data limite da retirada", o sistema aguarda mais 1 dia útil de tolerância. Passado esse prazo sem retirada, o empréstimo PENDENTE_RETIRADA é cancelado automaticamente, o exemplar volta a ficar DISPONÍVEL para empréstimo (ou é oferecido ao próximo da fila de reserva, quando houver) e a ocorrência é registrada no histórico com o motivo "não retirado no prazo — liberado automaticamente". A rotina é executada no carregamento das telas de Empréstimos e Reservas por operadores/administradores e é idempotente: rodar mais de uma vez não duplica a liberação nem o registro.',
+        },
       ],
       rules: [
         'Limite por leitor: máximo de 4 livros distintos emprestados simultaneamente.',
@@ -989,9 +995,9 @@ export default function Manual() {
         },
         {
           number: 7,
-          title: 'Expiração Automática de Prazos',
+          title: 'Expiração Automática de Prazos (1 dia útil após o limite)',
           detail:
-            'O sistema possui rotina que monitora as reservas prontas para retirada. Se passarem os 4 dias úteis sem retirada, o status é marcado como "Expirada" e a vez passa automaticamente para o próximo leitor da fila.',
+            'O sistema possui rotina que monitora as reservas prontas para retirada. Se passarem os 4 dias úteis e o leitor não comparecer, o status "Pronto para Retirada" é mantido até a "Reserva Garantida até" — e, após essa data limite, o sistema aguarda mais 1 dia útil de tolerância. Sem a retirada nesse período, a reserva é marcada como "Expirada" (liberada automaticamente), o exemplar volta a ficar disponível na biblioteca (ou é oferecido ao próximo leitor da fila) e a ocorrência é registrada no histórico com o motivo da liberação automática. A rotina roda no carregamento das telas de Reservas e Empréstimos por operadores/administradores e é idempotente.',
         },
       ],
       rules: [
