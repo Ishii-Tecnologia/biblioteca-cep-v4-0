@@ -121,9 +121,6 @@ export function ReaderLoanHistoryModal({
 
               {reader && (
                 <div className="text-right shrink-0">
-                  <span className="font-mono text-[10px] text-slate-400 block">
-                    ID #{reader.id_leitor}
-                  </span>
                   {reader.bloqueado && (
                     <Badge
                       variant="outline"
