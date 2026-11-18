@@ -384,6 +384,7 @@ export default function Manual() {
       ],
       rules: [
         'O sistema BLOQUEIA a exclusão se houver empréstimo em aberto ou reserva ativa pendente. Primeiro é obrigatório devolver os livros ou cancelar as reservas.',
+        'Se o impedimento for apenas o volume de registros antigos (empréstimos já devolvidos), o Administrador pode usar a limpeza do histórico no modal "Histórico de Empréstimos" da ficha — ver o tópico "Limpar Histórico do Leitor" — para liberar a exclusão do leitor.',
         'Ao excluir um leitor, o e-mail dele é totalmente desvinculado e liberado para novo uso futuro.',
       ],
       systemMessages: [
@@ -405,6 +406,148 @@ export default function Manual() {
         result: 'O leitor é mantido na base com integridade referencial protegida.',
         type: 'warning',
       },
+    },
+    {
+      id: 'op-leitores-limpeza-historico',
+      shortTitle: 'Limpar Histórico do Leitor',
+      title: 'Limpeza do Histórico de Empréstimos do Leitor (Exclusiva do Administrador)',
+      profile: 'operador',
+      category: 'Gestão de Leitores',
+      icon: Trash2,
+      screenUrl: '/leitores',
+      screenButtonText: 'Abrir Leitores',
+      summary:
+        'Como o Administrador apaga o histórico de empréstimos já devolvidos de um leitor, pelo próprio modal "Histórico de Empréstimos" da ficha dele, para liberar a exclusão do cadastro que antes ficava bloqueada enquanto houvesse registros.',
+      prerequisites: [
+        'Estar conectado com o papel interno Administrador — operador, operador de diretoria e leitor não veem este botão.',
+        'Abrir a ficha do leitor em Leitores (/leitores) e acessar o modal "Histórico de Empréstimos".',
+      ],
+      steps: [
+        {
+          number: 1,
+          title: 'Abrir a ficha do leitor e o histórico de empréstimos',
+          detail:
+            'Na tela Leitores (/leitores), abra o cadastro do leitor e clique no botão de histórico para abrir o modal "Histórico de Empréstimos", que lista todos os empréstimos já realizados por ele.',
+        },
+        {
+          number: 2,
+          title: 'Localizar o botão discreto de lixeira abaixo da foto do leitor',
+          detail:
+            'No modal, logo abaixo da foto do leitor, há um botão discreto — apenas o ícone de lixeira, em cinza claro, sem texto ao lado. Ele é o comando de exclusão do histórico de empréstimos. Por ser discreto, passe o mouse (ou toque) sobre ele para se certificar de que é o comando certo antes de usar.',
+          tip: 'O botão é intencionalmente discreto para evitar cliques acidentais: não há rótulo, somente o ícone de lixeira em cinza claro, posicionado abaixo da foto do leitor dentro do modal "Histórico de Empréstimos".',
+        },
+        {
+          number: 3,
+          title: 'Confirmar a limpeza do histórico',
+          detail:
+            'Ao clicar na lixeira, o sistema pede confirmação. Confirmando, todos os empréstimos JÁ DEVOLVIDOS do leitor são removidos definitivamente. Os empréstimos ATIVOS (ainda não devolvidos) são preservados e continuam aparecendo no histórico.',
+        },
+        {
+          number: 4,
+          title: 'Excluir o leitor pela própria ficha',
+          detail:
+            'Com o histórico limpo (e sem reservas ativas pendentes), volte à ficha do leitor e use o botão de exclusão para remover o cadastro. Antes deste recurso, a ficha não podia ser apagada enquanto houvesse registros de empréstimo — é exatamente essa a finalidade da limpeza: liberar a exclusão do leitor pela ficha dele.',
+        },
+      ],
+      rules: [
+        'OPERAÇÃO ADMINISTRATIVA: o botão de lixeira aparece SOMENTE para quem está conectado como Administrador. Operadores (e demais papéis) não o veem no modal — a opção simplesmente não existe para eles.',
+        'A limpeza remove APENAS os empréstimos já devolvidos. Se o leitor tiver empréstimos ativos (não devolvidos), esses registros são preservados e o leitor CONTINUA BLOQUEADO para exclusão até que sejam devolvidos.',
+        'A exclusão do histórico libera a exclusão do leitor pela ficha do leitor: enquanto houvesse registros, o sistema impedia a exclusão do cadastro.',
+        'A operação é irreversível: os empréstimos devolvidos apagados não podem ser recuperados. Confira a lista antes de confirmar.',
+      ],
+      example: {
+        title: 'Exemplo: Desligamento de um leitor antigo da comunidade',
+        context:
+          'Um leitor antigo pediu a remoção do cadastro, mas a ficha não podia ser apagada porque havia anos de registros de empréstimos já devolvidos.',
+        action:
+          'O Administrador abre o modal "Histórico de Empréstimos" da ficha, clica no ícone de lixeira abaixo da foto do leitor e confirma a limpeza. Em seguida, exclui o leitor pela própria ficha.',
+        result:
+          'Os empréstimos já devolvidos são apagados, a ficha fica livre para exclusão e o leitor é removido da base. Se houvesse um livro ainda não devolvido, o cadastro seguiria bloqueado até a devolução.',
+        type: 'success',
+      },
+      systemMessages: [
+        {
+          text: 'Histórico de empréstimos excluído com sucesso.',
+          meaning:
+            'Os empréstimos já devolvidos foram removidos; se houver empréstimos ativos, eles continuam registrados e o leitor segue bloqueado para exclusão até a devolução.',
+        },
+        {
+          text: 'Não é possível excluir leitor com empréstimos ativos em andamento.',
+          meaning:
+            'O leitor ainda possui livros não devolvidos — esses registros são preservados. Devolva-os antes de excluir o cadastro.',
+        },
+      ],
+    },
+    {
+      id: 'op-leitores-limpeza-historico',
+      shortTitle: 'Limpar Histórico do Leitor',
+      title: 'Limpeza do Histórico de Empréstimos do Leitor (Exclusiva do Administrador)',
+      profile: 'operador',
+      category: 'Gestão de Leitores',
+      icon: Trash2,
+      screenUrl: '/leitores',
+      screenButtonText: 'Abrir Gestão de Leitores',
+      summary:
+        'Como remover, de forma definitiva, os empréstimos já devolvidos do histórico de um leitor para liberar a exclusão do cadastro dele pela própria ficha.',
+      prerequisites: [
+        'Estar conectado com o papel interno Administrador — operador e operador de diretoria não veem este recurso.',
+        'Ter o leitor sem nenhum empréstimo ativo em andamento (todos os livros já devolvidos).',
+      ],
+      steps: [
+        {
+          number: 1,
+          title: 'Abrir a ficha do leitor em Leitores (/leitores)',
+          detail:
+            'Na tela Leitores, localize o leitor e abra a ficha dele. Em seguida, acione o botão de histórico de empréstimos para abrir o modal "Histórico de Empréstimos", que lista todos os registros de empréstimos e devoluções daquele leitor.',
+        },
+        {
+          number: 2,
+          title: 'Localizar o botão de lixeira abaixo da foto do leitor',
+          detail:
+            'Dentro do modal "Histórico de Empréstimos", logo abaixo da foto do leitor, há um botão discreto — apenas o ícone de lixeira, em cinza claro, sem rótulo de texto.',
+          tip: 'Por ser discreto, o botão é fácil de passar despercebido: ele fica posicionado exatamente sob a foto, na lateral do cabeçalho do modal.',
+        },
+        {
+          number: 3,
+          title: 'Acionar a limpeza e confirmar',
+          detail:
+            'Clique no ícone de lixeira e confirme a operação. O sistema exclui definitivamente todos os empréstimos já devolvidos daquele leitor e exibe a confirmação "Histórico de empréstimos limpo com sucesso".',
+        },
+        {
+          number: 4,
+          title: 'Excluir o leitor pela ficha',
+          detail:
+            'Com o histórico liberado, volte à tela Leitores e use o botão de exclusão na ficha do leitor. Se ainda assim o sistema apontar impedimento, verifique se restam empréstimos ativos ou reservas pendentes (ver tópico "Bloquear e Excluir Leitor").',
+        },
+      ],
+      rules: [
+        'OPERAÇÃO ADMINISTRATIVA: o botão de lixeira do histórico só aparece para usuários com papel de Administrador. Operadores e operadores de diretoria não o veem — nem o botão, nem a ação.',
+        'A limpeza remove APENAS os empréstimos já devolvidos. São registros encerrados, sem pendência com o acervo.',
+        'Empréstimos ATIVOS (ainda não devolvidos) são SEMPRE preservados: se o leitor estiver com algum livro em posse, esses registros permanecem e o leitor continua bloqueado para exclusão até que sejam devolvidos.',
+        'A exclusão do histórico é definitiva e não pode ser desfeita — serve justamente para liberar a exclusão do leitor pela ficha dele, que antes não podia ser apagada enquanto houvesse registros de empréstimos.',
+      ],
+      example: {
+        title: 'Exemplo: Cadastrando uma ex-frequentadora sem vínculo ativo',
+        context:
+          'A leitora Marta devolveu todos os livros, pediu a remoção do cadastro e possui dezenas de empréstimos antigos no histórico.',
+        action:
+          'O Administrador abre o modal "Histórico de Empréstimos" da ficha de Marta, clica no ícone de lixeira abaixo da foto e confirma a limpeza. Em seguida, exclui o cadastro pela ficha.',
+        result:
+          'O histórico antigo é apagado e a exclusão da leitora é concluída sem erros, pois não restou nenhum registro que impedisse a operação.',
+        type: 'success',
+      },
+      systemMessages: [
+        {
+          text: 'Histórico de empréstimos limpo com sucesso.',
+          meaning:
+            'Os empréstimos já devolvidos do leitor foram excluídos; agora a exclusão do cadastro está liberada, desde que não existam empréstimos ativos nem reservas pendentes.',
+        },
+        {
+          text: 'Não é possível excluir leitor com empréstimos ativos em andamento.',
+          meaning:
+            'O leitor ainda possui livros em sua posse. Devolva-os antes — empréstimos ativos nunca são removidos pela limpeza do histórico.',
+        },
+      ],
     },
     {
       id: 'op-leitores-promocao-operador',
