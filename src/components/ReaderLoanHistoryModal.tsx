@@ -10,9 +10,22 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { EmprestimosService, EmprestimoDetailed } from '@/services/emprestimos'
 import { LeitorWithStats, Leitor } from '@/services/leitores'
 import { formatDate, formatDateTime } from '@/lib/utils'
+import { useAuth } from '@/hooks/use-auth'
+import { useToast } from '@/hooks/use-toast'
+import { supabase } from '@/lib/supabase/client'
 import {
   History,
   BookOpen,
@@ -26,6 +39,7 @@ import {
   BookMarked,
   User,
   ShieldAlert,
+  Trash2,
 } from 'lucide-react'
 
 interface ReaderLoanHistoryModalProps {
@@ -46,6 +60,36 @@ export function ReaderLoanHistoryModal({
   const [statusFilter, setStatusFilter] = useState<
     'todos' | 'em_aberto' | 'devolvidos' | 'atrasados'
   >('todos')
+  const { isAdmin } = useAuth()
+  const { toast } = useToast()
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false)
+  const [clearLoading, setClearLoading] = useState(false)
+
+  // Remove todos os registros de histórico do leitor (somente Administrador)
+  const handleClearHistory = async () => {
+    if (!reader) return
+    setClearLoading(true)
+    try {
+      const { error: delError } = await (supabase.from('historico' as any) as any)
+        .delete()
+        .eq('id_leitor', reader.id_leitor)
+      if (delError) throw delError
+      toast({
+        title: 'Histórico limpo',
+        description: `O histórico de ${reader.nome_do_leitor} foi excluído. O cadastro pode ser removido pela ficha do leitor.`,
+      })
+      setClearConfirmOpen(false)
+      setLoans([])
+    } catch (err: any) {
+      toast({
+        title: 'Não foi possível limpar o histórico',
+        description: err.message || 'Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setClearLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (open && reader?.id_leitor) {
@@ -118,38 +162,50 @@ export function ReaderLoanHistoryModal({
                   Consulta de todas as obras retiradas, datas de empréstimo/devolução e situação.
                 </DialogDescription>
               </div>
-
-              {reader && (
-                <div className="text-right shrink-0">
-                  {reader.bloqueado && (
-                    <Badge
-                      variant="outline"
-                      className="border-rose-200 bg-rose-50 text-rose-700 text-[10px] px-1.5 py-0"
-                    >
-                      Bloqueado
-                    </Badge>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Reader Card pill */}
             {reader && (
               <div className="mt-3 flex items-center gap-3 p-2.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs">
-                <Avatar className="w-9 h-9 border border-emerald-400/40 shrink-0">
-                  {reader.foto && <AvatarImage src={reader.foto} alt={reader.nome_do_leitor} />}
-                  <AvatarFallback className="bg-emerald-100 text-emerald-800 text-xs font-bold">
-                    {reader.nome_do_leitor ? reader.nome_do_leitor.slice(0, 2).toUpperCase() : 'L'}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="flex flex-col items-center gap-1 shrink-0">
+                  <Avatar className="w-9 h-9 border border-emerald-400/40 shrink-0">
+                    {reader.foto && <AvatarImage src={reader.foto} alt={reader.nome_do_leitor} />}
+                    <AvatarFallback className="bg-emerald-100 text-emerald-800 text-xs font-bold">
+                      {reader.nome_do_leitor
+                        ? reader.nome_do_leitor.slice(0, 2).toUpperCase()
+                        : 'L'}
+                    </AvatarFallback>
+                  </Avatar>
+                  {isAdmin && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      title="Limpar histórico do leitor"
+                      aria-label="Limpar histórico do leitor"
+                      onClick={() => setClearConfirmOpen(true)}
+                      className="h-6 w-6 text-slate-300 hover:text-slate-500 hover:bg-transparent"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-slate-900 text-sm truncate">
                       {reader.nome_do_leitor}
                     </span>
                     {(reader as any).acesso_diretoria && (
                       <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[9px] px-1.5 py-0 font-medium">
                         Diretoria
+                      </Badge>
+                    )}
+                    {reader.bloqueado && (
+                      <Badge
+                        variant="outline"
+                        className="border-rose-200 bg-rose-50 text-rose-700 text-[10px] px-1.5 py-0"
+                      >
+                        Bloqueado
                       </Badge>
                     )}
                   </div>
@@ -431,6 +487,31 @@ export function ReaderLoanHistoryModal({
           </Button>
         </div>
       </DialogContent>
+
+      <AlertDialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Limpar histórico do leitor?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todos os registros de histórico de {reader?.nome_do_leitor} serão excluídos
+              permanentemente. Essa ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={clearLoading}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={clearLoading}
+              onClick={(e) => {
+                e.preventDefault()
+                handleClearHistory()
+              }}
+              className="bg-rose-600 hover:bg-rose-700"
+            >
+              {clearLoading ? 'Excluindo...' : 'Excluir histórico'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   )
 }
