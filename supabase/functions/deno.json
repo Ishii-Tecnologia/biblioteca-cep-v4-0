@@ -1,11 +1,12 @@
 {
   "_versions": {
-    "validate-email-domain": 99,
-    "promover_leitor_operador": 4,
-    "process-expirations": 85,
-    "admin_reset_password": 337,
     "auditoria_mensal_expurgo": 207,
     "admin_create_user": 178,
-    "send_access_email": 110
+    "admin_reset_password": 337,
+    "storage_limpeza_orfaos": 1,
+    "promover_leitor_operador": 4,
+    "send_access_email": 110,
+    "validate-email-domain": 99,
+    "process-expirations": 85
   }
 }
