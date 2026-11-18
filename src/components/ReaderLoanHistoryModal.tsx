@@ -65,14 +65,17 @@ export function ReaderLoanHistoryModal({
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false)
   const [clearLoading, setClearLoading] = useState(false)
 
-  // Remove todos os registros de histórico do leitor (somente Administrador)
+  // Remove o histórico de empréstimos já devolvidos do leitor (somente Administrador).
+  // Empréstimos ativos são preservados: eles continuam bloqueando a exclusão do leitor.
   const handleClearHistory = async () => {
     if (!reader) return
     setClearLoading(true)
     try {
-      const { error: delError } = await (supabase.from('historico' as any) as any)
+      const { error: delError } = await supabase
+        .from('emprestimo')
         .delete()
         .eq('id_leitor', reader.id_leitor)
+        .not('data_devolucao_real', 'is', null)
       if (delError) throw delError
       toast({
         title: 'Histórico limpo',
