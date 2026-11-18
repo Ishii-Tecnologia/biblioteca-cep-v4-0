@@ -1063,6 +1063,13 @@ export default function Manual() {
           detail:
             'Acompanhe o log com registro padronizado de quem, quando e de/para qual estado ocorreu cada movimentação de exemplar, empréstimo e reserva no sistema.',
         },
+        {
+          number: 5,
+          title: 'Aba "Limpeza do Storage"',
+          detail:
+            'Organiza o armazenamento de capas de livros. Clique em "Verificar" para listar as capas órfãs (imagens que já não pertencem a nenhum título, como capas de livros excluídos ou versões antigas substituídas no upload), com a quantidade e o espaço que ocupam. A verificação não apaga nada. Para liberar o espaço, clique em "Limpar capas órfãs" e confirme no modal; a exclusão é definitiva. Capas em uso por qualquer título nunca são removidas.',
+          tip: 'Execute a verificação antes da limpeza para conferir o que será excluído.',
+        },
       ],
       rules: [
         'A alteração de parâmetros afeta imediatamente as novas transações no sistema.',

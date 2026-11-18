@@ -69,6 +69,7 @@ import { AuditoriaJobService, AuditoriaJobConfig } from '@/services/auditoria-jo
 import { ConfiguracoesParametrosSpecTab } from '@/components/ConfiguracoesParametrosSpecTab'
 import { FeriadosSpecTab } from '@/components/FeriadosSpecTab'
 import { AuditoriaTransicoesSpecTab } from '@/components/AuditoriaTransicoesSpecTab'
+import { StorageLimpezaSpecTab } from '@/components/StorageLimpezaSpecTab'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -1166,7 +1167,9 @@ export default function Configuracoes() {
       </div>
 
       <Tabs defaultValue="geral" className="w-full">
-        <TabsList className="grid grid-cols-2 sm:grid-cols-4 bg-muted p-1 w-full mb-6">
+        <TabsList
+          className={`grid grid-cols-2 ${isAdmin ? 'sm:grid-cols-5' : 'sm:grid-cols-4'} bg-muted p-1 w-full mb-6`}
+        >
           <TabsTrigger value="geral" className="text-xs">
             Parâmetros Gerais
           </TabsTrigger>
@@ -1179,6 +1182,11 @@ export default function Configuracoes() {
           <TabsTrigger value="auditoria" className="text-xs">
             Auditoria de Transições
           </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="storage" className="text-xs">
+              Limpeza do Storage
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="regras_spec">
@@ -1192,6 +1200,12 @@ export default function Configuracoes() {
         <TabsContent value="auditoria">
           <AuditoriaTransicoesSpecTab />
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="storage">
+            <StorageLimpezaSpecTab />
+          </TabsContent>
+        )}
 
         <TabsContent value="geral">
           {loading ? (
