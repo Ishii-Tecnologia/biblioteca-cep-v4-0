@@ -1,89 +1,101 @@
-import { describe, it, expect } from 'vitest'
-import { supabase } from '@/lib/supabase/client'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-describe('Validação no Banco ao Vivo: RPC atender_reserva', () => {
-  it('deve chamar atender_reserva e reverter as alterações sem o erro "record is not assigned yet"', async () => {
-    // Buscar o estado original da reserva 17 antes do teste
-    const { data: reservaAntes, error: reservaAntesErr } = await supabase
-      .from('reserva')
-      .select(
-        'id_reserva, id_titulo, id_leitor, status_reserva, status, exemplar_reservado_id, data_atendimento, data_limite_retirada, posicao_fila, ordem_fila',
-      )
-      .eq('id_reserva', 17)
-      .single()
+/**
+ * Teste do fluxo de atendimento de reserva (ReservasService.fulfill).
+ *
+ * ANTES: este teste chamava o Supabase de produção com o client real, alterando
+ * a reserva 17 e o exemplar DP-JA001-1 e tentando reverter no `finally`. Se a
+ * reversão falhasse, o acervo real ficava inconsistente — e qualquer execução
+ * de `vitest` mexia em dados de produção.
+ *
+ * AGORA: o client é mockado. O teste exercita a lógica do serviço (chamada da
+ * RPC, tratamento da resposta, registro no histórico) sem tocar em banco algum.
+ */
 
-    expect(reservaAntesErr).toBeNull()
-    expect(reservaAntes).toBeDefined()
-    expect(reservaAntes?.id_reserva).toBe(17)
+const rpcMock = vi.fn()
+const logMock = vi.fn()
 
-    // Buscar o estado original do exemplar do livro
-    const { data: exemplarAntes, error: exemplarAntesErr } = await supabase
-      .from('exemplar')
-      .select('id_exemplar, status')
-      .eq('id_exemplar', 'DP-JA001-1')
-      .single()
+vi.mock('@/lib/supabase/client', () => ({
+  supabase: {
+    rpc: (...args: any[]) => rpcMock(...args),
+    from: vi.fn(),
+  },
+}))
 
-    expect(exemplarAntesErr).toBeNull()
+vi.mock('@/services/historico', () => ({
+  HistoricoService: { log: (...args: any[]) => logMock(...args) },
+}))
 
-    let rpcResult: any = null
-    let rpcError: any = null
+vi.mock('@/services/parametros', () => ({
+  getTempoReservaGarantidaHoras: async () => 24,
+}))
 
-    try {
-      // Executa o RPC atender_reserva
-      const { data, error } = await (supabase.rpc as any)('atender_reserva', {
-        p_id_reserva: 17,
-        p_operador_nome: 'Teste Automatizado Vitest',
-      })
-      rpcResult = data
-      rpcError = error
+import { ReservasService } from '@/services/reservas'
 
-      // Deve ter executado com sucesso e retornado os dados esperados
-      expect(rpcError).toBeNull()
-      expect(rpcResult).toBeDefined()
+describe('ReservasService.fulfill', () => {
+  beforeEach(() => {
+    rpcMock.mockReset()
+    logMock.mockReset()
+    logMock.mockResolvedValue(undefined)
+  })
 
-      const res = typeof rpcResult === 'string' ? JSON.parse(rpcResult) : rpcResult
-      expect(res.success).toBe(true)
-      expect(res.id_reserva).toBe(17)
-      expect(res.id_exemplar).toBe('DP-JA001-1')
-      expect(res.status_exemplar).toBe('BLOQUEADO')
-      expect(res.status_emprestimo).toBe('PENDENTE_RETIRADA')
-      expect(res.mensagem).toContain('Reserva atendida com sucesso!')
-    } finally {
-      // ROLLBACK / RESTAURAÇÃO: Garantir que os dados do banco retornem exatamente ao estado original
-      if (rpcResult && rpcResult.id_emprestimo) {
-        // Remover empréstimo criado no teste
-        await supabase.from('emprestimo').delete().eq('id_emprestimo', rpcResult.id_emprestimo)
-      }
-
-      // Remover logs de auditoria criados durante o teste
-      await supabase
-        .from('auditoria_transicoes')
-        .delete()
-        .eq('operador_nome', 'Teste Automatizado Vitest')
-
-      // Restaurar estado do exemplar
-      if (exemplarAntes) {
-        await supabase
-          .from('exemplar')
-          .update({ status: exemplarAntes.status })
-          .eq('id_exemplar', 'DP-JA001-1')
-      }
-
-      // Restaurar estado da reserva 17
-      if (reservaAntes) {
-        await supabase
-          .from('reserva')
-          .update({
-            status_reserva: reservaAntes.status_reserva,
-            status: reservaAntes.status,
-            exemplar_reservado_id: reservaAntes.exemplar_reservado_id,
-            data_atendimento: reservaAntes.data_atendimento,
-            data_limite_retirada: reservaAntes.data_limite_retirada,
-            posicao_fila: reservaAntes.posicao_fila,
-            ordem_fila: reservaAntes.ordem_fila,
-          })
-          .eq('id_reserva', 17)
-      }
+  it('atende a reserva pela RPC transacional e registra a transição no histórico', async () => {
+    const respostaRpc = {
+      success: true,
+      id_reserva: 17,
+      id_exemplar: 'DP-JA001-1',
+      status_exemplar: 'BLOQUEADO',
+      status_emprestimo: 'PENDENTE_RETIRADA',
+      id_leitor: 42,
+      livro_titulo: 'O Pequeno Príncipe',
+      leitor_nome: 'Leitor de Teste',
+      mensagem: 'Reserva atendida com sucesso!',
     }
+
+    rpcMock.mockResolvedValue({ data: respostaRpc, error: null })
+
+    const resultado = await ReservasService.fulfill(17, 'Operador de Teste')
+
+    // A RPC é chamada com os parâmetros corretos e nada mais
+    expect(rpcMock).toHaveBeenCalledWith('atender_reserva', {
+      p_id_reserva: 17,
+      p_operador_nome: 'Operador de Teste',
+    })
+
+    // A resposta da RPC é devolvida intacta para a camada de UI
+    expect(resultado).toEqual(respostaRpc)
+    expect(resultado.success).toBe(true)
+    expect(resultado.status_exemplar).toBe('BLOQUEADO')
+    expect(resultado.status_emprestimo).toBe('PENDENTE_RETIRADA')
+
+    // O histórico recebe o exemplar e o leitor corretos
+    expect(logMock).toHaveBeenCalledTimes(1)
+    const [entidadeId, , leitorId] = logMock.mock.calls[0]
+    expect(entidadeId).toBe('DP-JA001-1')
+    expect(leitorId).toBe(42)
+  })
+
+  it('aceita resposta da RPC serializada como string JSON', async () => {
+    rpcMock.mockResolvedValue({
+      data: JSON.stringify({ success: true, id_reserva: 17, id_exemplar: 'DP-JA001-1' }),
+      error: null,
+    })
+
+    const resultado = await ReservasService.fulfill(17)
+
+    expect(resultado.success).toBe(true)
+    expect(resultado.id_exemplar).toBe('DP-JA001-1')
+  })
+
+  it('propaga o erro da RPC quando não é "função inexistente"', async () => {
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: { message: 'O leitor está BLOQUEADO e não pode receber empréstimos.' },
+    })
+
+    await expect(ReservasService.fulfill(17)).rejects.toThrow(
+      'O leitor está BLOQUEADO e não pode receber empréstimos.',
+    )
+    expect(logMock).not.toHaveBeenCalled()
   })
 })

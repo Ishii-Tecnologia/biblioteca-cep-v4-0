@@ -38,23 +38,35 @@ export const AuditoriaTransicoesService = {
     return (data as AuditoriaTransicao[]) || []
   },
 
+  /**
+   * Registra uma transição de estado na trilha de auditoria.
+   *
+   * A escrita direta na tabela foi revogada (a policy de INSERT com
+   * `WITH CHECK (true)` permitia que qualquer usuário autenticado forjasse
+   * registros). O único caminho é a RPC `app_registrar_auditoria`, que:
+   *   - exige staff (admin/operador) no servidor;
+   *   - deriva o operador de auth.uid() e public.profiles, ignorando qualquer
+   *     identidade enviada pelo cliente.
+   *
+   * O parâmetro `operadorNome` é mantido só por compatibilidade de assinatura e
+   * não é enviado ao banco: quem assina o registro é o usuário logado.
+   */
   async registrar(
     entidade: string,
     registroId: string,
     estadoAnterior: string | null,
     estadoNovo: string,
-    operadorNome: string = 'Sistema',
+    _operadorNome: string = 'Sistema',
     motivo?: string,
     payload?: any,
   ): Promise<void> {
-    const { error } = await supabase.from('auditoria_transicoes').insert({
-      entidade,
-      registro_id: String(registroId),
-      estado_anterior: estadoAnterior,
-      estado_novo: estadoNovo,
-      operador_nome: operadorNome,
-      motivo: motivo || null,
-      payload: payload || null,
+    const { error } = await (supabase.rpc as any)('app_registrar_auditoria', {
+      p_entidade: entidade,
+      p_registro_id: String(registroId),
+      p_estado_anterior: estadoAnterior,
+      p_estado_novo: estadoNovo,
+      p_motivo: motivo || null,
+      p_payload: payload || null,
     })
 
     if (error) console.warn('Erro ao registrar transição de estado:', error)
