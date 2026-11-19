@@ -134,7 +134,11 @@ export const CopiesModal: React.FC<CopiesModalProps> = ({ isOpen, onClose, book,
     setEditStatus(copy.status)
     setEditLocation(copy.localizacao || '')
     setEditObservacao('')
-    setEditCondicao(getCondicaoLabel((copy as any).condicao))
+    // Pré-preencher com a condição atual do exemplar (normalizada para um valor válido da lista)
+    const condicaoAtual = EXEMPLAR_CONDICOES.includes((copy.condicao ?? '') as any)
+      ? (copy.condicao as string)
+      : EXEMPLAR_CONDICOES[1]
+    setEditCondicao(condicaoAtual)
   }
 
   const handleCancelEdit = () => {
@@ -162,7 +166,7 @@ export const CopiesModal: React.FC<CopiesModalProps> = ({ isOpen, onClose, book,
       )
       toast({
         title: 'Exemplar atualizado',
-        description: `Exemplar ${copyId} atualizado para status "${editStatus}".`,
+        description: `Exemplar ${copyId} atualizado: status "${editStatus}", condição "${editCondicao}".`,
       })
       handleCancelEdit()
       await loadCopies()
@@ -477,7 +481,7 @@ export const CopiesModal: React.FC<CopiesModalProps> = ({ isOpen, onClose, book,
                                 (Exemplar #{copy.seq})
                               </span>
                               {getStatusBadge(copy.status)}
-                              {getCondicaoBadge((copy as any).condicao)}
+                              {getCondicaoBadge(copy.condicao)}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               Localização:{' '}
