@@ -45,7 +45,7 @@ BEGIN
       FROM auth.users u
      WHERE coalesce(u.encrypted_password, '') <> ''
        -- A conta ainda usa exatamente a senha publicada?
-       AND u.encrypted_password = extensions.crypt(v_senha_publicada, u.encrypted_password)
+       AND u.encrypted_password::text = extensions.crypt(v_senha_publicada, u.encrypted_password::text)
   LOOP
     -- Senha aleatória de 32 bytes em base64: ninguém a conhece, nem o repositório.
     v_nova_senha := encode(extensions.gen_random_bytes(24), 'base64');
