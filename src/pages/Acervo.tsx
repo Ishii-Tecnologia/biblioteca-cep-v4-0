@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { TitulosService, TituloWithStats, Titulo, TotaisAcervo } from '@/services/titulos'
@@ -54,6 +54,7 @@ import { CsvImportModal } from '@/components/CsvImportModal'
 import { BookCoverLightboxModal } from '@/components/BookCoverLightboxModal'
 import { BarcodeScannerModal } from '@/components/BarcodeScannerModal'
 import { ConfirmModal } from '@/components/ConfirmModal'
+import AlphabetRuler, { getInitialKey } from '@/components/AlphabetRuler'
 import { Barcode, Camera } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useHeaderCounters } from '@/hooks/use-header-counters'
@@ -159,6 +160,7 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
   const [selectedStatus, setSelectedStatus] = useState<string>(initialStatus)
   const [selectedAuthorFilter, setSelectedAuthorFilter] = useState<string>(initialAuthorFilter)
   const [selectedCoverFilter, setSelectedCoverFilter] = useState<string>(initialCoverFilter)
+  const [selectedInitial, setSelectedInitial] = useState<string | null>(null)
 
   // Modals state
   const [bookModalOpen, setBookModalOpen] = useState(false)
@@ -347,6 +349,7 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
     setSelectedStatus('all')
     setSelectedAuthorFilter('all')
     setSelectedCoverFilter('all')
+    setSelectedInitial(null)
     setSearchParams({}, { replace: true })
   }
 
@@ -354,6 +357,26 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
     setSearchQuery('')
     setDebouncedQuery('')
     updateFiltersUrl('', undefined, undefined, undefined, undefined)
+  }
+
+  // Régua alfabética: iniciais disponíveis derivadas dos títulos já carregados
+  const availableInitials = useMemo(() => {
+    const set = new Set<string>()
+    for (const b of books) {
+      const key = getInitialKey(b.titulo_de_livro)
+      if (key) set.add(key)
+    }
+    return set
+  }, [books])
+
+  // Filtro alfabético cumulativo (client-side) sobre o resultado dos filtros do servidor
+  const filteredBooks = useMemo(() => {
+    if (!selectedInitial) return books
+    return books.filter((b) => getInitialKey(b.titulo_de_livro) === selectedInitial)
+  }, [books, selectedInitial])
+
+  const handleSelectInitial = (value: string | null) => {
+    setSelectedInitial(value)
   }
 
   const handleEditBook = (book: TituloWithStats) => {
@@ -735,6 +758,25 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
             </div>
           </form>
 
+          {/* Régua alfabética (A–Z + numerais) abaixo dos quadros de filtros */}
+          <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider shrink-0">
+                Inicial do título:
+              </span>
+              {selectedInitial && (
+                <span className="text-[11px] text-slate-400">
+                  exibindo títulos que começam com "{selectedInitial}"
+                </span>
+              )}
+            </div>
+            <AlphabetRuler
+              availableInitials={availableInitials}
+              selected={selectedInitial}
+              onSelect={handleSelectInitial}
+            />
+          </div>
+
           {/* Active filter tags/pills */}
           {(selectedStatus !== 'all' ||
             selectedCategory !== 'all' ||
@@ -874,7 +916,7 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
             Buscando títulos no banco de dados...
           </p>
         </div>
-      ) : books.length === 0 ? (
+      ) : filteredBooks.length === 0 ? (
         <Card className="border-dashed border-2 border-slate-200 p-12 text-center bg-slate-50/50">
           <div className="max-w-md mx-auto space-y-3">
             <BookOpen className="w-12 h-12 text-slate-300 mx-auto" />
@@ -896,7 +938,7 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {books.map((book) => {
+          {filteredBooks.map((book) => {
             const hasAvailable = book.exemplares_disponiveis > 0
             const hasCover = !!book.capa_url
 
