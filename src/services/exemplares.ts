@@ -20,6 +20,12 @@ export interface ExemplarWithTitulo extends Exemplar {
   }
 }
 
+export const EXEMPLAR_CONDICOES = ['Ótimo', 'Bom', 'Regular', 'Ruim', 'Péssimo'] as const
+export type ExemplarCondicao = (typeof EXEMPLAR_CONDICOES)[number]
+
+/** Rótulo exibido em listagens — legado ('Bom' default) e novos valores */
+export const getCondicaoLabel = (condicao?: string | null) => condicao || EXEMPLAR_CONDICOES[1]
+
 export const ExemplaresService = {
   async getByTitulo(id_titulo: string) {
     const { data, error } = await supabase
@@ -56,6 +62,7 @@ export const ExemplaresService = {
     localizacao = 'Estante Geral',
     quantidade = 1,
     operador?: { nome?: string; id?: string },
+    condicao: string = EXEMPLAR_CONDICOES[1],
   ) {
     // Buscar dados do título para log rico
     const { data: tituloData } = await supabase
@@ -84,6 +91,7 @@ export const ExemplaresService = {
         seq: seq,
         status: 'DISPONIVEL',
         localizacao: localizacao,
+        condicao: condicao,
       })
     }
 
@@ -105,7 +113,7 @@ export const ExemplaresService = {
             nomeOp,
             'exemplar',
             idOp,
-            `Localização: ${localizacao}`,
+            `Localização: ${localizacao}; Condição: ${condicao}`,
           )
         }
       }
@@ -126,6 +134,7 @@ export const ExemplaresService = {
     observacao?: string,
     operatorName = 'Sistema',
     explicitUserId?: string | null,
+    condicao?: string,
   ) {
     // Normalizar status para Manutencao
     const finalStatus = status === 'EM_MANUTENCAO' ? 'Manutencao' : status
@@ -133,6 +142,9 @@ export const ExemplaresService = {
     const updateObj: ExemplarUpdate = { status: finalStatus }
     if (localizacao !== undefined) {
       updateObj.localizacao = localizacao
+    }
+    if (condicao !== undefined) {
+      updateObj.condicao = condicao
     }
 
     // Buscar título e dados atuais para log rico
@@ -196,6 +208,18 @@ export const ExemplaresService = {
           'Alteração de Exemplar',
           null,
           `Alteração de status do exemplar ${id_exemplar} ("${bookTitle}"): ${currentEx?.status || '-'} ➔ ${finalStatus}${obsText}`,
+          operatorName,
+          'exemplar',
+          explicitUserId,
+          obsClean,
+        )
+      } else if (condicao !== undefined && condicao !== (currentEx as any)?.condicao) {
+        // Alteração apenas da condição de conservação
+        await HistoricoService.log(
+          id_exemplar,
+          'Alteração de Exemplar',
+          null,
+          `Alteração da condição de conservação do exemplar ${id_exemplar} ("${bookTitle}"): "${getCondicaoLabel((currentEx as any)?.condicao)}" ➔ "${condicao}"`,
           operatorName,
           'exemplar',
           explicitUserId,

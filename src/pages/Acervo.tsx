@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { TitulosService, TituloWithStats, Titulo, TotaisAcervo } from '@/services/titulos'
 import { ExemplaresService } from '@/services/exemplares'
@@ -1203,6 +1204,24 @@ export default function Acervo({ colecao = 'geral' }: AcervoProps) {
         onSuccess={loadBooks}
         categories={categories}
         colecao={colecao}
+        onCreated={async (created) => {
+          // Recarrega o acervo e abre a ficha de exemplares do livro recém-criado
+          await loadBooks()
+          const { data } = await supabase
+            .from('titulo')
+            .select('*')
+            .eq('id_titulo', created.id_titulo)
+            .maybeSingle()
+          if (data) {
+            setSelectedBookForCopies(data as any)
+            setCopiesModalOpen(true)
+            toast({
+              title: 'Ajuste a condição do exemplar',
+              description:
+                'Ficha de exemplares aberta. A condição padrão é "Bom" — ajuste se necessário.',
+            })
+          }
+        }}
       />
 
       <BarcodeScannerModal

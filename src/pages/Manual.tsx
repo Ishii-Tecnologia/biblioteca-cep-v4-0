@@ -718,18 +718,33 @@ export default function Manual() {
           number: 6,
           title: 'Gerenciar Exemplares Avulsos',
           detail:
-            'Posteriormente, no card do livro no Acervo, clique no botão "Exemplares" para adicionar novas cópias, alterar status (Disponível, Em Manutenção, Danificado) ou excluir cópias que não estejam emprestadas.',
+            'Posteriormente, no card do livro no Acervo, clique no botão "Exemplares" para adicionar novas cópias, alterar status (Disponível, Em Manutenção, Danificado), ajustar a condição de conservação ou excluir cópias que não estejam emprestadas.',
+        },
+        {
+          number: 7,
+          title: 'Condição de Conservação do Exemplar',
+          detail:
+            'Cada exemplar físico possui sua própria condição de conservação, definida no modal "Gerenciar Exemplares". As opções são: Ótimo, Bom, Regular, Ruim e Péssimo — o padrão do sistema é "Bom". No formulário de inclusão de novos exemplares, escolha a condição antes de salvar; para alterar a condição de um exemplar existente, clique em "Alterar Status" e ajuste o seletor "Condição". A condição de cada exemplar aparece como uma etiqueta (badge) colorida na listagem do modal.',
+        },
+        {
+          number: 8,
+          title: 'Ficha de Exemplares abre automaticamente ao criar um livro novo',
+          detail:
+            'Ao finalizar a inclusão de um livro NOVO no Acervo, o modal "Gerenciar Exemplares" desse livro recém-criado abre automaticamente, com a condição "Bom" já aplicada por padrão — basta ajustar se necessário. Essa abertura automática acontece apenas na criação: ao EDITAR um livro existente, a ficha de exemplares não é aberta.',
         },
       ],
       rules: [
         'A Biblioteca Cecília Braga é de livre acesso a todos os leitores cadastrados.',
         'A Biblioteca Rino Curti é restrita: apenas leitores com a marcação "Acesso Diretoria" podem solicitar ou retirar livros dela.',
+        'A condição de conservação é por exemplar: exemplares do mesmo livro podem ter condições diferentes (ex: um "Ótimo" e outro "Ruim").',
       ],
       example: {
         title: 'Exemplo: Adição de 3 exemplares de "O Evangelho Segundo o Espiritismo"',
         context: 'Livro de Allan Kardec código AK-002 para o acervo Cecília Braga.',
-        action: 'Operador cadastra a obra com 3 exemplares físicos.',
-        result: 'Criados os exemplares AK-002-1, AK-002-2 e AK-002-3 com status DISPONÍVEL.',
+        action:
+          'Operador cadastra a obra com 3 exemplares físicos e, na ficha aberta automaticamente, deixa a condição padrão "Bom".',
+        result:
+          'Criados os exemplares AK-002-1, AK-002-2 e AK-002-3 com status DISPONÍVEL e condição "Bom".',
         type: 'success',
       },
     },

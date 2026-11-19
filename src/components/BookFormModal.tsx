@@ -55,6 +55,8 @@ interface BookFormModalProps {
   bookToEdit?: TituloWithStats | Titulo | null
   categories?: string[]
   colecao?: 'geral' | 'diretoria'
+  /** Chamado apenas quando um livro NOVO é criado, com os dados do título criado */
+  onCreated?: (created: { id_titulo: string; titulo_de_livro: string }) => void
 }
 
 export const BookFormModal: React.FC<BookFormModalProps> = ({
@@ -64,6 +66,7 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
   bookToEdit,
   categories: initialCategories,
   colecao = 'geral',
+  onCreated,
 }) => {
   const { toast } = useToast()
   const { profile, user } = useAuth()
@@ -846,6 +849,8 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
           title: 'Obra cadastrada',
           description: `"${tituloDeLivro}" foi adicionado com ${numExemplares} exemplar(es).`,
         })
+        // Livro novo criado: notifica o responsável (ex.: para abrir a ficha de exemplares)
+        onCreated?.({ id_titulo: payload.id_titulo, titulo_de_livro: payload.titulo_de_livro })
       }
 
       onSuccess()

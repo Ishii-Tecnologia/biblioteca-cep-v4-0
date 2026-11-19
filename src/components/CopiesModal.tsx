@@ -18,7 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ExemplaresService, Exemplar } from '@/services/exemplares'
+import {
+  ExemplaresService,
+  Exemplar,
+  EXEMPLAR_CONDICOES,
+  getCondicaoLabel,
+} from '@/services/exemplares'
 import { TituloWithStats } from '@/services/titulos'
 import { Plus, Trash2, Edit2, Check, X, Loader2, AlertTriangle, Wrench } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
@@ -45,12 +50,14 @@ export const CopiesModal: React.FC<CopiesModalProps> = ({ isOpen, onClose, book,
   // Add copies form
   const [newCopiesQty, setNewCopiesQty] = useState(1)
   const [newCopiesLocation, setNewCopiesLocation] = useState('Estante Geral')
+  const [newCopiesCondicao, setNewCopiesCondicao] = useState<string>(EXEMPLAR_CONDICOES[1])
 
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editStatus, setEditStatus] = useState<string>('')
   const [editLocation, setEditLocation] = useState<string>('')
   const [editObservacao, setEditObservacao] = useState<string>('')
+  const [editCondicao, setEditCondicao] = useState<string>(EXEMPLAR_CONDICOES[1])
   const [savingEdit, setSavingEdit] = useState(false)
 
   // Delete confirm state
@@ -95,12 +102,19 @@ export const CopiesModal: React.FC<CopiesModalProps> = ({ isOpen, onClose, book,
         nome: profile?.nome || profile?.full_name || profile?.email || user?.email || 'Operador',
         id: user?.id || profile?.id,
       }
-      await ExemplaresService.create(book.id_titulo, newCopiesLocation, newCopiesQty, operadorInfo)
+      await ExemplaresService.create(
+        book.id_titulo,
+        newCopiesLocation,
+        newCopiesQty,
+        operadorInfo,
+        newCopiesCondicao,
+      )
       toast({
         title: 'Exemplares adicionados',
         description: `${newCopiesQty} novo(s) exemplar(es) criado(s).`,
       })
       setNewCopiesQty(1)
+      setNewCopiesCondicao(EXEMPLAR_CONDICOES[1])
       await loadCopies()
       onUpdate()
       refreshCounters()
@@ -120,6 +134,7 @@ export const CopiesModal: React.FC<CopiesModalProps> = ({ isOpen, onClose, book,
     setEditStatus(copy.status)
     setEditLocation(copy.localizacao || '')
     setEditObservacao('')
+    setEditCondicao(getCondicaoLabel((copy as any).condicao))
   }
 
   const handleCancelEdit = () => {
@@ -127,6 +142,7 @@ export const CopiesModal: React.FC<CopiesModalProps> = ({ isOpen, onClose, book,
     setEditStatus('')
     setEditLocation('')
     setEditObservacao('')
+    setEditCondicao(EXEMPLAR_CONDICOES[1])
   }
 
   const handleSaveEdit = async (copyId: string) => {
@@ -142,6 +158,7 @@ export const CopiesModal: React.FC<CopiesModalProps> = ({ isOpen, onClose, book,
         editObservacao,
         operatorName,
         operatorId,
+        editCondicao,
       )
       toast({
         title: 'Exemplar atualizado',
@@ -193,6 +210,39 @@ export const CopiesModal: React.FC<CopiesModalProps> = ({ isOpen, onClose, book,
       })
     } finally {
       setDeleteLoading(false)
+    }
+  }
+
+  // Cores da badge de condição de conservação (verde = melhor estado → vermelho = pior)
+  const getCondicaoBadge = (condicao?: string | null) => {
+    const label = getCondicaoLabel(condicao)
+    switch (label) {
+      case 'Ótimo':
+        return (
+          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">
+            Condição: Ótimo
+          </Badge>
+        )
+      case 'Bom':
+        return (
+          <Badge className="bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30">
+            Condição: Bom
+          </Badge>
+        )
+      case 'Regular':
+        return (
+          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30">
+            Condição: Regular
+          </Badge>
+        )
+      case 'Ruim':
+        return (
+          <Badge className="bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30">
+            Condição: Ruim
+          </Badge>
+        )
+      default:
+        return <Badge variant="destructive">Condição: Péssimo</Badge>
     }
   }
 
@@ -254,7 +304,7 @@ export const CopiesModal: React.FC<CopiesModalProps> = ({ isOpen, onClose, book,
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <Plus className="w-3.5 h-3.5" /> Adicionar Novos Exemplares
               </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
                 <div className="space-y-1">
                   <Label className="text-xs font-medium">Quantidade</Label>
                   <Input
@@ -274,6 +324,21 @@ export const CopiesModal: React.FC<CopiesModalProps> = ({ isOpen, onClose, book,
                     placeholder="Ex: Estante A, Gaveta 2"
                     className="text-sm"
                   />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Condição</Label>
+                  <Select value={newCopiesCondicao} onValueChange={(v) => setNewCopiesCondicao(v)}>
+                    <SelectTrigger className="text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EXEMPLAR_CONDICOES.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button type="submit" disabled={adding} className="gap-1.5 w-full text-xs h-9">
                   {adding ? (
@@ -370,6 +435,22 @@ export const CopiesModal: React.FC<CopiesModalProps> = ({ isOpen, onClose, book,
                                 placeholder="Estante..."
                               />
                             </div>
+
+                            <div className="space-y-1">
+                              <Label className="text-xs font-medium">Condição</Label>
+                              <Select value={editCondicao} onValueChange={setEditCondicao}>
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {EXEMPLAR_CONDICOES.map((c) => (
+                                    <SelectItem key={c} value={c}>
+                                      {c}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </div>
 
                           {/* Campo de observação para Histórico Geral (F-03) */}
@@ -396,6 +477,7 @@ export const CopiesModal: React.FC<CopiesModalProps> = ({ isOpen, onClose, book,
                                 (Exemplar #{copy.seq})
                               </span>
                               {getStatusBadge(copy.status)}
+                              {getCondicaoBadge((copy as any).condicao)}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               Localização:{' '}
