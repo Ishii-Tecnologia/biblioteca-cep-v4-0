@@ -19,13 +19,29 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu'
+import {
   ExemplaresService,
   Exemplar,
   EXEMPLAR_CONDICOES,
   getCondicaoLabel,
 } from '@/services/exemplares'
 import { TituloWithStats } from '@/services/titulos'
-import { Plus, Trash2, Edit2, Check, X, Loader2, AlertTriangle, Wrench } from 'lucide-react'
+import {
+  Plus,
+  Trash2,
+  Edit2,
+  Check,
+  X,
+  Loader2,
+  AlertTriangle,
+  Wrench,
+  ChevronDown,
+} from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/use-auth'
 import { useHeaderCounters } from '@/hooks/use-header-counters'
@@ -64,6 +80,8 @@ export const CopiesModal: React.FC<CopiesModalProps> = ({ isOpen, onClose, book,
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [copyToDelete, setCopyToDelete] = useState<Exemplar | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  // Id do exemplar com troca de condição em andamento (selo da listagem)
+  const [savingCondicaoId, setSavingCondicaoId] = useState<string | null>(null)
 
   const { isOperadorOrAdmin } = useAuth()
 
@@ -218,36 +236,107 @@ export const CopiesModal: React.FC<CopiesModalProps> = ({ isOpen, onClose, book,
   }
 
   // Cores da badge de condição de conservação (verde = melhor estado → vermelho = pior)
-  const getCondicaoBadge = (condicao?: string | null) => {
-    const label = getCondicaoLabel(condicao)
-    switch (label) {
-      case 'Ótimo':
-        return (
-          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">
-            Condição: Ótimo
-          </Badge>
-        )
-      case 'Bom':
-        return (
-          <Badge className="bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30">
-            Condição: Bom
-          </Badge>
-        )
-      case 'Regular':
-        return (
-          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30">
-            Condição: Regular
-          </Badge>
-        )
-      case 'Ruim':
-        return (
-          <Badge className="bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30">
-            Condição: Ruim
-          </Badge>
-        )
-      default:
-        return <Badge variant="destructive">Condição: Péssimo</Badge>
+  const CONDICAO_BADGE_CLASSES: Record<string, string> = {
+    Ótimo: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
+    Bom: 'bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30',
+    Regular: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30',
+    Ruim: 'bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30',
+    Péssimo: 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30',
+  }
+
+  const getCondicaoBadgeClasses = (condicao?: string | null) =>
+    CONDICAO_BADGE_CLASSES[getCondicaoLabel(condicao)] || CONDICAO_BADGE_CLASSES['Bom']
+
+  // Troca rápida de condição direto no selo da listagem (atalho — a edição completa
+  // pelo formulário do lápis continua disponível). Persiste via updateStatus,
+  // que grava o log "Alteração de Exemplar" no histórico quando só a condição muda.
+  const handleChangeCondicao = async (copy: Exemplar, novaCondicao: string) => {
+    const condicaoAtual = copy.condicao || EXEMPLAR_CONDICOES[1]
+    if (novaCondicao === condicaoAtual) return
+
+    // Atualização otimista: mostra o selo novo na hora; reverte se falhar
+    setSavingCondicaoId(copy.id_exemplar)
+    setCopies((prev) =>
+      prev.map((c) => (c.id_exemplar === copy.id_exemplar ? { ...c, condicao: novaCondicao } : c)),
+    )
+
+    try {
+      const operatorName =
+        profile?.nome || profile?.full_name || profile?.email || user?.email || 'Operador'
+      const operatorId = user?.id || profile?.id || null
+      await ExemplaresService.updateStatus(
+        copy.id_exemplar,
+        copy.status,
+        copy.localizacao ?? undefined,
+        undefined,
+        operatorName,
+        operatorId,
+        novaCondicao,
+      )
+      toast({
+        title: 'Condição atualizada',
+        description: `Exemplar ${copy.id_exemplar}: condição alterada para "${novaCondicao}".`,
+      })
+      await loadCopies()
+      onUpdate()
+      refreshCounters()
+    } catch (err: any) {
+      // Reverter ao valor anterior
+      setCopies((prev) =>
+        prev.map((c) =>
+          c.id_exemplar === copy.id_exemplar ? { ...c, condicao: condicaoAtual } : c,
+        ),
+      )
+      toast({
+        title: 'Erro ao atualizar condição',
+        description: err.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingCondicaoId(null)
     }
+  }
+
+  // Selo de condição clicável: abre dropdown com as 5 opções; a atual fica marcada.
+  // Para leitores (sem permissão de edição), o selo é renderizado estático.
+  const renderCondicaoBadge = (copy: Exemplar) => {
+    const badge = (
+      <Badge
+        className={`${getCondicaoBadgeClasses(copy.condicao)} ${
+          isOperadorOrAdmin ? 'cursor-pointer hover:brightness-95 gap-1' : ''
+        }`}
+      >
+        Condição: {getCondicaoLabel(copy.condicao)}
+        {isOperadorOrAdmin && <ChevronDown className="w-3 h-3 opacity-70" />}
+      </Badge>
+    )
+
+    if (!isOperadorOrAdmin) return badge
+
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>{badge}</DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="min-w-[9rem]">
+          {EXEMPLAR_CONDICOES.map((c) => {
+            const isCurrent = c === getCondicaoLabel(copy.condicao)
+            return (
+              <DropdownMenuItem
+                key={c}
+                disabled={isCurrent || savingCondicaoId === copy.id_exemplar}
+                className="text-xs gap-2"
+                onSelect={() => handleChangeCondicao(copy, c)}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full shrink-0 ${getCondicaoBadgeClasses(c).split(' ')[0]}`}
+                />
+                {c}
+                {isCurrent && <Check className="w-3.5 h-3.5 ml-auto text-emerald-600" />}
+              </DropdownMenuItem>
+            )
+          })}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
   }
 
   const getStatusBadge = (status: string) => {
@@ -481,7 +570,7 @@ export const CopiesModal: React.FC<CopiesModalProps> = ({ isOpen, onClose, book,
                                 (Exemplar #{copy.seq})
                               </span>
                               {getStatusBadge(copy.status)}
-                              {getCondicaoBadge(copy.condicao)}
+                              {renderCondicaoBadge(copy)}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               Localização:{' '}
