@@ -6,6 +6,7 @@ import { AuthProvider } from '@/hooks/use-auth'
 import { HeaderCountersProvider } from '@/hooks/use-header-counters'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
+import ErrorBoundary from './components/ErrorBoundary'
 import Index from './pages/Index'
 import Acervo from './pages/Acervo'
 import AcervoDiretoria from './pages/AcervoDiretoria'
@@ -31,107 +32,109 @@ const App = () => (
           <Toaster />
           <Sonner />
           <Layout>
-            <Routes>
-              {/* Rotas Públicas */}
-              <Route path="/" element={<Index />} />
-              <Route path="/acervo" element={<Acervo />} />
-              <Route
-                path="/acervo-diretoria"
-                element={
-                  <ProtectedRoute requireDiretoria>
-                    <AcervoDiretoria />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/login" element={<Login />} />
-              <Route path="/redefinir-senha" element={<RedefinirSenha />} />
-              <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
+            <ErrorBoundary>
+              <Routes>
+                {/* Rotas Públicas */}
+                <Route path="/" element={<Index />} />
+                <Route path="/acervo" element={<Acervo />} />
+                <Route
+                  path="/acervo-diretoria"
+                  element={
+                    <ProtectedRoute requireDiretoria>
+                      <AcervoDiretoria />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/login" element={<Login />} />
+                <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+                <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
 
-              {/* Rotas Autenticadas */}
-              <Route
-                path="/emprestimos"
-                element={
-                  <ProtectedRoute>
-                    <Emprestimos />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/reservas"
-                element={
-                  <ProtectedRoute>
-                    <Reservas />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/leitores"
-                element={
-                  <ProtectedRoute>
-                    <Leitores />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/historico"
-                element={
-                  <ProtectedRoute requireOperator>
-                    <Historico />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/logs"
-                element={
-                  <ProtectedRoute requireOperator>
-                    <Historico />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/usuarios"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <Usuarios />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/configuracoes"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <Configuracoes />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/manual"
-                element={
-                  <ProtectedRoute requireOperator>
-                    <Manual />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/primeiros-passos"
-                element={
-                  <ProtectedRoute requireOperator>
-                    <PrimeirosPassos />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/especificacoes-tecnicas"
-                element={
-                  <ProtectedRoute requireOperator>
-                    <EspecificacoesTecnicas />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Rotas Autenticadas */}
+                <Route
+                  path="/emprestimos"
+                  element={
+                    <ProtectedRoute>
+                      <Emprestimos />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/reservas"
+                  element={
+                    <ProtectedRoute>
+                      <Reservas />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/leitores"
+                  element={
+                    <ProtectedRoute>
+                      <Leitores />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/historico"
+                  element={
+                    <ProtectedRoute requireOperator>
+                      <Historico />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/logs"
+                  element={
+                    <ProtectedRoute requireOperator>
+                      <Historico />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/usuarios"
+                  element={
+                    <ProtectedRoute requireAdmin>
+                      <Usuarios />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/configuracoes"
+                  element={
+                    <ProtectedRoute requireAdmin>
+                      <Configuracoes />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/manual"
+                  element={
+                    <ProtectedRoute requireOperator>
+                      <Manual />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/primeiros-passos"
+                  element={
+                    <ProtectedRoute requireOperator>
+                      <PrimeirosPassos />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/especificacoes-tecnicas"
+                  element={
+                    <ProtectedRoute requireOperator>
+                      <EspecificacoesTecnicas />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Fallback */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                {/* Fallback */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </ErrorBoundary>
           </Layout>
         </TooltipProvider>
       </HeaderCountersProvider>

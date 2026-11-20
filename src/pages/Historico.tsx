@@ -85,10 +85,20 @@ export default function Historico() {
   const { profile } = useAuth()
   const { toast } = useToast()
 
-  // Tab state
-  const [activeTab, setActiveTab] = useState<
-    'logs' | 'leitores' | 'titulos' | 'usuarios' | 'movimentacoes' | 'condicoes'
-  >((searchParams.get('tab') as any) || 'logs')
+  // Tab state — valida o parâmetro de URL contra as abas conhecidas para evitar estado inválido
+  const TAB_KEYS = [
+    'logs',
+    'leitores',
+    'titulos',
+    'usuarios',
+    'movimentacoes',
+    'condicoes',
+  ] as const
+  type TabKey = (typeof TAB_KEYS)[number]
+  const tabFromUrl = searchParams.get('tab') as TabKey | null
+  const [activeTab, setActiveTab] = useState<TabKey>(
+    tabFromUrl && TAB_KEYS.includes(tabFromUrl) ? tabFromUrl : 'logs',
+  )
 
   // --- ABA 1: LOGS / HISTÓRICO GERAL ---
   const [logs, setLogs] = useState<HistoricoDetailed[]>([])
@@ -503,9 +513,9 @@ export default function Historico() {
     if (tipo && tipo !== tipoFiltroLogs) {
       setTipoFiltroLogs(tipo)
     }
-    const tab = searchParams.get('tab')
-    if (tab && tab !== activeTab) {
-      setActiveTab(tab as any)
+    const tab = searchParams.get('tab') as TabKey | null
+    if (tab && TAB_KEYS.includes(tab) && tab !== activeTab) {
+      setActiveTab(tab)
     }
   }, [searchParams])
 
@@ -860,10 +870,14 @@ export default function Historico() {
   })
 
   // Exemplares por condição: filtro + agrupamento
-  const filteredCondicoes = condicoesList.filter((ex) => {
+  // (filtragem defensiva: linhas sem objeto ou sem id não derrubam a página)
+  const filteredCondicoes = condicoesList.filter((ex: any) => {
+    if (!ex) return false
     const col = (
-      (ex as any).titulo?.colecao ||
-      (ex.id_titulo?.toUpperCase().startsWith('DIR-') ? 'diretoria' : 'geral')
+      ex.titulo?.colecao ||
+      (typeof ex.id_titulo === 'string' && ex.id_titulo.toUpperCase().startsWith('DIR-')
+        ? 'diretoria'
+        : 'geral')
     ).toLowerCase()
     if (colecaoCondicoesFilter !== 'all' && col !== colecaoCondicoesFilter) return false
     if (condicaoFiltro !== 'all' && getCondicaoLabel(ex.condicao) !== condicaoFiltro) return false
@@ -891,7 +905,7 @@ export default function Historico() {
   // Grupos por condição na ordem fixa Ótimo → Péssimo
   const condicaoGroups = EXEMPLAR_CONDICOES.map((c) => ({
     condicao: c as string,
-    items: filteredCondicoes.filter((ex) => getCondicaoLabel(ex.condicao) === c),
+    items: filteredCondicoes.filter((ex: any) => getCondicaoLabel(ex?.condicao) === c),
   })).filter((g) => g.items.length > 0)
 
   const totalExemplaresCondicao = filteredCondicoes.length
