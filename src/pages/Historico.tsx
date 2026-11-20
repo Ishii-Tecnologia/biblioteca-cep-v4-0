@@ -586,7 +586,7 @@ export default function Historico() {
         (customInicio !== undefined ? customInicio : dataInicioLogs).trim() || undefined,
         (customFim !== undefined ? customFim : dataFimLogs).trim() || undefined,
       )
-      setLogs(data)
+      setLogs(Array.isArray(data) ? data : [])
     } catch (err: any) {
       toast({
         title: 'Erro ao carregar histórico',
@@ -636,7 +636,7 @@ export default function Historico() {
     try {
       setLoadingLeitores(true)
       const data = await HistoricoService.getLeitoresReport()
-      setLeitoresList(data)
+      setLeitoresList(Array.isArray(data) ? data : [])
     } catch (err: any) {
       toast({
         title: 'Erro ao carregar relatório de leitores',
@@ -653,7 +653,7 @@ export default function Historico() {
     try {
       setLoadingTitulos(true)
       const data = await HistoricoService.getTitulosComExemplares()
-      setTitulosList(data)
+      setTitulosList(Array.isArray(data) ? data : [])
     } catch (err: any) {
       toast({
         title: 'Erro ao carregar títulos e exemplares',
@@ -669,11 +669,14 @@ export default function Historico() {
   const fetchCondicoes = async () => {
     try {
       setLoadingCondicoes(true)
-      const data = (await supabase
+      const { data, error } = await supabase
         .from('exemplar')
         .select('*, titulo(*)')
-        .order('id_exemplar', { ascending: true })) as any
-      setCondicoesList((data || []) as ExemplarWithTitulo[])
+        .order('id_exemplar', { ascending: true })
+      if (error) throw error
+      // A resposta do Supabase vem como { data, error }: normalizar para array
+      // antes de guardar no estado (senão .filter quebra com objeto).
+      setCondicoesList((Array.isArray(data) ? data : []) as ExemplarWithTitulo[])
     } catch (err: any) {
       toast({
         title: 'Erro ao carregar exemplares por condição',
@@ -690,7 +693,7 @@ export default function Historico() {
     try {
       setLoadingUsuarios(true)
       const data = await HistoricoService.getUsuariosReport()
-      setUsuariosList(data)
+      setUsuariosList(Array.isArray(data) ? data : [])
     } catch (err: any) {
       toast({
         title: 'Erro ao carregar relatório de usuários',
@@ -710,7 +713,7 @@ export default function Historico() {
         (customInicio !== undefined ? customInicio : dataInicioMov).trim() || undefined,
         (customFim !== undefined ? customFim : dataFimMov).trim() || undefined,
       )
-      setMovimentacoesList(data)
+      setMovimentacoesList(Array.isArray(data) ? data : [])
     } catch (err: any) {
       toast({
         title: 'Erro ao carregar movimentações',

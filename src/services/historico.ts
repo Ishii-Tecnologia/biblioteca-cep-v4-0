@@ -473,7 +473,7 @@ export const HistoricoService = {
 
     const now = new Date()
     return (data || []).map((l: any) => {
-      const loans = l.emprestimo || []
+      const loans = Array.isArray(l.emprestimo) ? l.emprestimo : []
       const activeLoans = loans.filter((lo: any) => !lo.data_devolucao_real)
       const overdueLoans = activeLoans.filter((lo: any) => {
         if (lo.atraso) return true
