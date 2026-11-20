@@ -29,6 +29,7 @@ import {
   Exemplar,
   EXEMPLAR_CONDICOES,
   getCondicaoLabel,
+  getCondicaoBadgeClasses,
 } from '@/services/exemplares'
 import { TituloWithStats } from '@/services/titulos'
 import {
@@ -234,18 +235,6 @@ export const CopiesModal: React.FC<CopiesModalProps> = ({ isOpen, onClose, book,
       setDeleteLoading(false)
     }
   }
-
-  // Cores da badge de condição de conservação (verde = melhor estado → vermelho = pior)
-  const CONDICAO_BADGE_CLASSES: Record<string, string> = {
-    Ótimo: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
-    Bom: 'bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30',
-    Regular: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30',
-    Ruim: 'bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30',
-    Péssimo: 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30',
-  }
-
-  const getCondicaoBadgeClasses = (condicao?: string | null) =>
-    CONDICAO_BADGE_CLASSES[getCondicaoLabel(condicao)] || CONDICAO_BADGE_CLASSES['Bom']
 
   // Troca rápida de condição direto no selo da listagem (atalho — a edição completa
   // pelo formulário do lápis continua disponível). Persiste via updateStatus,

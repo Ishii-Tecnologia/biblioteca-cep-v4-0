@@ -7,6 +7,13 @@ import { formatDate, formatDateTime, formatPhone } from '@/lib/utils'
 import { exportToCsv } from '@/lib/csv'
 import { getCsvSeparador } from '@/services/parametros'
 import { AuditoriaJobService, AuditoriaJobConfig } from '@/services/auditoria-job'
+import {
+  EXEMPLAR_CONDICOES,
+  ExemplarCondicao,
+  ExemplarWithTitulo,
+  getCondicaoBadgeClasses,
+  getCondicaoLabel,
+} from '@/services/exemplares'
 import { DatePickerBR } from '@/components/DatePickerBR'
 import {
   History,
@@ -35,6 +42,7 @@ import {
   Bookmark,
   Wrench,
   RotateCcw,
+  Tag,
 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -68,6 +76,7 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
+import { supabase } from '@/lib/supabase/client'
 
 export default function Historico() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -78,7 +87,7 @@ export default function Historico() {
 
   // Tab state
   const [activeTab, setActiveTab] = useState<
-    'logs' | 'leitores' | 'titulos' | 'usuarios' | 'movimentacoes'
+    'logs' | 'leitores' | 'titulos' | 'usuarios' | 'movimentacoes' | 'condicoes'
   >((searchParams.get('tab') as any) || 'logs')
 
   // --- ABA 1: LOGS / HISTÓRICO GERAL ---
@@ -130,6 +139,16 @@ export default function Historico() {
   const [colecaoMovFilter, setColecaoMovFilter] = useState<'all' | 'geral' | 'diretoria'>('all')
   const [searchMov, setSearchMov] = useState('')
 
+  // --- ABA 5: EXEMPLARES POR CONDIÇÃO ---
+  const [condicoesList, setCondicoesList] = useState<ExemplarWithTitulo[]>([])
+  const [loadingCondicoes, setLoadingCondicoes] = useState(false)
+  const [searchCondicoes, setSearchCondicoes] = useState('')
+  const [colecaoCondicoesFilter, setColecaoCondicoesFilter] = useState<
+    'all' | 'geral' | 'diretoria'
+  >('all')
+  const [condicaoFiltro, setCondicaoFiltro] = useState<string>('all')
+  const [statusCondicoesFilter, setStatusCondicoesFilter] = useState('all')
+
   // --- CHAVES LOCALSTORAGE PARA PERSISTÊNCIA DE COLUNAS E ORDENAÇÃO ---
   const STORAGE_KEYS = {
     logs: 'biblioteca_cep_relatorio_cols_logs',
@@ -137,11 +156,13 @@ export default function Historico() {
     titulos: 'biblioteca_cep_relatorio_cols_titulos',
     usuarios: 'biblioteca_cep_relatorio_cols_usuarios',
     movimentacoes: 'biblioteca_cep_relatorio_cols_movimentacoes',
+    condicoes: 'biblioteca_cep_relatorio_cols_condicoes',
     orderLogs: 'biblioteca_cep_relatorio_order_logs',
     orderLeitores: 'biblioteca_cep_relatorio_order_leitores',
     orderTitulos: 'biblioteca_cep_relatorio_order_titulos',
     orderUsuarios: 'biblioteca_cep_relatorio_order_usuarios',
     orderMovimentacoes: 'biblioteca_cep_relatorio_order_movimentacoes',
+    orderCondicoes: 'biblioteca_cep_relatorio_order_condicoes',
   }
 
   // --- SELEÇÃO DE COLUNAS PARA IMPRESSÃO / PDF (COM PERSISTÊNCIA) ---
@@ -253,6 +274,29 @@ export default function Historico() {
     detalhes: true,
   }
 
+  const defaultColsCondicoes = {
+    condicao: true,
+    exemplar: true,
+    titulo: true,
+    acervo: true,
+    autor: true,
+    categoria: true,
+    localizacao: true,
+    status: true,
+  }
+
+  const [colsCondicoes, setColsCondicoes] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.condicoes)
+      if (saved) {
+        return { ...defaultColsCondicoes, ...JSON.parse(saved) }
+      }
+    } catch (e) {
+      console.error('Erro ao ler colunas de condições do localStorage', e)
+    }
+    return defaultColsCondicoes
+  })
+
   const [colsMovimentacoes, setColsMovimentacoes] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.movimentacoes)
@@ -312,6 +356,16 @@ export default function Historico() {
       if (saved) return JSON.parse(saved)
     } catch (e) {
       console.error('Erro ao ler ordenação de movimentações do localStorage', e)
+    }
+    return {}
+  })
+
+  const [orderCondicoes, setOrderCondicoes] = useState<Record<string, number>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.orderCondicoes)
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.error('Erro ao ler ordenação de condições do localStorage', e)
     }
     return {}
   })
@@ -386,6 +440,14 @@ export default function Historico() {
 
   useEffect(() => {
     try {
+      localStorage.setItem(STORAGE_KEYS.condicoes, JSON.stringify(colsCondicoes))
+    } catch (e) {
+      console.error('Erro ao salvar colunas de condições no localStorage', e)
+    }
+  }, [colsCondicoes])
+
+  useEffect(() => {
+    try {
       localStorage.setItem(STORAGE_KEYS.orderLogs, JSON.stringify(orderLogs))
     } catch (e) {
       console.error('Erro ao salvar ordenação de logs no localStorage', e)
@@ -423,6 +485,14 @@ export default function Historico() {
       console.error('Erro ao salvar ordenação de movimentações no localStorage', e)
     }
   }, [orderMovimentacoes])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.orderCondicoes, JSON.stringify(orderCondicoes))
+    } catch (e) {
+      console.error('Erro ao salvar ordenação de condições no localStorage', e)
+    }
+  }, [orderCondicoes])
 
   // Check admin
   const isAdmin = profile?.role === 'admin'
@@ -585,6 +655,26 @@ export default function Historico() {
     }
   }
 
+  // Load exemplares por condição
+  const fetchCondicoes = async () => {
+    try {
+      setLoadingCondicoes(true)
+      const data = (await supabase
+        .from('exemplar')
+        .select('*, titulo(*)')
+        .order('id_exemplar', { ascending: true })) as any
+      setCondicoesList((data || []) as ExemplarWithTitulo[])
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao carregar exemplares por condição',
+        description: err.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setLoadingCondicoes(false)
+    }
+  }
+
   // Load usuarios
   const fetchUsuarios = async () => {
     try {
@@ -650,6 +740,8 @@ export default function Historico() {
       fetchUsuarios()
     } else if (activeTab === 'movimentacoes') {
       fetchMovimentacoes()
+    } else if (activeTab === 'condicoes') {
+      fetchCondicoes()
     }
   }, [activeTab])
 
@@ -766,6 +858,112 @@ export default function Historico() {
       acervoLabel.includes(q)
     )
   })
+
+  // Exemplares por condição: filtro + agrupamento
+  const filteredCondicoes = condicoesList.filter((ex) => {
+    const col = (
+      (ex as any).titulo?.colecao ||
+      (ex.id_titulo?.toUpperCase().startsWith('DIR-') ? 'diretoria' : 'geral')
+    ).toLowerCase()
+    if (colecaoCondicoesFilter !== 'all' && col !== colecaoCondicoesFilter) return false
+    if (condicaoFiltro !== 'all' && getCondicaoLabel(ex.condicao) !== condicaoFiltro) return false
+    if (statusCondicoesFilter !== 'all') {
+      const st = (ex.status || '').toLowerCase()
+      if (statusCondicoesFilter === 'disponivel' && !st.includes('dispon')) return false
+      if (statusCondicoesFilter === 'emprestado' && !st.includes('emprest')) return false
+      if (
+        statusCondicoesFilter === 'manutencao' &&
+        !st.includes('manut')
+      )
+        return false
+      if (statusCondicoesFilter === 'outros') {
+        if (st.includes('dispon') || st.includes('emprest') || st.includes('manut')) return false
+      }
+    }
+    if (!searchCondicoes) return true
+    const q = searchCondicoes.toLowerCase()
+    const titulo: any = (ex as any).titulo
+    return (
+      ex.id_exemplar?.toLowerCase().includes(q) ||
+      (titulo?.titulo_de_livro || '').toLowerCase().includes(q) ||
+      (titulo?.autor || '').toLowerCase().includes(q) ||
+      (titulo?.categoria || '').toLowerCase().includes(q) ||
+      (ex.localizacao || '').toLowerCase().includes(q)
+    )
+  })
+
+  // Grupos por condição na ordem fixa Ótimo → Péssimo
+  const condicaoGroups = EXEMPLAR_CONDICOES.map((c) => ({
+    condicao: c as string,
+    items: filteredCondicoes.filter((ex) => getCondicaoLabel(ex.condicao) === c),
+  })).filter((g) => g.items.length > 0)
+
+  const totalExemplaresCondicao = filteredCondicoes.length
+
+  // Ordenação das linhas do relatório de condições (por coluna, 1..N)
+  const sortCondicoesData = (rows: ExemplarWithTitulo[]) => {
+    const sorted = [...rows]
+    const activeOrder = Object.entries(orderCondicoes).sort((a, b) => a[1] - b[1])
+    if (activeOrder.length === 0) return sorted
+    sorted.sort((a: any, b: any) => {
+      for (const [colKey] of activeOrder) {
+        let valA: any = ''
+        let valB: any = ''
+        if (colKey === 'condicao') {
+          valA = EXEMPLAR_CONDICOES.indexOf(getCondicaoLabel(a.condicao) as ExemplarCondicao)
+          valB = EXEMPLAR_CONDICOES.indexOf(getCondicaoLabel(b.condicao) as ExemplarCondicao)
+        } else if (colKey === 'exemplar') {
+          valA = (a.id_exemplar || '').toLowerCase()
+          valB = (b.id_exemplar || '').toLowerCase()
+        } else if (colKey === 'titulo') {
+          valA = ((a as any).titulo?.titulo_de_livro || '').toLowerCase()
+          valB = ((b as any).titulo?.titulo_de_livro || '').toLowerCase()
+        } else if (colKey === 'acervo') {
+          valA = (a as any).titulo?.colecao || (a.id_titulo?.startsWith('DIR-') ? 'diretoria' : 'geral')
+          valB = (b as any).titulo?.colecao || (b.id_titulo?.startsWith('DIR-') ? 'diretoria' : 'geral')
+        } else if (colKey === 'autor') {
+          valA = ((a as any).titulo?.autor || '').toLowerCase()
+          valB = ((b as any).titulo?.autor || '').toLowerCase()
+        } else if (colKey === 'categoria') {
+          valA = ((a as any).titulo?.categoria || '').toLowerCase()
+          valB = ((b as any).titulo?.categoria || '').toLowerCase()
+        } else if (colKey === 'localizacao') {
+          valA = (a.localizacao || '').toLowerCase()
+          valB = (b.localizacao || '').toLowerCase()
+        } else if (colKey === 'status') {
+          valA = (a.status || '').toLowerCase()
+          valB = (b.status || '').toLowerCase()
+        }
+        if (valA < valB) return -1
+        if (valA > valB) return 1
+      }
+      return 0
+    })
+    return sorted
+  }
+
+  // Export CSV do relatório de exemplares por condição
+  const handleExportCondicoes = () => {
+    const rows = sortCondicoesData(filteredCondicoes)
+    const exportData = rows.map((ex: any) => {
+      const row: Record<string, any> = {}
+      if (colsCondicoes.condicao) row['Condição'] = getCondicaoLabel(ex.condicao)
+      if (colsCondicoes.exemplar) row['Exemplar'] = ex.id_exemplar || '-'
+      if (colsCondicoes.titulo) row['Título'] = ex.titulo?.titulo_de_livro || '-'
+      if (colsCondicoes.acervo)
+        row['Acervo'] = (ex.titulo?.colecao || (ex.id_titulo?.startsWith('DIR-') ? 'diretoria' : 'geral')) === 'diretoria' ? 'Diretoria' : 'Geral'
+      if (colsCondicoes.autor) row['Autor'] = ex.titulo?.autor || 'Não informado'
+      if (colsCondicoes.categoria) row['Categoria'] = ex.titulo?.categoria || '-'
+      if (colsCondicoes.localizacao) row['Localização'] = ex.localizacao || 'Padrão'
+      if (colsCondicoes.status) row['Status'] = ex.status || '-'
+      if (Object.keys(row).length === 0) {
+        row['Condição'] = getCondicaoLabel(ex.condicao)
+        row['Exemplar'] = ex.id_exemplar || '-'
+      }
+      return row
+    })
+    exportCSV(exportData, 'relatorio_exemplares_por_condicao')
+  }
 
   // Clean logs handler
   const handleCleanLogs = async () => {
@@ -2071,7 +2269,7 @@ export default function Historico() {
         onValueChange={(val: any) => setActiveTab(val)}
         className="w-full space-y-6"
       >
-        <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 w-full h-auto p-1 bg-muted/60">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 w-full h-auto p-1 bg-muted/60">
           <TabsTrigger value="logs" className="py-2.5 flex items-center gap-2">
             <Activity className="h-4 w-4" />
             <span>Auditoria (Logs)</span>
@@ -2091,6 +2289,10 @@ export default function Historico() {
           <TabsTrigger value="movimentacoes" className="py-2.5 flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             <span>Movimentações</span>
+          </TabsTrigger>
+          <TabsTrigger value="condicoes" className="py-2.5 flex items-center gap-2">
+            <Tag className="h-4 w-4" />
+            <span>Exemplares por Condição</span>
           </TabsTrigger>
         </TabsList>
 
@@ -3690,6 +3892,293 @@ export default function Historico() {
                       })}
                     </TableBody>
                   </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ----------------- ABA 5: EXEMPLARES POR CONDIÇÃO ----------------- */}
+        <TabsContent value="condicoes" className="space-y-6">
+          <Card className="border-border/60 shadow-sm">
+            <CardHeader className="pb-4">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <div>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <Tag className="h-5 w-5 text-primary" />
+                    Relatório de Exemplares por Condição
+                  </CardTitle>
+                  <CardDescription className="max-w-xl">
+                    Listagem de todos os exemplares físicos agrupados pela condição de conservação
+                    (Ótimo, Bom, Regular, Ruim e Péssimo), com os mesmos selos coloridos do modal
+                    Gerenciar Exemplares.
+                  </CardDescription>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-1.5">
+                        <SlidersHorizontal className="h-4 w-4" />
+                        Colunas na Impressão
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-3" align="end">
+                      <div className="space-y-2.5">
+                        <div className="text-xs font-semibold text-foreground border-b pb-1.5 flex items-center justify-between">
+                          <span>Colunas do Relatório</span>
+                          <span className="text-[10px] text-muted-foreground">Impressão / PDF</span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-tight">
+                          Marque para exibir. Clique no numeral para definir a ordem sequencial
+                          (1..N) de classificação do relatório.
+                        </p>
+                        <div className="space-y-1.5 pt-1">
+                          {[
+                            { key: 'condicao', label: 'Condição' },
+                            { key: 'exemplar', label: 'Código do Exemplar' },
+                            { key: 'titulo', label: 'Título do Livro' },
+                            { key: 'acervo', label: 'Acervo' },
+                            { key: 'autor', label: 'Autor' },
+                            { key: 'categoria', label: 'Categoria' },
+                            { key: 'localizacao', label: 'Localização' },
+                            { key: 'status', label: 'Status' },
+                          ].map((col) => {
+                            const isChecked = (colsCondicoes as any)[col.key]
+                            const orderNum = orderCondicoes[col.key]
+                            return (
+                              <div
+                                key={col.key}
+                                className="flex items-center justify-between gap-2 text-xs py-0.5 hover:bg-muted/40 px-1 rounded transition-colors"
+                              >
+                                <label className="flex items-center gap-2 cursor-pointer flex-1">
+                                  <Checkbox
+                                    checked={isChecked}
+                                    onCheckedChange={(v) =>
+                                      setColsCondicoes((prev) => ({ ...prev, [col.key]: !!v }))
+                                    }
+                                  />
+                                  <span className="truncate">{col.label}</span>
+                                </label>
+                                <button
+                                  type="button"
+                                  title={
+                                    orderNum
+                                      ? `Prioridade de ordenação: ${orderNum}º (clique para remover)`
+                                      : 'Clique para definir prioridade de ordenação neste relatório'
+                                  }
+                                  onClick={() =>
+                                    toggleColumnOrder(orderCondicoes, setOrderCondicoes, col.key)
+                                  }
+                                  className={`h-5 min-w-[22px] px-1 text-[11px] font-bold rounded flex items-center justify-center border transition-all ${
+                                    orderNum
+                                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                                      : 'bg-muted/60 text-muted-foreground border-dashed border-border hover:border-primary hover:text-foreground'
+                                  }`}
+                                >
+                                  {orderNum || '—'}
+                                </button>
+                              </div>
+                            )
+                          })}
+                        </div>
+                        {Object.keys(orderCondicoes).length > 0 && (
+                          <div className="pt-2 border-t flex justify-end">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setOrderCondicoes({})}
+                              className="h-6 text-[11px] px-2 text-muted-foreground hover:text-foreground"
+                            >
+                              Limpar ordenação
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportCondicoes}
+                    className="gap-1.5"
+                  >
+                    <Download className="h-4 w-4" />
+                    Exportar CSV
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrintCondicoes}
+                    className="gap-1.5"
+                  >
+                    <Printer className="h-4 w-4" />
+                    Imprimir / PDF
+                  </Button>
+                </div>
+              </div>
+
+              {/* Filtros de Exemplares por Condição */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar exemplar, título, autor..."
+                    value={searchCondicoes}
+                    onChange={(e) => setSearchCondicoes(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+
+                <Select
+                  value={condicaoFiltro}
+                  onValueChange={setCondicaoFiltro}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Condição: Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Condição: Todas</SelectItem>
+                    {EXEMPLAR_CONDICOES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={statusCondicoesFilter}
+                  onValueChange={setStatusCondicoesFilter}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status: Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Status: Todos</SelectItem>
+                    <SelectItem value="disponivel">Disponível</SelectItem>
+                    <SelectItem value="emprestado">Emprestado</SelectItem>
+                    <SelectItem value="manutencao">Manutenção</SelectItem>
+                    <SelectItem value="outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={colecaoCondicoesFilter}
+                  onValueChange={(val: any) => setColecaoCondicoesFilter(val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Acervo: Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Acervo: Todos</SelectItem>
+                    <SelectItem value="geral">Acervo Geral</SelectItem>
+                    <SelectItem value="diretoria">Acervo Diretoria</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <div className="text-sm text-muted-foreground flex items-center justify-end">
+                  Total de exemplares:{' '}
+                  <strong className="ml-1 text-foreground">{totalExemplaresCondicao}</strong>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent>
+              {loadingCondicoes ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((n) => (
+                    <Skeleton key={n} className="h-24 w-full" />
+                  ))}
+                </div>
+              ) : filteredCondicoes.length === 0 ? (
+                <div className="text-center py-12 border rounded-lg border-dashed bg-muted/20">
+                  <Tag className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                  <p className="text-base font-medium text-foreground">
+                    Nenhum exemplar encontrado
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Tente alterar os filtros de condição, status ou acervo.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {/* Total geral */}
+                  <div className="flex items-center justify-between px-3 py-2.5 rounded-md bg-primary/5 border border-primary/20">
+                    <span className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <BarChart2 className="h-4 w-4 text-primary" />
+                      Total geral
+                    </span>
+                    <Badge className="bg-primary/10 text-primary border-primary/20 font-bold">
+                      {totalExemplaresCondicao} exemplar(es)
+                    </Badge>
+                  </div>
+
+                  {condicaoGroups.map((group) => (
+                    <div
+                      key={group.condicao}
+                      className="rounded-lg border border-border/80 bg-card overflow-hidden"
+                    >
+                      <div
+                        className={`flex items-center justify-between px-4 py-2.5 border-b border-border/60 ${getCondicaoBadgeClasses(group.condicao).split(' ').slice(0, 2).join(' ')}`}
+                      >
+                        <span className="font-bold text-sm flex items-center gap-2">
+                          {group.condicao}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="text-xs font-bold bg-background/60"
+                        >
+                          {group.items.length}{' '}
+                          {group.items.length === 1 ? 'exemplar' : 'exemplares'}
+                        </Badge>
+                        </span>
+                      </div>
+                      <div className="p-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                          {group.items.map((ex: any) => {
+                            const statusColor =
+                              ex.status === 'DISPONIVEL' || ex.status === 'Disponivel'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : ex.status === 'EMPRESTADO' || ex.status === 'Emprestado'
+                                  ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                  : 'bg-amber-50 text-amber-700 border-amber-200'
+
+                            return (
+                              <div
+                                key={ex.id_exemplar}
+                                className="p-2.5 rounded border border-border/60 bg-muted/20 flex flex-col justify-between gap-1 text-xs"
+                              >
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="font-mono font-bold text-foreground">
+                                    {ex.id_exemplar}
+                                  </span>
+                                  <span
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-medium border shrink-0 ${statusColor}`}
+                                  >
+                                    {ex.status}
+                                  </span>
+                                </div>
+                                <span className="text-[11px] font-semibold text-foreground truncate">
+                                  {ex.titulo?.titulo_de_livro || 'Título não encontrado'}
+                                </span>
+                                <span className="text-[11px] text-muted-foreground truncate">
+                                  Local: {ex.localizacao || 'Padrão'}
+                                </span>
+                                <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                                  <Badge
+                                    className={`px-1.5 py-0.5 text-[10px] ${getCondicaoBadgeClasses(ex.condicao)}`}
+                                  >
+                                    Condição: {getCondicaoLabel(ex.condicao)}
+                                  </Badge>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
