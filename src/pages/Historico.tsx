@@ -871,11 +871,7 @@ export default function Historico() {
       const st = (ex.status || '').toLowerCase()
       if (statusCondicoesFilter === 'disponivel' && !st.includes('dispon')) return false
       if (statusCondicoesFilter === 'emprestado' && !st.includes('emprest')) return false
-      if (
-        statusCondicoesFilter === 'manutencao' &&
-        !st.includes('manut')
-      )
-        return false
+      if (statusCondicoesFilter === 'manutencao' && !st.includes('manut')) return false
       if (statusCondicoesFilter === 'outros') {
         if (st.includes('dispon') || st.includes('emprest') || st.includes('manut')) return false
       }
@@ -919,8 +915,10 @@ export default function Historico() {
           valA = ((a as any).titulo?.titulo_de_livro || '').toLowerCase()
           valB = ((b as any).titulo?.titulo_de_livro || '').toLowerCase()
         } else if (colKey === 'acervo') {
-          valA = (a as any).titulo?.colecao || (a.id_titulo?.startsWith('DIR-') ? 'diretoria' : 'geral')
-          valB = (b as any).titulo?.colecao || (b.id_titulo?.startsWith('DIR-') ? 'diretoria' : 'geral')
+          valA =
+            (a as any).titulo?.colecao || (a.id_titulo?.startsWith('DIR-') ? 'diretoria' : 'geral')
+          valB =
+            (b as any).titulo?.colecao || (b.id_titulo?.startsWith('DIR-') ? 'diretoria' : 'geral')
         } else if (colKey === 'autor') {
           valA = ((a as any).titulo?.autor || '').toLowerCase()
           valB = ((b as any).titulo?.autor || '').toLowerCase()
@@ -951,7 +949,11 @@ export default function Historico() {
       if (colsCondicoes.exemplar) row['Exemplar'] = ex.id_exemplar || '-'
       if (colsCondicoes.titulo) row['Título'] = ex.titulo?.titulo_de_livro || '-'
       if (colsCondicoes.acervo)
-        row['Acervo'] = (ex.titulo?.colecao || (ex.id_titulo?.startsWith('DIR-') ? 'diretoria' : 'geral')) === 'diretoria' ? 'Diretoria' : 'Geral'
+        row['Acervo'] =
+          (ex.titulo?.colecao || (ex.id_titulo?.startsWith('DIR-') ? 'diretoria' : 'geral')) ===
+          'diretoria'
+            ? 'Diretoria'
+            : 'Geral'
       if (colsCondicoes.autor) row['Autor'] = ex.titulo?.autor || 'Não informado'
       if (colsCondicoes.categoria) row['Categoria'] = ex.titulo?.categoria || '-'
       if (colsCondicoes.localizacao) row['Localização'] = ex.localizacao || 'Padrão'
@@ -963,6 +965,176 @@ export default function Historico() {
       return row
     })
     exportCSV(exportData, 'relatorio_exemplares_por_condicao')
+  }
+
+  // Print/Export PDF function for Relatório de Exemplares por Condição
+  const handlePrintCondicoes = () => {
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) {
+      toast({
+        title: 'Bloqueio de pop-up detectado',
+        description: 'Permita pop-ups no seu navegador para imprimir ou gerar PDF.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const rows = sortCondicoesData(filteredCondicoes)
+    const groups = EXEMPLAR_CONDICOES.map((c) => ({
+      condicao: c as string,
+      items: rows.filter((ex) => getCondicaoLabel(ex.condicao) === c),
+    })).filter((g) => g.items.length > 0)
+
+    const visibleColsCount = Object.values(colsCondicoes).filter(Boolean).length || 1
+
+    const ths: string[] = []
+    if (colsCondicoes.condicao) ths.push('<th>Condição</th>')
+    if (colsCondicoes.exemplar) ths.push('<th>Código do Exemplar</th>')
+    if (colsCondicoes.titulo) ths.push('<th>Título do Livro</th>')
+    if (colsCondicoes.acervo) ths.push('<th>Acervo</th>')
+    if (colsCondicoes.autor) ths.push('<th>Autor</th>')
+    if (colsCondicoes.categoria) ths.push('<th>Categoria</th>')
+    if (colsCondicoes.localizacao) ths.push('<th>Localização</th>')
+    if (colsCondicoes.status) ths.push('<th>Status</th>')
+
+    const escapeHtml = (value: any) =>
+      String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+
+    const groupsHtml = groups
+      .map((group) => {
+        const headerLabel = escapeHtml(group.condicao)
+        const groupRows = group.items
+          .map((ex: any) => {
+            const tds: string[] = []
+            const acervoLabel =
+              (ex.titulo?.colecao || (ex.id_titulo?.startsWith('DIR-') ? 'diretoria' : 'geral')) ===
+              'diretoria'
+                ? 'Diretoria'
+                : 'Geral'
+            if (colsCondicoes.condicao) {
+              tds.push(
+                `<td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${escapeHtml(getCondicaoLabel(ex.condicao))}</td>`,
+              )
+            }
+            if (colsCondicoes.exemplar) {
+              tds.push(
+                `<td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0; font-family: monospace;">${escapeHtml(ex.id_exemplar || '-')}</td>`,
+              )
+            }
+            if (colsCondicoes.titulo) {
+              tds.push(
+                `<td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0; font-weight: 600;">${escapeHtml(ex.titulo?.titulo_de_livro || 'Título não encontrado')}</td>`,
+              )
+            }
+            if (colsCondicoes.acervo) {
+              tds.push(
+                `<td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0;">${escapeHtml(acervoLabel)}</td>`,
+              )
+            }
+            if (colsCondicoes.autor) {
+              tds.push(
+                `<td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0;">${escapeHtml(ex.titulo?.autor || 'Não informado')}</td>`,
+              )
+            }
+            if (colsCondicoes.categoria) {
+              tds.push(
+                `<td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0;">${escapeHtml(ex.titulo?.categoria || '-')}</td>`,
+              )
+            }
+            if (colsCondicoes.localizacao) {
+              tds.push(
+                `<td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0;">${escapeHtml(ex.localizacao || 'Padrão')}</td>`,
+              )
+            }
+            if (colsCondicoes.status) {
+              tds.push(
+                `<td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0;">${escapeHtml(ex.status || '-')}</td>`,
+              )
+            }
+            if (tds.length === 0) {
+              tds.push(
+                `<td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${escapeHtml(getCondicaoLabel(ex.condicao))}</td>`,
+              )
+              tds.push(
+                `<td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0; font-family: monospace;">${escapeHtml(ex.id_exemplar || '-')}</td>`,
+              )
+            }
+            return `<tr>${tds.join('')}</tr>`
+          })
+          .join('')
+
+        const colspan = ths.length || visibleColsCount
+        return `
+          <tr style="background-color: #f1f5f9;">
+            <td colspan="${colspan}" style="padding: 8px; font-weight: bold; text-transform: uppercase; font-size: 11px; color: #334155; border-bottom: 2px solid #cbd5e1;">
+              ${headerLabel} — ${group.items.length} ${group.items.length === 1 ? 'exemplar' : 'exemplares'}
+            </td>
+          </tr>
+          ${groupRows || `<tr><td colspan="${colspan}" style="text-align: center; padding: 12px;">Nenhum exemplar nesta condição.</td></tr>`}
+        `
+      })
+      .join('')
+
+    const dateToday = formatDate(new Date())
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Relatório de Exemplares por Condição - Biblioteca CEP</title>
+          <style>
+            @media print {
+              @page { size: landscape; margin: 12mm; }
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 12px; color: #1e293b; margin: 20px; }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #059669; padding-bottom: 10px; margin-bottom: 15px; }
+            .title { font-size: 18px; font-weight: bold; color: #065f46; margin: 0; }
+            .subtitle { font-size: 11px; color: #64748b; margin-top: 4px; }
+            .meta { text-align: right; font-size: 11px; color: #64748b; }
+            table { width: 100%; border-collapse: collapse; text-align: left; }
+            th { background-color: #f8fafc; padding: 8px; border-bottom: 2px solid #cbd5e1; font-weight: 600; color: #475569; font-size: 11px; text-transform: uppercase; }
+            .summary { margin-top: 15px; padding: 10px; background-color: #f1f5f9; border-radius: 6px; font-size: 11px; display: flex; justify-content: space-between; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <h1 class="title">Biblioteca CEP - Relatório de Exemplares por Condição</h1>
+              <div class="subtitle">Listagem de exemplares físicos classificados pela condição de conservação (Ótimo, Bom, Regular, Ruim, Péssimo)</div>
+            </div>
+            <div class="meta">
+              <div><strong>Data de Emissão:</strong> ${dateToday}</div>
+              <div><strong>Total Listado:</strong> ${filteredCondicoes.length} exemplar(es)</div>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                ${ths.join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${groupsHtml || `<tr><td colspan="${visibleColsCount}" style="text-align: center; padding: 20px;">Nenhum exemplar encontrado.</td></tr>`}
+            </tbody>
+          </table>
+          <div class="summary">
+            <div>Condição: <strong>${condicaoFiltro === 'all' ? 'Todas' : condicaoFiltro}</strong> · Status: <strong>${statusCondicoesFilter === 'all' ? 'Todos' : statusCondicoesFilter}</strong> · Acervo: <strong>${colecaoCondicoesFilter === 'all' ? 'Todos' : colecaoCondicoesFilter === 'diretoria' ? 'Diretoria' : 'Geral'}</strong></div>
+            <div>Documento gerado pelo sistema Biblioteca CEP</div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.focus();
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
   }
 
   // Clean logs handler
@@ -4030,10 +4202,7 @@ export default function Historico() {
                   />
                 </div>
 
-                <Select
-                  value={condicaoFiltro}
-                  onValueChange={setCondicaoFiltro}
-                >
+                <Select value={condicaoFiltro} onValueChange={setCondicaoFiltro}>
                   <SelectTrigger>
                     <SelectValue placeholder="Condição: Todas" />
                   </SelectTrigger>
@@ -4047,10 +4216,7 @@ export default function Historico() {
                   </SelectContent>
                 </Select>
 
-                <Select
-                  value={statusCondicoesFilter}
-                  onValueChange={setStatusCondicoesFilter}
-                >
+                <Select value={statusCondicoesFilter} onValueChange={setStatusCondicoesFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="Status: Todos" />
                   </SelectTrigger>
@@ -4125,14 +4291,10 @@ export default function Historico() {
                         <span className="font-bold text-sm flex items-center gap-2">
                           {group.condicao}
                         </span>
-                        <Badge
-                          variant="outline"
-                          className="text-xs font-bold bg-background/60"
-                        >
+                        <Badge variant="outline" className="text-xs font-bold bg-background/60">
                           {group.items.length}{' '}
                           {group.items.length === 1 ? 'exemplar' : 'exemplares'}
                         </Badge>
-                        </span>
                       </div>
                       <div className="p-3">
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">

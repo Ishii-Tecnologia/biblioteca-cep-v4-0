@@ -823,13 +823,13 @@ export default function Manual() {
           number: 1,
           title: 'Acessar o Módulo de Relatórios e Histórico',
           detail:
-            'No menu principal superior, clique no item "Histórico" (ou navegue até a tela Histórico e Auditoria). A página reúne cinco relatórios completos organizados em abas.',
+            'No menu principal superior, clique no item "Histórico" (ou navegue até a tela Histórico e Auditoria). A página reúne seis relatórios completos organizados em abas.',
         },
         {
           number: 2,
           title: 'Selecionar a Aba do Relatório Desejado',
           detail:
-            'Escolha a aba conforme o tipo de informação que precisa extrair: "Títulos e Exemplares" (catálogo completo de obras do acervo, autor, editora, quantidade e códigos de exemplares físicos), "Auditoria (Logs)" (registro cronológico de todas as ações de operadores), "Leitores" (relação de pessoas cadastradas, telefones e empréstimos), "Usuários" (equipe com permissão de operador ou administrador) ou "Movimentações" (empréstimos e reservas filtrados por intervalo de datas).',
+            'Escolha a aba conforme o tipo de informação que precisa extrair: "Títulos e Exemplares" (catálogo completo de obras do acervo, autor, editora, quantidade e códigos de exemplares físicos), "Auditoria (Logs)" (registro cronológico de todas as ações de operadores), "Leitores" (relação de pessoas cadastradas, telefones e empréstimos), "Usuários" (equipe com permissão de operador ou administrador), "Movimentações" (empréstimos e reservas filtrados por intervalo de datas) ou "Exemplares por Condição" (listagem dos exemplares físicos agrupados pela condição de conservação: Ótimo, Bom, Regular, Ruim e Péssimo, com contagem por grupo).',
         },
         {
           number: 3,
@@ -862,6 +862,8 @@ export default function Manual() {
         'Na janela "Colunas na Impressão", ao lado de cada coluna há a marcação de ordenação, que recebe um numeral sequencial começando em 1 até o número máximo de colunas, seguindo a sequência conforme cada coluna é escolhida. Essa sequência define a ordenação do relatório impresso. Se nenhuma coluna for marcada, vale a ordenação padrão.',
         'No relatório de Movimentações por Período, é possível escolher: Tipo de Registro, Data do Evento, Livro / Título, Acervo, Exemplar, Leitor, Status e Detalhes / Previsão.',
         'Nos relatórios de Leitores, Usuários e Logs, cada aba possui sua própria seleção independente de colunas e prioridades de ordenação.',
+        'A aba "Exemplares por Condição" agrupa todos os exemplares físicos do acervo pela condição de conservação — Ótimo, Bom, Regular, Ruim e Péssimo — com o total de exemplares de cada grupo. É possível filtrar por condição, status (Disponível, Emprestado, Manutenção ou Outros) e Acervo (Geral ou Diretoria), além de buscar por código do exemplar, título, autor, categoria ou localização.',
+        'No relatório de Exemplares por Condição, as colunas configuráveis na impressão são: Condição, Código do Exemplar, Título do Livro, Acervo, Autor, Categoria, Localização e Status. Na impressão, os exemplares saem agrupados em blocos por condição, na ordem Ótimo → Péssimo, com o total de cada grupo; também está disponível o botão "Exportar CSV".',
         'Caso a janela de impressão não abra, certifique-se de liberar o bloqueador de pop-ups do navegador para o endereço do sistema.',
       ],
       example: {
